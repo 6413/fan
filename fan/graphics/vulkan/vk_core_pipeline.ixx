@@ -59,6 +59,15 @@ export namespace fan::vulkan {
       std::uint32_t texture_begin = 0
     );
 
+    void update(
+      fan::vulkan::context_t& context,
+      VkDescriptorSet* dst_sets,
+      std::uint32_t n,
+      std::uint32_t begin,
+      std::uint32_t texture_n,
+      std::uint32_t texture_begin = 0
+    );
+
     properties_t m_properties;
     VkDescriptorSetLayout m_layout = VK_NULL_HANDLE;
     VkDescriptorSet m_descriptor_set[fan::vulkan::max_frames_in_flight];
@@ -99,6 +108,7 @@ export namespace fan::vulkan {
     VkPipelineLayout m_layout;
     VkShaderEXT m_shaders[2]; // [0] = Vertex, [1] = Fragment
     properties_t properties;
+    VkDescriptorSet* shader_descriptor_sets = nullptr; // per-shader descriptor sets (custom shader shapes)
   };
 }
 #endif

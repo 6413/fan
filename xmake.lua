@@ -356,7 +356,7 @@ target("a.exe")
   if not is_plat("wasm") and has_config("FAN_WINDOW") then add_deps("nfd") end
   if has_config("FAN_FMT") then add_packages("fmt") end
 
-  if has_config("FAN_2D") then
+if has_config("FAN_2D") then
     add_packages("vulkan-headers", "shaderc")
     if is_plat("linux") then add_syslinks("vulkan") end
   end

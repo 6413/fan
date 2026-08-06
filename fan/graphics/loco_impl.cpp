@@ -2479,7 +2479,7 @@ void loco_t::shape_open(
   fan::graphics::shaper_t::BlockProperties_t::vk_t vk;
 
   // 2 for rect instance, upv
-  static constexpr auto vulkan_buffer_count = 3;
+  static constexpr auto vulkan_buffer_count = 4;
   decltype(vk.shape_data.m_descriptor)::properties_t rectp;
   auto& shaderd = *(fan::vulkan::shader_t*)gloco()->context_functions.shader_get(&gloco()->context.vk, shader);
   std::uint32_t ds_offset = 2;
@@ -2515,10 +2515,26 @@ void loco_t::shape_open(
     for (std::uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
       ds_properties[ds_offset].image_infos[i] = imageInfo;
     }
+
+    ds_properties[3].binding = 3;
+    ds_properties[3].dst_binding = 3;
+    ds_properties[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ds_properties[3].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    if (shaderd.uniform_block_valid) {
+      auto& frame = gloco()->get_context().vk.current_frame;
+      ds_properties[3].buffer =
+        shaderd.uniform_block[frame].buffer;
+      ds_properties[3].range =
+        std::max<std::uint32_t>(shader_get_data(shader).uniform_block_size, std::uint32_t(1));
+    }
+    else {
+      ds_properties[3].buffer = shaderd.projection_view_block->common.memory[gloco()->get_context().vk.current_frame].buffer;
+      ds_properties[3].range = shaderd.projection_view_block->m_size;
+    }
   }
 
   vk.shape_data.open_descriptors(gloco()->context.vk, {ds_properties.begin(), ds_properties.end()});
-  vk.shape_data.m_descriptor.update(context.vk, 3, 0);
+  vk.shape_data.m_descriptor.update(context.vk, vulkan_buffer_count, 0);
   fan::vulkan::context_t::pipeline_t p;
   fan::vulkan::context_t::pipeline_t::properties_t pipe_p{};
   VkPipelineColorBlendAttachmentState attachment = fan::vulkan::get_default_color_blend();

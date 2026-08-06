@@ -74,7 +74,6 @@ bool fan::webp::load(
 
   return false;
 }
-
 bool fan::webp::write(fan::str_view_t path, const info_t& image_info, f32_t quality) {
   return fan::webp::write(path, image_info.data, image_info.size, image_info.channels, quality);
 }
