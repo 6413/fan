@@ -1804,12 +1804,6 @@ void shapes_draw() {
       pc.camera_id = camera_id;
       pc.time = (f32_t)(fan::time::now() / 1e9);
       pc.texture_id = texture_id(texture);
-      {
-        std::ofstream _p("drop_probe.txt", std::ios::app);
-        _p << "particles draw tex=" << (unsigned)pc.texture_id
-           << " pool_size=" << context.image_pool.size()
-           << " pool_view=" << (void*)(pc.texture_id < context.image_pool.size() ? context.image_pool[pc.texture_id].imageView : nullptr) << "\n";
-      }
       push(pipeline, pc);
       do {
         auto* pri = (fan::graphics::shapes::particles_t::ri_t*)BlockTraverse.GetData(shaper);

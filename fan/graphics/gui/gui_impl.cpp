@@ -1749,17 +1749,12 @@ namespace fan::graphics::gui {
     gui::render_texture_property(particle_image_sprite, 0, "Particle texture");
     render_image_filter_property(particle_image_sprite, "Particle texture image filter");
     auto editor_image = particle_image_sprite.get_image();
-    if (editor_image != particle_shape.get_image()) {
-      // reload the particle image in place (same NRI) — re-keying a particle
-      // shape erases+re-adds it in the shaper, which corrupts its key tree.
-      auto& new_data = fan::graphics::image_get_data(editor_image);
-      if (!new_data.image_path.empty()) {
-        fan::image::info_t info;
-        if (!fan::image::load(new_data.image_path, &info, 0)) {
-          fan::graphics::image_reload(particle_shape.get_image(), info);
-          fan::image::free(&info);
-        }
-      }
+    auto& editor_data = fan::graphics::image_get_data(editor_image);
+    auto& particle_data = fan::graphics::image_get_data(particle_shape.get_image());
+    if (!editor_data.image_path.empty() && particle_data.image_path != editor_data.image_path) {
+      // reload in place (same NRI) — re-keying a particle shape erases+re-adds
+      // it in the shaper, which corrupts its key tree.
+      fan::graphics::image_reload(particle_shape.get_image(), editor_data.image_path);
     }
     shape_properties(particle_shape);
 
@@ -2155,16 +2150,6 @@ namespace fan::graphics::gui {
     gui::image(current_image, fan::vec2(image_size), uv0, uv1);
     gui::receive_drag_drop_target(receive_drag_drop_target_name, [&, asset_path, index](const std::string& path) {
       auto new_image = fan::graphics::image_load((std::filesystem::path(asset_path) / path).generic_string());
-      {
-        std::ofstream _p("drop_probe.txt", std::ios::app);
-        auto& img_data = fan::graphics::image_get_data(new_image);
-        auto* vk_img = (fan::vulkan::context_t::image_t*)img_data.internal;
-        _p << "drop path=" << path << " asset=" << asset_path
-           << " loaded=" << (int)new_image.valid()
-           << " size=" << img_data.size.x << "x" << img_data.size.y
-           << " gpu_view=" << (void*)(vk_img ? vk_img->image_view : nullptr)
-           << " gpu_img=" << (void*)(vk_img ? vk_img->image_index : nullptr) << "\n";
-      }
       if (index > 0) {
         auto images = shape.get_images();
         images[index - 1] = new_image;
@@ -2172,11 +2157,6 @@ namespace fan::graphics::gui {
       }
       else {
         shape.set_image(new_image);
-      }
-      {
-        std::ofstream _p("drop_probe.txt", std::ios::app);
-        _p << "  after set: get_image=" << (int)shape.get_image().valid()
-           << " type=" << (int)shape.get_shape_type() << "\n";
       }
       shape.set_tc_position(0);
       shape.set_tc_size(1);
