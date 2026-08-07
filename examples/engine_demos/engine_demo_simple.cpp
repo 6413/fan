@@ -123,10 +123,10 @@ struct simple_engine_demo_t {
     fan::vec2 direction = fan::window::get_input_vector();
 
     if (direction.x || direction.y) {
-      rectangles[0].set_position(rectangles[0].get_position() + fan::vec3(direction * 600.f * engine.delta_time, 0));
+      rectangles[0].set_position(rectangles[0].get_position() + fan::vec3(direction * 600.f * engine.get_delta_time(), 0));
     }
 
-    sprites[0].set_angle(sprites[0].get_angle() + fan::vec3(0, 0, engine.delta_time));
+    sprites[0].set_angle(sprites[0].get_angle() + fan::vec3(0, 0, engine.get_delta_time()));
 
     lights[0].set_position(fan::vec3(mouse_position, 0));
     lights[0].set_color(fan::color::hsv(fmod(engine.time * 50, 360), 100, 100));
@@ -136,7 +136,7 @@ struct simple_engine_demo_t {
       fan::vec3 p = circles[i].get_position();
       // Raise the Z value slightly so overlapping shapes don't fight for the same depth
       // This avoids flickering artifacts (z-fighting) when two objects share the same plane
-      p += fan::vec3(circle_velocities[i] * engine.delta_time, 10 + i);
+      p += fan::vec3(circle_velocities[i] * engine.get_delta_time(), 10 + i);
       circles[i].set_position(fan::vec2(p));
     }
 
