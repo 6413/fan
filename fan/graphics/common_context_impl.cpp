@@ -698,6 +698,18 @@ namespace fan::graphics {
     return (*fan::graphics::ctx().shader_list)[nr];
   }
 
+  bool shader_set_value(fan::graphics::shader_nr_t nr, fan::str_view_t name, const void* data, std::size_t size) {
+    auto& sd = shader_get_data(nr);
+    for (auto& u : sd.uniforms) {
+      if (u.name != str_view_to_string(name)) { continue; }
+      if (u.offset >= sd.uniform_blob.size()) { return false; }
+      std::memcpy(sd.uniform_blob.data() + u.offset, data, std::min<std::size_t>(size, u.size));
+      return true;
+    }
+    fan::print("shader_set_value: uniform not found:", name);
+    return false;
+  }
+
   fan::graphics::shader_t get_sprite_shader(const std::string_view fragment_file_path, const fan::str_view_t fragment) {
     auto str = fan::graphics::read_shader("shaders/vulkan/2D/objects/shader_shape.vert");
     return fan::graphics::shader_create(
