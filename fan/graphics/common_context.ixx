@@ -741,6 +741,13 @@ export namespace fan::graphics {
   );
   bool shader_compile(fan::graphics::shader_nr_t nr);
   fan::graphics::shader_list_t::nd_t& shader_get_data(fan::graphics::shader_nr_t nr);
+  // writes bytes into the shader's reflected uniform block (by uniform name).
+  // returns false if the uniform was not found.
+  bool shader_set_value(fan::graphics::shader_nr_t nr, fan::str_view_t name, const void* data, std::size_t size);
+  template <typename T>
+  bool shader_set_value(fan::graphics::shader_nr_t nr, fan::str_view_t name, const T& value) {
+    return shader_set_value(nr, name, &value, sizeof(T));
+  }
   std::string read_shader(
     std::string_view path,
     const std::source_location& callers_path = std::source_location::current()
