@@ -245,6 +245,10 @@ fan::graphics::shader_list_t::nd_t& loco_t::shader_get_data(fan::graphics::shade
   return loco_t::shader_list[shader];
 }
 
+bool loco_t::shader_set_value(fan::graphics::shader_nr_t nr, fan::str_view_t name, const void* data, std::size_t size) {
+  return fan::graphics::shader_set_value(nr, name, data, size);
+}
+
 void loco_t::shader_set_paths(fan::graphics::shader_t shader, std::string_view vertex, std::string_view fragment) {
   auto& sdata = shader_get_data(shader);
   sdata.path_vertex = vertex;

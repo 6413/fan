@@ -669,6 +669,11 @@ public:
   fan::graphics::shader_nr_t shader_get_nr(std::uint16_t shape_type);
   fan::graphics::shader_list_t::nd_t& shader_get_data(std::uint16_t shape_type);
   fan::graphics::shader_list_t::nd_t& shader_get_data(fan::graphics::shader_t shader);
+  bool shader_set_value(fan::graphics::shader_nr_t nr, fan::str_view_t name, const void* data, std::size_t size);
+  template <typename T>
+  bool shader_set_value(fan::graphics::shader_nr_t nr, fan::str_view_t name, const T& value) {
+    return fan::graphics::shader_set_value(nr, name, &value, sizeof(T));
+  }
   void shader_set_paths(fan::graphics::shader_t shader, std::string_view vertex, std::string_view fragment);
   void shader_recompile_all();
   #endif
