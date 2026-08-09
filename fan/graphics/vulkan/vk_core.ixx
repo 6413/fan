@@ -18,20 +18,6 @@ module;
 #include <vk_mem_alloc.h>
 import fan.window;
 
-#if defined(fan_platform_windows)
-  #define WIN32_LEAN_AND_MEAN
-  #define NOMINMAX
-  #include <Windows.h>
-  #define GLFW_EXPOSE_NATIVE_WIN32
-  #define GLFW_EXPOSE_NATIVE_WGL
-  #define GLFW_NATIVE_INCLUDE_NONE
-#endif
-#ifndef GLFW_INCLUDE_NONE
-  #define GLFW_INCLUDE_NONE
-#endif
-#include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
-
 #include <fan/utility.h>
 
 #endif
@@ -48,6 +34,7 @@ export import :image;
 export import :compute;
 export import :pipeline;
 export import :camera_subsystem;
+export import :uniform_block;
 export import :shader_subsystem;
 
 import fan.types;
@@ -374,7 +361,7 @@ export namespace fan {
 
       void setup_debug_messenger();
       #if defined(loco_window)
-      void create_surface(GLFWwindow* window);
+      void create_surface(struct GLFWwindow* window);
       #endif
 
       void pick_physical_device();

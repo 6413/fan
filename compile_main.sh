@@ -27,13 +27,13 @@ PRESET_USED=false
 
 print_usage() {
   cat <<'EOF'
-Usage: ./xcompile_main.sh [mode] [preset] [features] [xmake args...]
+Usage: ./compile_main.sh [mode] [preset] [features] [xmake args...]
 
 Modes:
   --debug | --release | --release-minsize | --asan
   --rebuild
   --main <file>
-  --clang | --gcc
+  --clang | --gcc | --g++
   --wasm
   --buildlib
 
@@ -61,9 +61,9 @@ Legacy enable aliases:
   --audio --network --3d --video --fmt --reflection --wayland-screen --vulkan
 
 Examples:
-  ./xcompile_main.sh --only-network --main examples/network/network_socket.cpp
-  ./xcompile_main.sh --core --enable-network --enable-json
-  ./xcompile_main.sh --2d --disable-audio --release
+  ./compile_main.sh --gcc --only-network --main examples/network/network_socket.cpp
+  ./compile_main.sh --core --enable-network --enable-json
+  ./compile_main.sh --2d --disable-audio --release
 EOF
 }
 
@@ -133,7 +133,7 @@ while [[ $# -gt 0 ]]; do
       MAIN_FILE="$2"
       shift 2
       ;;
-    --gcc)
+    --gcc|--g++)
       COMPILER="gcc"
       shift
       ;;
@@ -182,7 +182,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "$PRESET_USED" == true ]]; then
-  for flag in "${!FEATURE_DEFAULTS[@]}"; do
+  for flag in $(printf '%s\n' "${!FEATURE_DEFAULTS[@]}" | sort); do
     val=${FEATURES[$flag]:-false}
     if [[ "$val" == true ]]; then
       FEATURE_ARGS+=("--${flag}=y")
@@ -191,7 +191,7 @@ if [[ "$PRESET_USED" == true ]]; then
     fi
   done
 elif [[ ${#FEATURES[@]} -gt 0 ]]; then
-  for flag in "${!FEATURES[@]}"; do
+  for flag in $(printf '%s\n' "${!FEATURES[@]}" | sort); do
     if [[ "${FEATURES[$flag]}" == true ]]; then
       FEATURE_ARGS+=("--${flag}=y")
     else
@@ -284,6 +284,8 @@ else
   fi
 fi
 
+CFG_STR="${CONFIG_ARGS[*]} ${FEATURE_ARGS[*]} ${XMAKE_ARGS[*]}"
+
 if [[ "$REBUILD" == true ]]; then
   echo -e "${BLUE}[1/3]${NC} Cleaning build directory..."
   rm -rf build .xmake
@@ -301,10 +303,11 @@ if [[ "$REBUILD" == true ]]; then
     echo -e "${RED}✗ XMake configuration failed!${NC}"
     exit 1
   fi
+  mkdir -p .xmake
+  echo "$CFG_STR" > .xmake/cfg_cache
   echo ""
   echo -e "${BLUE}[3/3]${NC} Building..."
 else
-  CFG_STR="${CONFIG_ARGS[*]} ${FEATURE_ARGS[*]} ${XMAKE_ARGS[*]}"
   if [[ ! -f .xmake/cfg_cache ]] || [[ "$(cat .xmake/cfg_cache 2>/dev/null)" != "$CFG_STR" ]]; then
     echo -e "${BLUE}Configuring...${NC}"
     if ! xmake f -c "${CONFIG_ARGS[@]}" "${FEATURE_ARGS[@]}" "${XMAKE_ARGS[@]}"; then
