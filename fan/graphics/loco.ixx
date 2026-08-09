@@ -28,6 +28,7 @@ import std;
 
 import fan.types;
 import fan.types.color;
+import fan.types.compile_time_string;
 import fan.types.matrix;
 
 import fan.utility; // engine_functions.h member_offset

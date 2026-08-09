@@ -34,7 +34,7 @@
 
 - **Requirements:**
   - C++23 (modules)
-  - Clang >= 20
+  - Clang >= 20 or GCC/G++ with C++23 module support
   - xmake >= v3.0.8 (tested)
   - Ninja >= 1.11.1
 
@@ -48,11 +48,12 @@
     
     (```./uninstall.sh```) to remove repos from /usr/local/include/*
 3. Main usage:
-  -  To compile main use `./xcompile_main.sh`, which also compiles fan
+  - To compile with Clang use `./compile_main.sh`
+  - To compile with GCC/G++ use `./compile_main.sh --gcc` or `./compile_main.sh --g++`
 
 ### Windows
 1. Clone the repository: `git clone https://github.com/6413/fan.git`
-2. Code compiles using Visual Studio, external libraries are to be installed.
+2. Code compiles using Visual Studio, or GCC/G++ through an MSYS2/MinGW shell. With G++ on `PATH`, run `./compile_main.sh --g++`. External libraries are to be installed.
 
 ## Basic Usage Examples
 
