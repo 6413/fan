@@ -1,12 +1,19 @@
 set_project("fan")
 set_languages("cxx23")
 
+option("compiler")
+  set_default("clang")
+  set_values("clang", "gcc", "g++")
+option_end()
+
+local compiler = get_config("compiler")
+local is_gcc = compiler == "gcc" or compiler == "g++"
+
 if is_plat("wasm") then
   add_cxxflags("-pthread", "-DFAN_WASM", {force = true})
   add_ldflags("-s USE_GLFW=3", "-s ASYNCIFY=1", "-pthread", "-s PTHREAD_POOL_SIZE=4", {force = true})
 else
-  option("compiler") set_default("clang") option_end()
-  set_toolchains(get_config("compiler") == "gcc" and "gcc" or "clang")
+  set_toolchains(is_gcc and "gcc" or "clang")
 end
 
 rule("mode.mode_none") rule_end()
@@ -78,7 +85,10 @@ if not has_config("FAN_WINDOW") then
   end
 end
 
-if has_config("FAN_REFLECTION") then add_cxxflags("-freflection", {force = true}) end
+if has_config("FAN_REFLECTION") then
+  set_languages("cxx26")
+  add_cxxflags("-freflection", {force = true})
+end
 
 option("FAN_USE_STD_MODULE") set_default(false) set_showmenu(true) add_defines("FAN_USE_STD_MODULE") option_end()
 option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
@@ -131,7 +141,6 @@ add_includedirs(".", {public = true})
 add_sysincludedirs("third_party/fan/include", {public = true})
 if has_config("FAN_2D") then add_sysincludedirs("third_party/fan/include/VulkanMemoryAllocator/include", {public = true}) end
 
-local is_gcc = get_config("compiler") == "gcc"
 if not is_gcc and not is_plat("wasm") then add_cxxflags("-stdlib=libstdc++", {force = true}) end
 
 set_policy("build.c++.modules.std", true)
@@ -164,12 +173,6 @@ else
     "-Wno-bitwise-op-parentheses",
     {force = true}
   )
-end
-
-if is_gcc then
-  add_cxxflags("-fmax-errors=20", "-fmodules-ts", "-fno-module-lazy", {force = true})
-else
-  add_cxxflags("-ferror-limit=20", "-Wno-include-angled-in-module-purview", "-fmacro-backtrace-limit=0", "-Wno-shift-op-parentheses", "-Wno-int-to-void-pointer-cast", "-Wno-bitwise-op-parentheses", {force = true})
 end
 
 if has_config("FAN_GUI") then
