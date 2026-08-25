@@ -85,8 +85,12 @@ if not has_config("FAN_WINDOW") then
   end
 end
 
-if has_config("FAN_REFLECTION") then
+option("FAN_REFLECTION_MAIN") set_default(false) option_end()
+
+if has_config("FAN_REFLECTION") or has_config("FAN_REFLECTION_MAIN") then
   set_languages("cxx26")
+end
+if has_config("FAN_REFLECTION") then
   add_cxxflags("-freflection", {force = true})
 end
 
@@ -380,7 +384,13 @@ if has_config("FAN_2D") then
 
 
   set_policy("check.auto_ignore_flags", false)
-  if not has_config("buildlib") then add_files(get_config("main")) end
+  if not has_config("buildlib") then
+    if has_config("FAN_REFLECTION") or has_config("FAN_REFLECTION_MAIN") then
+      add_files(get_config("main"), {cxxflags = "-freflection"})
+    else
+      add_files(get_config("main"))
+    end
+  end
 
   add_includedirs(".", {public = true})
   add_sysincludedirs("third_party/fan/include", {public = true})
