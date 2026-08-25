@@ -33,6 +33,7 @@ Modes:
   --debug | --release | --release-minsize | --asan
   --rebuild
   --main <file>
+  --main-reflection
   --clang | --gcc | --g++
   --wasm
   --buildlib
@@ -132,6 +133,10 @@ while [[ $# -gt 0 ]]; do
     --main)
       MAIN_FILE="$2"
       shift 2
+      ;;
+    --main-reflection)
+      FEATURE_ARGS+=("--FAN_REFLECTION_MAIN=y")
+      shift
       ;;
     --gcc|--g++)
       COMPILER="gcc"

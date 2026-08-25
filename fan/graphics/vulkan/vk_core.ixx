@@ -62,6 +62,8 @@ import fan.graphics.common_context;
 
 #define ENABLE_RAYTRACING_DEPENDENCIES
 
+struct GLFWwindow;
+
 export namespace fan::vulkan {
   void* VKAPI_PTR vk_allocation_cb(void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope) {
     return fan::memory_profile_malloc_cb(size);
@@ -361,7 +363,7 @@ export namespace fan {
 
       void setup_debug_messenger();
       #if defined(loco_window)
-      void create_surface(struct GLFWwindow* window);
+      void create_surface(GLFWwindow* window);
       #endif
 
       void pick_physical_device();
