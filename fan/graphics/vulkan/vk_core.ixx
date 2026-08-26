@@ -16,6 +16,10 @@ module;
 #include <vulkan/vulkan.h>
 #define VMA_ASSERT_LEAK(expr) ((void)0)
 #include <vk_mem_alloc.h>
+
+#include <GLFW/glfw3.h>
+
+
 import fan.window;
 
 #include <fan/utility.h>
@@ -61,8 +65,6 @@ import fan.graphics.common_context;
 #define __fan_internal_viewport_list (*fan::graphics::ctx().viewport_list)
 
 #define ENABLE_RAYTRACING_DEPENDENCIES
-
-struct GLFWwindow;
 
 export namespace fan::vulkan {
   void* VKAPI_PTR vk_allocation_cb(void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope) {
