@@ -483,6 +483,7 @@ export namespace fan::graphics::gui {
   void destroy();
 
   void new_frame();
+  void end_frame();
 
   typedef void (*ImGuiFrameRenderFunc)(void* context, VkResult, fan::color);
 

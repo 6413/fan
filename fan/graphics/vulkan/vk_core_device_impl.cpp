@@ -59,7 +59,7 @@ import fan.math.intersection;
 #define __fan_internal_image_list (*fan::graphics::ctx().image_list)
 #define __fan_internal_viewport_list (*fan::graphics::ctx().viewport_list)
 
-#define ENABLE_RAYTRACING_DEPENDENCIES
+//#define ENABLE_RAYTRACING_DEPENDENCIES
 
 #define VK_CTX ((fan::vulkan::context_t*)context)
 
@@ -1717,6 +1717,7 @@ bool fan::vulkan::context_t::is_device_suitable(VkPhysicalDevice device) {
 
   return indices.is_complete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
+
 bool fan::vulkan::context_t::check_device_extension_support(VkPhysicalDevice device) {
   std::uint32_t extensionCount;
   vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -1730,8 +1731,13 @@ bool fan::vulkan::context_t::check_device_extension_support(VkPhysicalDevice dev
     requiredExtensions.erase(extension.extensionName);
   }
 
+  for (const auto& missing : requiredExtensions) {
+    fan::print("missing device extension:", missing);
+  }
+
   return requiredExtensions.empty();
 }
+
 queue_family_indices_t fan::vulkan::context_t::find_queue_families(VkPhysicalDevice device) {
   queue_family_indices_t indices;
 
