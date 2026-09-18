@@ -14,6 +14,7 @@ WASM=false
 XMAKE_ARGS=()
 FEATURE_ARGS=()
 BUILDLIB=false
+JOBS="$(nproc 2>/dev/null || echo 4)"
 
 declare -A FEATURE_DEFAULTS=(
   [FAN_WINDOW]=false [FAN_2D]=false [FAN_GUI]=false
@@ -37,6 +38,8 @@ Modes:
   --clang | --gcc | --g++
   --wasm
   --buildlib
+  -j <n> | --jobs <n> | --threads <n>
+      Parallel build threads (default: nproc).
 
 Presets:
   --core
@@ -153,6 +156,18 @@ while [[ $# -gt 0 ]]; do
     --buildlib)
       BUILDLIB=true
       FEATURE_ARGS+=("--buildlib=y")
+      shift
+      ;;
+    -j|--jobs|--threads)
+      JOBS="$2"
+      shift 2
+      ;;
+    --jobs=*|--threads=*)
+      JOBS="${1#*=}"
+      shift
+      ;;
+    -j*)
+      JOBS="${1#-j}"
       shift
       ;;
     --core)        PRESET_USED=true; apply_preset_core;     shift ;;
@@ -328,7 +343,7 @@ if [[ "$WASM" == false ]]; then
   echo -e "${CYAN}Compiler:${NC} $($CXX --version | head -1)"
 fi
 
-if ! xmake -j$(nproc) "${XMAKE_ARGS[@]}"; then
+if ! xmake -j"$JOBS" "${XMAKE_ARGS[@]}"; then
   echo -e "${RED}✗ XMake build failed!${NC}"
   exit 1
 fi

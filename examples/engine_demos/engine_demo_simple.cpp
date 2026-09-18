@@ -1,5 +1,6 @@
 #include <fan/utility.h>
 #include <vector>
+#include <cmath>
 
 import fan;
 
@@ -129,7 +130,7 @@ struct simple_engine_demo_t {
     sprites[0].set_angle(sprites[0].get_angle() + fan::vec3(0, 0, engine.get_delta_time()));
 
     lights[0].set_position(fan::vec3(mouse_position, 0));
-    lights[0].set_color(fan::color::hsv(fmod(engine.time * 50, 360), 100, 100));
+    lights[0].set_color(fan::color::hsv(std::fmod(engine.time * 50, 360), 100, 100));
 
     size_t m = std::min(circles.size(), circle_velocities.size());
     for (size_t i = 0; i < m; ++i) {

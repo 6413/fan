@@ -1659,7 +1659,7 @@ void loco_t::process_shapes() {
   }
   fan::time::global_profiler.end("Post Draw Callbacks");
 
-  if (vk->image_error == VK_SUCCESS) {
+  if (vk->image_error == VK_SUCCESS || vk->image_error == VK_SUBOPTIMAL_KHR) {
     fan::time::global_profiler.begin("Draw Post Process");
     vk->draw_post_process();
     fan::time::global_profiler.end("Draw Post Process");
@@ -1871,11 +1871,17 @@ void loco_t::process_render() {
   fan::time::global_profiler.begin("Render: Begin Draw");
   vk->begin_draw();
   fan::time::global_profiler.end("Render: Begin Draw");
-  if (vk->image_error != VK_SUCCESS) {
+  if (vk->image_error != VK_SUCCESS && vk->image_error != VK_SUBOPTIMAL_KHR) {
     immediate_render_list.clear();
     for (auto& cache : shapes.immediate_shape_caches) {
       cache.used_this_frame = 0;
     }
+#if defined(FAN_GUI)
+    // begin_draw failed (swapchain out-of-date, etc.).
+    // new_frame() was already called - close it or next NewFrame() asserts
+    // "Forgot to call Render() or EndFrame()".
+    ::gui::end_frame();
+#endif
     return;
   }
 
@@ -1906,7 +1912,7 @@ void loco_t::process_render() {
     i();
   }
 
-  if (vk->image_error != VK_SUCCESS) {
+  if (vk->image_error != VK_SUCCESS && vk->image_error != VK_SUBOPTIMAL_KHR) {
     context.vk.command_buffer_in_use = false;
   }
   else {
@@ -2096,6 +2102,9 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
 #endif
 
   if (should_close()) {
+#if defined(FAN_GUI)
+    ::gui::end_frame();
+#endif
     return 1;
   }
 

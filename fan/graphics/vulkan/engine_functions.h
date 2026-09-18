@@ -1067,16 +1067,22 @@ void shaders_compile() {
 void begin_lightmap_pass() {
   fan::vulkan::context_t& context = loco.context.vk;
   VkCommandBuffer cmd = context.command_buffers[context.current_frame];
-  
-  barrier_image(context.mainColorImageViews[context.image_index].image,
-    VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-    0, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
-  barrier_image(context.depthImageViews[context.image_index].image,
-    VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-    VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-    VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-    0, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+  // Note: when shapes are not on top, begin_render_pass() already transitioned
+  // main/depth from UNDEFINED and cleared them. Re-transitioning from UNDEFINED
+  // here would discard that clear (trails/garbage), so only do the initial
+  // transition when begin_render_pass() was skipped (shapes on top).
+  if (loco.get_render_shapes_top() == true) {
+    barrier_image(context.mainColorImageViews[context.image_index].image,
+      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+      VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+      0, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+    barrier_image(context.depthImageViews[context.image_index].image,
+      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+      VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+      VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+      0, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+  }
   barrier_image(lightmap_image.image,
     VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -1260,9 +1266,13 @@ void begin_draw() {
     }
   }
 
-  if (loco.vk->image_error != VK_SUCCESS) { 
-    context.command_buffer_in_use = false; 
-    return; 
+  if (loco.vk->image_error == VK_SUBOPTIMAL_KHR) {
+    // Valid image, just not optimal - render this frame, rebuild next time.
+    context.SwapChainRebuild = true;
+  }
+  else if (loco.vk->image_error != VK_SUCCESS) {
+    context.command_buffer_in_use = false;
+    return;
   }
 
   context.current_acquire_semaphore = context.image_available_semaphores[context.acquire_semaphore_index];
