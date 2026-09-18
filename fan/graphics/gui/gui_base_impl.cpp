@@ -1966,6 +1966,10 @@ namespace fan::graphics::gui {
     detail::want_io_ignore_list().clear();
   }
 
+  void end_frame() {
+    ImGui::EndFrame();
+  }
+
   void render(
     bool render_shapes_top,
     void* context,

@@ -64,7 +64,7 @@ import fan.graphics.common_context;
 #define __fan_internal_image_list (*fan::graphics::ctx().image_list)
 #define __fan_internal_viewport_list (*fan::graphics::ctx().viewport_list)
 
-#define ENABLE_RAYTRACING_DEPENDENCIES
+//#define ENABLE_RAYTRACING_DEPENDENCIES
 
 export namespace fan::vulkan {
   void* VKAPI_PTR vk_allocation_cb(void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope) {

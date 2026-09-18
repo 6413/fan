@@ -1,6 +1,8 @@
-#if defined(FAN_GUI)
+module;
+
 module fan.graphics.gui.types;
 
+#if defined(FAN_GUI)
 import std;
 
 namespace fan::graphics::gui {

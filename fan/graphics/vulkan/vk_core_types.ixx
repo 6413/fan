@@ -138,7 +138,7 @@ export namespace fan {
       std::vector<VkDescriptorImageInfo> image_infos{max_textures};
     };
 
-    inline constexpr std::uint32_t max_frames_in_flight = 2;
+    inline constexpr std::uint32_t max_frames_in_flight = 1;
 
     class frame_deletion_queue_t {
     public:
