@@ -668,6 +668,7 @@ void fan::vulkan::context_t::create_logical_device() {
   vulkan12.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
   vulkan12.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
   vulkan12.descriptorBindingPartiallyBound = VK_TRUE;
+  vulkan12.bufferDeviceAddress = VK_TRUE;
 
   VkPhysicalDeviceVulkan13Features vulkan13 {};
   vulkan13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
@@ -683,8 +684,6 @@ void fan::vulkan::context_t::create_logical_device() {
   shader_object_features.shaderObject = VK_TRUE;
 
 #if defined(ENABLE_RAYTRACING_DEPENDENCIES)
-  vulkan12.bufferDeviceAddress = VK_TRUE;
-
   VkPhysicalDeviceAccelerationStructureFeaturesKHR accel {};
   accel.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
   accel.accelerationStructure = VK_TRUE;
