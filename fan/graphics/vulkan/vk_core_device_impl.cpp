@@ -265,7 +265,7 @@ void fan::vulkan::context_t::gui_close() {
   cleanup_swap_chain_dependencies();
 
 #if defined(FAN_GUI)
-  ImGui_ImplVulkanH_DestroyWindow(instance, device, &MainWindowData, nullptr);
+  ImGui_ImplVulkanH_DestroyWindow(instance, device, &MainWindowData, &fan::vulkan::g_allocation_callbacks);
   swap_chain = VK_NULL_HANDLE;
 #endif
 }
