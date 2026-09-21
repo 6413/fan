@@ -1168,6 +1168,11 @@ void loco_t::destroy_gui() {
     return;
   }
 
+  if (gui.font_future.valid()) {
+    gui.font_future.wait();
+    gui.font_future = {};
+  }
+
   context.vk.gui_close();
 
   ::gui::shutdown_graphics_context(
@@ -1176,6 +1181,7 @@ void loco_t::destroy_gui() {
 
   context.vk.gui_close_finish();
 
+  ::gui::shutdown_window_context();
   ::gui::destroy();
   gui.gui_initialized = false;
 }

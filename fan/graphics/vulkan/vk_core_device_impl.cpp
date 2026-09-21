@@ -223,6 +223,12 @@ void fan::vulkan::context_t::close_vais(std::vector<fan::vulkan::vai_t>& v) {
 void fan::vulkan::context_t::destroy_vulkan_soft() {
   vkDeviceWaitIdle(device);
 
+  window_resize_handle.remove();
+  window_resize_handle.state.user_ptr = nullptr;
+  window_resize_handle.state.add_cb = {};
+  window_resize_handle.state.remove_cb = {};
+  window_resize_handle.state.user_fn = {};
+
   if (single_time_fence != VK_NULL_HANDLE) {
     vkWaitForFences(device, 1, &single_time_fence, VK_TRUE, UINT64_MAX);
     vkDestroyFence(device, single_time_fence, nullptr);
@@ -235,18 +241,49 @@ void fan::vulkan::context_t::destroy_vulkan_soft() {
 
   for (auto* v : {&mainColorImageViews, &postProcessedColorImageViews, &depthImageViews, &downscaleImageViews1, &upscaleImageViews1, &vai_depth}) {
     close_vais(*v);
+    v->clear();
+    v->shrink_to_fit();
   }
 
   for (std::size_t i = 0; i < image_available_semaphores.size(); i++) {
     vkDestroySemaphore(device, image_available_semaphores[i], nullptr);
     vkDestroySemaphore(device, render_finished_semaphores[i], nullptr);
   }
+  image_available_semaphores.clear();
+  image_available_semaphores.shrink_to_fit();
+  render_finished_semaphores.clear();
+  render_finished_semaphores.shrink_to_fit();
 
   for (std::size_t i = 0; i < in_flight_fences.size(); i++) {
     vkDestroyFence(device, in_flight_fences[i], nullptr);
   }
+  in_flight_fences.clear();
+  in_flight_fences.shrink_to_fit();
+
+  command_buffers.clear();
+  command_buffers.shrink_to_fit();
+  swap_chain_images.clear();
+  swap_chain_images.shrink_to_fit();
+  swap_chain_image_views.clear();
+  swap_chain_image_views.shrink_to_fit();
+  swap_chain_framebuffers.clear();
+  swap_chain_framebuffers.shrink_to_fit();
 
   flush_deletion_queues();
+  for (std::uint32_t i = 0; i < max_frames_in_flight; ++i) {
+    get_current_deletion_queue(i).release();
+  }
+  pending_deletion_queue.release();
+  main_deletion_queue.release();
+  memory_queue.clear();
+  pending_image_uploads.clear();
+  pending_image_uploads.shrink_to_fit();
+  image_pool.clear();
+  image_pool.shrink_to_fit();
+  pre_begin_cmd_cb.clear();
+  pre_begin_cmd_cb.shrink_to_fit();
+  begin_cmd_cb.clear();
+  begin_cmd_cb.shrink_to_fit();
 
 
   vkDestroyCommandPool(device, command_pool, nullptr);
@@ -275,9 +312,22 @@ void fan::vulkan::context_t::gui_close_finish() {
   descriptor_pool.close(*this);
   if (timestamp_query_pool) {
     vkDestroyQueryPool(device, timestamp_query_pool, nullptr);
+    timestamp_query_pool = VK_NULL_HANDLE;
   }
 
   flush_deletion_queues();
+  for (std::uint32_t i = 0; i < max_frames_in_flight; ++i) {
+    get_current_deletion_queue(i).release();
+  }
+  pending_deletion_queue.release();
+  main_deletion_queue.release();
+  memory_queue.clear();
+  memory_queue.m_scratch_nodes.clear();
+  memory_queue.m_scratch_nodes.shrink_to_fit();
+  image_cache.clear();
+  image_cache.rehash(0);
+  color_image_cache.clear();
+  color_image_cache.rehash(0);
   destroy_allocator();
   if (pipeline_cache) {
     size_t cacheSize = 0;
@@ -303,11 +353,24 @@ void fan::vulkan::context_t::close() {
 
   destroy_shape_resources();
   destroy_vulkan_soft();
-  destroy_allocator();
-
   if (timestamp_query_pool) {
     vkDestroyQueryPool(device, timestamp_query_pool, nullptr);
+    timestamp_query_pool = VK_NULL_HANDLE;
   }
+  flush_deletion_queues();
+  for (std::uint32_t i = 0; i < max_frames_in_flight; ++i) {
+    get_current_deletion_queue(i).release();
+  }
+  pending_deletion_queue.release();
+  main_deletion_queue.release();
+  memory_queue.clear();
+  memory_queue.m_scratch_nodes.clear();
+  memory_queue.m_scratch_nodes.shrink_to_fit();
+  image_cache.clear();
+  image_cache.rehash(0);
+  color_image_cache.clear();
+  color_image_cache.rehash(0);
+  destroy_allocator();
 
   if (pipeline_cache) {
     size_t cacheSize = 0;

@@ -108,6 +108,9 @@ struct ssbo_t {
     }
     m_descriptor.close(context);
     common.close(context);
+    instance_list.clear();
+    instance_list.shrink_to_fit();
+    vram_capacity = 0;
   }
 
 	void open_descriptors(

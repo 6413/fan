@@ -178,6 +178,13 @@ export namespace fan {
         deletors.clear();
       }
 
+      // frees vector capacity held after flush (reported as definitely lost
+      // when context_t itself is placement-newed and never destructed).
+      void release() {
+        deletors.clear();
+        deletors.shrink_to_fit();
+      }
+
       void merge(frame_deletion_queue_t& other) {
         deletors.insert(deletors.end(), std::make_move_iterator(other.deletors.begin()), std::make_move_iterator(other.deletors.end()));
         other.deletors.clear();

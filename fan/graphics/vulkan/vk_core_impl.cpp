@@ -98,9 +98,18 @@ void fan::vulkan::descriptor_t::open(fan::vulkan::context_t& context, const prop
   validate(vkAllocateDescriptorSets(context.device, &allocInfo, m_descriptor_set));
 }
 void fan::vulkan::descriptor_t::close(fan::vulkan::context_t& context) {
-  if (m_layout == VK_NULL_HANDLE) { return; }
-  vkDestroyDescriptorSetLayout(context.device, m_layout, 0);
-  m_layout = VK_NULL_HANDLE;
+  if (m_layout != VK_NULL_HANDLE) {
+    vkDestroyDescriptorSetLayout(context.device, m_layout, 0);
+    m_layout = VK_NULL_HANDLE;
+  }
+  // free cpu-side copies (each write_descriptor_set_t holds 1024 image_infos).
+  // otherwise valgrind reports them as definitely/possibly lost.
+  m_properties.clear();
+  m_properties.shrink_to_fit();
+  m_buffer_infos.clear();
+  m_buffer_infos.shrink_to_fit();
+  m_descriptor_writes.clear();
+  m_descriptor_writes.shrink_to_fit();
 }
 void fan::vulkan::descriptor_t::update(
   fan::vulkan::context_t& context,
@@ -253,9 +262,14 @@ void fan::vulkan::pipeline_t::open(fan::vulkan::context_t& context, const proper
   }
 }
 void fan::vulkan::pipeline_t::close(fan::vulkan::context_t& context) {
-  if (m_shaders[0]) { fan_vkDestroyShaderEXT(context.device, m_shaders[0], nullptr); }
-  if (m_shaders[1]) { fan_vkDestroyShaderEXT(context.device, m_shaders[1], nullptr); }
-  if (m_layout) { vkDestroyPipelineLayout(context.device, m_layout, nullptr); }
+  if (m_shaders[0]) { fan_vkDestroyShaderEXT(context.device, m_shaders[0], nullptr); m_shaders[0] = VK_NULL_HANDLE; }
+  if (m_shaders[1]) { fan_vkDestroyShaderEXT(context.device, m_shaders[1], nullptr); m_shaders[1] = VK_NULL_HANDLE; }
+  if (m_layout) { vkDestroyPipelineLayout(context.device, m_layout, nullptr); m_layout = VK_NULL_HANDLE; }
+  // free cpu-side copies (descriptor_layouts, color_blend_attachments)
+  properties.descriptor_layouts.clear();
+  properties.descriptor_layouts.shrink_to_fit();
+  properties.color_blend_attachments.clear();
+  properties.color_blend_attachments.shrink_to_fit();
 }
 
 namespace fan::vulkan::core {
