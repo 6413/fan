@@ -1,4 +1,4 @@
-#include <fan/graphics/loco.ixx>
+import fan;
 
 int main() {
   fan::graphics::engine_t engine{{.vsync = false }};
