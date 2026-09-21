@@ -895,7 +895,7 @@ void draw_post_process() {
   color_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
   color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-  color_attachment.clearValue.color = { 0.0f, 0.0f, 0.0f, 0.0f };
+  color_attachment.clearValue.color = {{ 0.0f, 0.0f, 0.0f, 0.0f }};
 
   VkRenderingInfo render_info{};
   render_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;

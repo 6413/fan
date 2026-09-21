@@ -893,7 +893,7 @@ void main() {
       .render_view = &engine_demo->right_column_view,
       .position = fan::vec3(fan::vec2(0, 0), 0xfff0),
       .size = viewport_size.max(),
-      .grid_size = viewport_size.max() / data.tile_size
+      .grid_size = data.tile_size
     }};
 
     data.grid.create(

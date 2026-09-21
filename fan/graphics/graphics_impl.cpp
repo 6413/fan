@@ -1877,6 +1877,7 @@ namespace fan {
     case ease_e::pulse:   return std::sin(t * fan::math::pi);
     case ease_e::ease_in: return t * t;
     case ease_e::ease_out: return 1.f - (1.f - t) * (1.f - t);
+    case ease_e::count:   break;
     }
     return t;
   }
