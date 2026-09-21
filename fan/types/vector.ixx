@@ -161,7 +161,9 @@ export namespace fan {
 
     constexpr Derived square_normalize() const { auto max_val = abs().max(); if (max_val == 0) return Derived{}; return derived() / max_val; }
 
-    constexpr Derived rotate(T angle) const {
+    constexpr Derived rotate(T angle) const
+    requires (!std::is_same_v<T, bool>) 
+    {
       if constexpr (N >= 2) {
         Derived ret = derived();
         T cos_angle = std::cos(angle), sin_angle = std::sin(angle);
