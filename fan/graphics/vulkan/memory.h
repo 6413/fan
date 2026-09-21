@@ -84,6 +84,8 @@ struct memory_common_t {
         memory[i].buffer = VK_NULL_HANDLE;
       }
     }
+    indices.clear();
+    indices.shrink_to_fit();
   }
 
   bool is_queued() const {
