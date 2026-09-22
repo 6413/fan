@@ -13,9 +13,9 @@ void print_matches(const std::string_view search_path, const std::string_view ne
 					str.erase(0, str.find_first_not_of(" \t"));
 
 					auto found = str.find(needle);
-					fan::printf("{}:{}: {}",
-						fan::paint(fan::colors::purple * 1.3, path),
-						fan::paint(fan::colors::green / 1.5, line),
+					fan::print(
+						fan::paint(fan::colors::purple * 1.3, path) + ":"  +
+						fan::paint(fan::colors::green / 1.5, line)  + ": " +
 						str.substr(0, found) + fan::paint(fan::colors::red, needle) + str.substr(found + needle.size())
 					);
 				}

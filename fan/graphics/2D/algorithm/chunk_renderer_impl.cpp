@@ -2,6 +2,8 @@ module;
 
 module fan.graphics.algorithm.chunk_renderer;
 
+#if defined(FAN_WINDOW) && defined(FAN_2D) && defined(FAN_PHYSICS_2D)
+
 import std;
 
 import fan.types.vector;
@@ -492,3 +494,4 @@ namespace fan::graphics::algorithm {
   }
 
 }
+#endif

@@ -32,7 +32,11 @@ module;
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
+#endif
+
 module fan.graphics.vulkan.core;
+
+#if defined(FAN_2D)
 
 import std;
 

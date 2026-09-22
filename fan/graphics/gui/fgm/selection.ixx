@@ -1,6 +1,6 @@
 module;
-#if defined(FAN_GUI)
 export module fan.graphics.editor:selection;
+#if defined(FAN_GUI)
 
 import std;
 

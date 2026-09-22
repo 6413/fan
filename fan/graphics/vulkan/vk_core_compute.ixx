@@ -10,6 +10,9 @@ module;
 #include <fan/utility.h>
 
 export module fan.graphics.vulkan.core:compute;
+
+#if defined(FAN_2D)
+
 import std;
 
 import :image;
@@ -79,3 +82,5 @@ export namespace fan::vulkan {
     std::uint32_t submit_slot = 0;
   };
 }
+
+#endif
