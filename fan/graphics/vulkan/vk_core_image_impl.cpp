@@ -19,8 +19,11 @@ module;
 #include <vulkan/vk_enum_string_helper.h>
 #include <fan/stb/stb_image.h>
 
+#endif
 
 module fan.graphics.vulkan.core;
+
+#if defined(FAN_2D)
 
 import std;
 

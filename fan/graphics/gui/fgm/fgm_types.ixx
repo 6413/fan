@@ -1,7 +1,6 @@
 module;
-#if defined(FAN_GUI)
-
 export module fan.graphics.editor:fgm_types;
+#if defined(FAN_GUI)
 
 import std;
 

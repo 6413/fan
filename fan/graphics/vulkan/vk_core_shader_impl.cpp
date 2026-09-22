@@ -18,7 +18,11 @@ module;
 #include <vulkan/vulkan.h>
 #include <shaderc/shaderc.hpp>
 
+#endif
+
 module fan.graphics.vulkan.core;
+
+#if defined(FAN_2D)
 
 import std;
 
