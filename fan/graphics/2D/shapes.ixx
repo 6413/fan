@@ -100,7 +100,7 @@ export namespace fan::graphics {
   };
   struct context_t {
     context_t() {}
-    ~context_t() {}
+    ~context_t() { std::destroy_at(&vk); }
     union {
       fan::vulkan::context_t vk;
     };
