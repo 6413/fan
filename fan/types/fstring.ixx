@@ -309,6 +309,37 @@ export namespace fan {
     return s;
   }
 
+  inline std::optional<std::pair<std::size_t, std::size_t>> wildcard_find(std::string_view line, std::string_view pattern) {
+    std::size_t first_start = std::string_view::npos;
+    std::size_t pos = 0;
+    std::size_t seg_start = 0;
+    bool has_seg = false;
+    for (std::size_t i = 0; i <= pattern.size(); ++i) {
+      if (i == pattern.size() || pattern[i] == '*') {
+        if (has_seg) {
+          std::string_view seg(pattern.data() + seg_start, i - seg_start);
+          std::size_t found = line.find(seg, pos);
+          if (found == std::string_view::npos) {
+            return std::nullopt;
+          }
+          if (first_start == std::string_view::npos) {
+            first_start = found;
+          }
+          pos = found + seg.size();
+          has_seg = false;
+        }
+        seg_start = i + 1;
+      }
+      else {
+        has_seg = true;
+      }
+    }
+    if (first_start == std::string_view::npos) {
+      return std::pair<std::size_t, std::size_t>{0, line.size()};
+    }
+    return std::pair<std::size_t, std::size_t>{first_start, pos - first_start};
+  }
+
   std::string format_thousands(auto number, const std::string& separator = ",", std::uint32_t group_size = 3) {
     std::string result = std::to_string(number);
 
