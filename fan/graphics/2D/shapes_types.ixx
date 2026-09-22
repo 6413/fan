@@ -232,6 +232,7 @@ export namespace fan::graphics::shaper {
 
   #define shaper_set_ExpandInside_SetShapeType \
     ShapeType_t::vk_t d;\
+    st.renderer.vk.~vk_t();\
     std::construct_at(&st.renderer.vk);\
     auto& bpr = bp.renderer.vk;\
     d.pipeline = bpr.pipeline;\
