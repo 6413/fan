@@ -23,9 +23,11 @@ void print_matches(const std::string_view search_path, const std::string_view ne
 }
 
 int main(int argc, char** argv) {
-	fan::args_t fargs(argc, argv);
-	auto& args = fargs.get();
-	// we dont want program name ty
-	args.erase(args.begin());
-	print_matches(argc >= 3 ? args[0] : "./", argc >= 3 ? args[1] : args[0]);
+	fan::args_t args(argc, argv);
+	if (args.size() < 2) {
+		fan::print("usage: grep <pattern>");
+		fan::print("       grep <path> <pattern>");
+		return 1;
+	}
+	print_matches(args.size() >= 3 ? args[1] : "./", args.size() >= 3 ? args[2] : args[1]);
 }
