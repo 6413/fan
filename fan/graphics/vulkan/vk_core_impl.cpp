@@ -104,12 +104,10 @@ void fan::vulkan::descriptor_t::close(fan::vulkan::context_t& context) {
   }
   // free cpu-side copies (each write_descriptor_set_t holds 1024 image_infos).
   // otherwise valgrind reports them as definitely/possibly lost.
-  m_properties.clear();
-  m_properties.shrink_to_fit();
-  m_buffer_infos.clear();
-  m_buffer_infos.shrink_to_fit();
-  m_descriptor_writes.clear();
-  m_descriptor_writes.shrink_to_fit();
+  // swap-with-empty: guaranteed release, shrink_to_fit is non-binding.
+  properties_t().swap(m_properties);
+  std::vector<VkDescriptorBufferInfo>().swap(m_buffer_infos);
+  std::vector<VkWriteDescriptorSet>().swap(m_descriptor_writes);
 }
 void fan::vulkan::descriptor_t::update(
   fan::vulkan::context_t& context,
@@ -265,11 +263,10 @@ void fan::vulkan::pipeline_t::close(fan::vulkan::context_t& context) {
   if (m_shaders[0]) { fan_vkDestroyShaderEXT(context.device, m_shaders[0], nullptr); m_shaders[0] = VK_NULL_HANDLE; }
   if (m_shaders[1]) { fan_vkDestroyShaderEXT(context.device, m_shaders[1], nullptr); m_shaders[1] = VK_NULL_HANDLE; }
   if (m_layout) { vkDestroyPipelineLayout(context.device, m_layout, nullptr); m_layout = VK_NULL_HANDLE; }
-  // free cpu-side copies (descriptor_layouts, color_blend_attachments)
-  properties.descriptor_layouts.clear();
-  properties.descriptor_layouts.shrink_to_fit();
-  properties.color_blend_attachments.clear();
-  properties.color_blend_attachments.shrink_to_fit();
+  // free cpu-side copies (descriptor_layouts, color_blend_attachments).
+  // swap-with-empty: guaranteed release, shrink_to_fit is non-binding.
+  std::vector<VkDescriptorSetLayout>().swap(properties.descriptor_layouts);
+  std::vector<VkPipelineColorBlendAttachmentState>().swap(properties.color_blend_attachments);
 }
 
 namespace fan::vulkan::core {
