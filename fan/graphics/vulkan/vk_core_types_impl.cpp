@@ -12,7 +12,11 @@ module;
 #include <vk_mem_alloc.h>
 #include <fan/utility.h>
 
+#endif
+
 module fan.graphics.vulkan.core;
+
+#if defined(FAN_2D)
 
 import std;
 

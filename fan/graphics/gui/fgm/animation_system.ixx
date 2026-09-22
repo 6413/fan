@@ -1,10 +1,5 @@
 module;
-#if defined(FAN_GUI)
-
 export module fan.graphics.editor:animation_system;
-
-#endif
-
 #if defined(FAN_GUI)
 import fan.math;
 import fan.graphics.gui.base;
