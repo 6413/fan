@@ -4,7 +4,11 @@ module;
 
 #include <fan/utility.h>
 
+#endif
+
 export module fan.graphics.editor;
+
+#if defined(FAN_GUI)
 
 import std;
 

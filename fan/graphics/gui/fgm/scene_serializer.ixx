@@ -2,7 +2,12 @@ module;
 
 #if defined(FAN_GUI)
 
+#endif
+
 export module fan.graphics.editor:scene_serializer;
+
+#if defined(FAN_GUI)
+
 import std;
 
 import fan.graphics.loco;
