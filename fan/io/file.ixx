@@ -1,9 +1,9 @@
 module;
 
 #if defined(fan_platform_windows)
-  #include <Windows.h>
+	#include <Windows.h>
 #elif defined(fan_platform_unix)
-  #include <unistd.h>
+	#include <unistd.h>
 #endif
 
 export module fan.io.file;
@@ -16,204 +16,206 @@ import fan.memory;
 export import fan.io.types;
 
 export namespace fan {
-  namespace io {
-    namespace file {
+	namespace io {
+		namespace file {
 
-      template <path_t P>
-      std::string to_str(P&& p) {
-        if constexpr (std::is_same_v<std::remove_cvref_t<P>, std::filesystem::path>)
-          return p.string();
-        else
-          return std::string(std::string_view(p));
-      }
+			template <path_t P>
+			std::string to_str(P&& p) {
+				if constexpr (std::is_same_v<std::remove_cvref_t<P>, std::filesystem::path>)
+					return p.string();
+				else
+					return std::string(std::string_view(p));
+			}
 
-      template <path_t P>
-      inline std::string strip_extension(P&& file_path) {
-        std::string path = to_str(std::forward<P>(file_path));
-        std::size_t dot_pos = path.find_last_of('.');
-        std::size_t sep_pos = path.find_last_of("/\\");
-        if (dot_pos != std::string::npos && (sep_pos == std::string::npos || dot_pos > sep_pos))
-          return path.substr(0, dot_pos);
-        return path;
-      }
-      std::string extension(const std::string& file_path);
-      void ensure_extension(std::string& path, std::string_view ext);
-      template <path_t P>
-      inline std::string replace_extension(P&& path, std::string_view ext) {
-        std::string s = strip_extension(std::forward<P>(path));
-        s += ext;
-        return s;
-      }
-      bool exists(std::string_view path);
-      bool rename(const std::string& from, const std::string& to);
-      std::filesystem::path relative_path(const std::filesystem::path& path, const std::filesystem::path& base);
+			template <path_t P>
+			inline std::string strip_extension(P&& file_path) {
+				std::string path = to_str(std::forward<P>(file_path));
+				std::size_t dot_pos = path.find_last_of('.');
+				std::size_t sep_pos = path.find_last_of("/\\");
+				if (dot_pos != std::string::npos && (sep_pos == std::string::npos || dot_pos > sep_pos))
+					return path.substr(0, dot_pos);
+				return path;
+			}
+			std::string extension(const std::string& file_path);
+			void ensure_extension(std::string& path, std::string_view ext);
+			template <path_t P>
+			inline std::string replace_extension(P&& path, std::string_view ext) {
+				std::string s = strip_extension(std::forward<P>(path));
+				s += ext;
+				return s;
+			}
+			bool exists(std::string_view path);
+			bool rename(const std::string& from, const std::string& to);
+			std::filesystem::path relative_path(const std::filesystem::path& path, const std::filesystem::path& base);
 
-      struct fstream {
-        fstream() = default;
-        fstream(const std::string& path);
-        fstream(const std::string& path, std::string* str);
-        bool open(const std::string& path);
-        bool read(const std::string& path, std::string* str);
-        bool read(std::string* str);
-        bool write(std::string* str);
-        std::string file_name;
-        void* file_ptr = nullptr;
-      };
+			struct fstream {
+				fstream() = default;
+				fstream(const std::string& path);
+				fstream(const std::string& path, std::string* str);
+				bool open(const std::string& path);
+				bool read(const std::string& path, std::string* str);
+				bool read(std::string* str);
+				bool write(std::string* str);
+				std::string file_name;
+				void* file_ptr = nullptr;
+			};
 
-      bool open(file_t** f, const std::string& path, const properties_t& p);
-      bool close(file_t* f);
-      bool read(file_t* f, void* data, std::uint64_t size, std::uint64_t elements);
-      bool write(file_t* f, void* data, std::uint64_t size, std::uint64_t elements);
-      std::uint64_t size(const std::string& filename);
+			bool open(file_t** f, const std::string& path, const properties_t& p);
+			bool close(file_t* f);
+			bool read(file_t* f, void* data, std::uint64_t size, std::uint64_t elements);
+			bool write(file_t* f, void* data, std::uint64_t size, std::uint64_t elements);
+			std::uint64_t size(const std::string& filename);
 
-      bool write(std::string_view path, const std::string& data, fs_mode mode);
+			bool write(std::string_view path, const std::string& data, fs_mode mode);
 
-      std::vector<std::string> read_line(const std::string& path);
-      bool try_write(std::string path, const std::string& data, fs_mode mode);
-      std::string get_exe_path();
+			std::vector<std::string> read_line(const std::string& path);
+			bool try_write(std::string path, const std::string& data, fs_mode mode);
+			std::string get_exe_path();
 
-      std::filesystem::path find_relative_path(std::string_view file_path,
-        const std::source_location& location = std::source_location::current());
+			std::filesystem::path find_relative_path(std::string_view file_path,
+				const std::source_location& location = std::source_location::current());
 
-      std::uint64_t file_size(std::string_view path);
-      bool read_bytes(std::string_view path, void* dst, std::size_t size);
+			std::uint64_t file_size(std::string_view path);
+			bool read_bytes(std::string_view path, void* dst, std::size_t size);
 
-      bool read(std::string_view path, std::string* str, std::size_t length,
-        std::source_location loc = std::source_location::current());
-      bool read(std::string_view path, std::string* str,
-        std::source_location loc = std::source_location::current());
-      std::string read(std::string_view path, bool* success = nullptr,
-        std::source_location loc = std::source_location::current());
+			bool read(std::string_view path, std::string* str, std::size_t length,
+				std::source_location loc = std::source_location::current());
+			bool read(std::string_view path, std::string* str,
+				std::source_location loc = std::source_location::current());
+			std::string read(std::string_view path, bool* success = nullptr,
+				std::source_location loc = std::source_location::current());
 
-      template <typename T = std::uint8_t>
-      std::vector<T> read_binary(std::string_view path) {
-        auto sz = file_size(path);
-        if (!sz || sz % sizeof(T)) { return {}; }
-        std::vector<T> v(sz / sizeof(T));
-        if (!read_bytes(path, v.data(), sz)) { return {}; }
-        return v;
-      }
+			template <typename T = std::uint8_t>
+			std::vector<T> read_binary(std::string_view path) {
+				auto sz = file_size(path);
+				if (!sz || sz % sizeof(T)) { return {}; }
+				std::vector<T> v(sz / sizeof(T));
+				if (!read_bytes(path, v.data(), sz)) { return {}; }
+				return v;
+			}
 
-      template <typename T = std::uint8_t, path_t P>
-      std::vector<T> read_binary(P&& path) {
-        std::string s = to_str(std::forward<P>(path));
-        auto sz = file_size(s);
-        if (!sz || sz % sizeof(T)) { return {}; }
-        std::vector<T> v(sz / sizeof(T));
-        if (!read_bytes(s, v.data(), sz)) { return {}; }
-        return v;
-      }
+			template <typename T = std::uint8_t, path_t P>
+			std::vector<T> read_binary(P&& path) {
+				std::string s = to_str(std::forward<P>(path));
+				auto sz = file_size(s);
+				if (!sz || sz % sizeof(T)) { return {}; }
+				std::vector<T> v(sz / sizeof(T));
+				if (!read_bytes(s, v.data(), sz)) { return {}; }
+				return v;
+			}
 
-      template <typename T>
-      bool write(std::ostream& f, const std::vector<T>& data) {
-        f.write(reinterpret_cast<const char*>(data.data()), std::streamsize(data.size() * sizeof(T)));
-        return bool(f);
-      }
+			template <typename T>
+			bool write(std::ostream& f, const std::vector<T>& data) {
+				f.write(reinterpret_cast<const char*>(data.data()), std::streamsize(data.size() * sizeof(T)));
+				return bool(f);
+			}
 
-      template <typename T>
-      bool write(std::string_view path, const std::vector<T>& data, fs_mode mode = std::ios::binary) {
-        std::ofstream f{std::string(path), std::ios::openmode(mode) | std::ios::binary};
-        if (!f) {
-          return false;
-        }
-        f.write(reinterpret_cast<const char*>(data.data()), std::streamsize(data.size() * sizeof(T)));
-        return bool(f);
-      }
+			template <typename T>
+			bool write(std::string_view path, const std::vector<T>& data, fs_mode mode = std::ios::binary) {
+				std::ofstream f{std::string(path), std::ios::openmode(mode) | std::ios::binary};
+				if (!f) {
+					return false;
+				}
+				f.write(reinterpret_cast<const char*>(data.data()), std::streamsize(data.size() * sizeof(T)));
+				return bool(f);
+			}
 
-      template <path_t P, typename T = std::uint8_t>
-      bool write(P&& path, const std::vector<T>& data, fs_mode mode = std::ios::binary) {
-        return write<T>(std::string_view(to_str(std::forward<P>(path))), data, mode);
-      }
+			template <path_t P, typename T = std::uint8_t>
+			bool write(P&& path, const std::vector<T>& data, fs_mode mode = std::ios::binary) {
+				return write<T>(std::string_view(to_str(std::forward<P>(path))), data, mode);
+			}
 
-      bool write(std::string_view path, const std::string& data, fs_mode mode) {
-        std::ofstream f{std::string(path), std::ios::openmode(mode)};
-        if (!f) {
-          return false;
-        }
-        f.write(data.data(), std::streamsize(data.size()));
-        return bool(f);
-      }
-      template <path_t P>
-      bool write(P&& path, const std::string& data, fs_mode mode = std::ios::binary) {
-        return write(std::string_view(to_str(std::forward<P>(path))), data, mode);
-      }
+			bool write(std::string_view path, const std::string& data, fs_mode mode) {
+				std::ofstream f{std::string(path), std::ios::openmode(mode)};
+				if (!f) {
+					return false;
+				}
+				f.write(data.data(), std::streamsize(data.size()));
+				return bool(f);
+			}
+			template <path_t P>
+			bool write(P&& path, const std::string& data, fs_mode mode = std::ios::binary) {
+				return write(std::string_view(to_str(std::forward<P>(path))), data, mode);
+			}
 
-      template <typename T>
-      inline bool read(std::ifstream& f, std::vector<T>& v, std::uint64_t size) {
-        v.resize(size);
-        f.read(reinterpret_cast<char*>(v.data()), std::streamsize(v.size() * sizeof(T)));
-        return bool(f);
-      }
+			template <typename T>
+			inline bool read(std::ifstream& f, std::vector<T>& v, std::uint64_t size) {
+				v.resize(size);
+				f.read(reinterpret_cast<char*>(v.data()), std::streamsize(v.size() * sizeof(T)));
+				return bool(f);
+			}
 
-      template <path_t P>
-      bool exists(P&& p) { return exists(std::string_view(to_str(std::forward<P>(p)))); }
+			template <path_t P>
+			bool exists(P&& p) { return exists(std::string_view(to_str(std::forward<P>(p)))); }
 
-      template <path_t P>
-      std::uint64_t file_size(P&& p) { return file_size(std::string_view(to_str(std::forward<P>(p)))); }
+			template <path_t P>
+			std::uint64_t file_size(P&& p) { return file_size(std::string_view(to_str(std::forward<P>(p)))); }
 
-      template <path_t P>
-      bool read_bytes(P&& p, void* dst, std::size_t sz) {
-        return read_bytes(std::string_view(to_str(std::forward<P>(p))), dst, sz);
-      }
+			template <path_t P>
+			bool read_bytes(P&& p, void* dst, std::size_t sz) {
+				return read_bytes(std::string_view(to_str(std::forward<P>(p))), dst, sz);
+			}
 
-      template <path_t P>
-      bool read(P&& p, std::string* str,
-        std::source_location loc = std::source_location::current()) {
-        return read(std::string_view(to_str(std::forward<P>(p))), str, loc);
-      }
+			template <path_t P>
+			bool read(P&& p, std::string* str,
+				std::source_location loc = std::source_location::current()) {
+				return read(std::string_view(to_str(std::forward<P>(p))), str, loc);
+			}
 
-      template <path_t P>
-      std::string read(P&& p, bool* success = nullptr,
-        std::source_location loc = std::source_location::current()) {
-        return read(std::string_view(to_str(std::forward<P>(p))), success, loc);
-      }
+			template <path_t P>
+			std::string read(P&& p, bool* success = nullptr,
+				std::source_location loc = std::source_location::current()) {
+				return read(std::string_view(to_str(std::forward<P>(p))), success, loc);
+			}
 
-      template <path_t P>
-      std::filesystem::path find_relative_path(P&& p,
-        const std::source_location& loc = std::source_location::current()) {
-        return find_relative_path(std::string_view(to_str(std::forward<P>(p))), loc);
-      }
+			template <path_t P>
+			std::filesystem::path find_relative_path(P&& p,
+				const std::source_location& loc = std::source_location::current()) {
+				return find_relative_path(std::string_view(to_str(std::forward<P>(p))), loc);
+			}
 
-      template <path_t P>
-      std::uint64_t file_size_p(P&& p) { return file_size(std::forward<P>(p)); }
+			template <path_t P>
+			std::uint64_t file_size_p(P&& p) { return file_size(std::forward<P>(p)); }
 
-      bool is_pe(const fan::bytes_t& d);
-      bool is_temp_file(std::string_view path);
-      bool is_up_to_date(std::string_view source_path, std::string_view cache_path);
+			bool is_pe(const fan::bytes_t& d);
+			bool is_temp_file(std::string_view path);
+			bool is_up_to_date(std::string_view source_path, std::string_view cache_path);
 
-      struct file_writer_t {
-        void write_byte(std::uint8_t b) { write_bytes(std::span<const std::uint8_t>(&b, 1)); }
-        void write_repeat(std::uint8_t b, std::size_t n);
-        void write_bytes(std::span<const std::uint8_t> bytes);
-        file_t* fp = nullptr;
-      };
+			struct file_writer_t {
+				void write_byte(std::uint8_t b) { write_bytes(std::span<const std::uint8_t>(&b, 1)); }
+				void write_repeat(std::uint8_t b, std::size_t n);
+				void write_bytes(std::span<const std::uint8_t> bytes);
+				file_t* fp = nullptr;
+			};
 
-      struct file_reader_t {
-        file_t* fp = nullptr;
-        void read_exact(std::span<std::uint8_t> out) { if (!out.empty() && fan::io::file::read(fp, out.data(), 1, out.size())) throw std::runtime_error("eof"); }
-        void read_exact(fan::bytes_t& out) { if (!out.empty() && fan::io::file::read(fp, out.data(), 1, out.size())) throw std::runtime_error("eof"); }
-      };
-    }
-  }
+			struct file_reader_t {
+				file_t* fp = nullptr;
+				void read_exact(std::span<std::uint8_t> out) { if (!out.empty() && fan::io::file::read(fp, out.data(), 1, out.size())) throw std::runtime_error("eof"); }
+				void read_exact(fan::bytes_t& out) { if (!out.empty() && fan::io::file::read(fp, out.data(), 1, out.size())) throw std::runtime_error("eof"); }
+			};
+		}
+	}
 
-  template <typename T>
-  void write_to_file(fan::io::file::file_t* f, const T& o) {
-    if constexpr (std::is_same<std::string, T>::value) {
-      std::uint64_t len = o.size();
-      fan::io::file::write(f, (std::uint8_t*)&len, sizeof(len), 1);
-      fan::io::file::write(f, (std::uint8_t*)o.data(), len, 1);
-    }
-    else if constexpr (tmpl::is_std_vector<T>::value) {
-      std::uint64_t len = o.size();
-      fan::io::file::write(f, (std::uint8_t*)&len, sizeof(len), 1);
-      fan::io::file::write(f, (std::uint8_t*)o.data(), len * sizeof(typename T::value_type), 1);
-    }
-    else {
-      fan::io::file::write(f, (std::uint8_t*)&o, sizeof(o), 1);
-    }
-  }
+	template <typename T>
+	void write_to_file(fan::io::file::file_t* f, const T& o) {
+		if constexpr (std::is_same<std::string, T>::value) {
+			std::uint64_t len = o.size();
+			fan::io::file::write(f, (std::uint8_t*)&len, sizeof(len), 1);
+			fan::io::file::write(f, (std::uint8_t*)o.data(), len, 1);
+		}
+		else if constexpr (tmpl::is_std_vector<T>::value) {
+			std::uint64_t len = o.size();
+			fan::io::file::write(f, (std::uint8_t*)&len, sizeof(len), 1);
+			fan::io::file::write(f, (std::uint8_t*)o.data(), len * sizeof(typename T::value_type), 1);
+		}
+		else {
+			fan::io::file::write(f, (std::uint8_t*)&o, sizeof(o), 1);
+		}
+	}
+
+	std::pair<std::size_t, std::string> find_in_file(std::string_view path, std::string_view needle);
 }
 
 export namespace fan::path {
-  std::string join(const std::string& dir, const std::string& file);
+	std::string join(const std::string& dir, const std::string& file);
 }

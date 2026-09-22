@@ -2,7 +2,11 @@ module;
 
 #if defined(FAN_PHYSICS_2D)
 
+#endif
+
 export module fan.physics.vehicle_controller;
+
+#if defined(FAN_PHYSICS_2D)
 
 import std;
 import fan.types;

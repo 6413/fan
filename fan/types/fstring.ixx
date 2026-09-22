@@ -298,6 +298,17 @@ export namespace fan {
     return args;
   }
 
+  inline std::string join(std::span<const std::string_view> parts, std::string_view sep = " ") {
+    std::string s;
+    for (std::size_t i = 0; i < parts.size(); ++i) {
+      if (i) {
+        s.append(sep);
+      }
+      s.append(parts[i]);
+    }
+    return s;
+  }
+
   std::string format_thousands(auto number, const std::string& separator = ",", std::uint32_t group_size = 3) {
     std::string result = std::to_string(number);
 
@@ -507,6 +518,24 @@ export namespace fan {
     }
     auto size() const {
       return data.size();
+    }
+    // all argv
+    std::string join_all(std::string_view sep = " ") const {
+      return fan::join({data.data(), data.size()}, sep);
+    }
+
+    // argv[1...], when "" argc<=1
+    std::string join_rest(std::string_view sep = " ") const {
+      if (data.size() <= 1) {
+        return {};
+      }
+      return fan::join({data.data() + 1, data.size() - 1}, sep);
+    }
+    std::vector<std::string_view>& get() {
+      return data;
+    }
+    operator std::vector<std::string_view>& () {
+      return get();
     }
 
     std::vector<std::string_view> data;
