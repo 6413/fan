@@ -14,6 +14,7 @@ module fan.io.file;
 
 import fan.print;
 import fan.utility;
+import fan.types.fstring;
 
 namespace fan::io::file {
 
@@ -369,10 +370,11 @@ namespace fan {
 			if (!file)
 					return {0, {}};
 
-			std::ostringstream ss;
-			ss << file.rdbuf();
-			std::string data = ss.str();
+		std::ostringstream ss;
+		ss << file.rdbuf();
+		std::string data = ss.str();
 
+		if (needle.find('*') == std::string_view::npos) {
 			const auto pos = data.find(needle);
 			if (pos == std::string::npos)
 					return {0, {}};
@@ -394,6 +396,23 @@ namespace fan {
 					line_num,
 					data.substr(line_start, line_end - line_start)
 			};
+		}
+
+		std::size_t line_num = 1;
+		std::size_t start = 0;
+		while (true) {
+			std::size_t end = data.find('\n', start);
+			std::string_view line(data.data() + start, (end == std::string::npos ? data.size() : end) - start);
+			if (fan::wildcard_find(line, needle)) {
+				return {line_num, std::string(line)};
+			}
+			if (end == std::string::npos) {
+				break;
+			}
+			start = end + 1;
+			++line_num;
+		}
+		return {0, {}};
 	}
 }
 
