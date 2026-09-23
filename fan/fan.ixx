@@ -10,7 +10,6 @@ export import fan.types.bitset;
   export import fan.types.json;
 #endif
 export import fan.math;
-export import fan.tween;
 export import fan.random;
 export import fan.time;
 export import fan.print;
@@ -43,6 +42,7 @@ export import fan.graphics.loco;
   export import fan.graphics.grid_placer;
   export import fan.graphics.algorithm.raymarch;
   export import fan.graphics.algorithm.chunk_renderer;
+  export import fan.tween;
 #endif
 #if defined(FAN_GUI)
   export import fan.console;

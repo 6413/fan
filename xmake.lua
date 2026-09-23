@@ -191,8 +191,7 @@ local module_files = {
   "fan/utility.ixx", "fan/formatter.ixx", "fan/print_error.ixx", "fan/print.ixx",
   "fan/random.ixx", "fan/log_dispatcher.ixx", "fan/crypto.ixx", "fan/process.ixx",
   "fan/io/io_types.ixx", "fan/io/directory.ixx", "fan/io/file.ixx", "fan/io/io_prompt.ixx",
-  "fan/event/event_types.ixx", "fan/event/event.ixx", "fan/event/uv_raw.ixx", "fan/compression.ixx",
-  "fan/tween.ixx"
+  "fan/event/event_types.ixx", "fan/event/event.ixx", "fan/event/uv_raw.ixx", "fan/compression.ixx"
 }
 
 local feature_modules = {
@@ -210,7 +209,7 @@ local feature_modules = {
   },
 
   FAN_2D = { "fan/graphics/2D/shapes_types.ixx", "fan/graphics/2D/grid_placer.ixx", "fan/graphics/2D/culling.ixx", "fan/graphics/2D/shapes.ixx",
-              "fan/graphics/vulkan/vk_core_types.ixx", "fan/graphics/vulkan/vk_core_vai.ixx", "fan/graphics/vulkan/vk_core_image.ixx", "fan/graphics/vulkan/vk_core_compute.ixx", "fan/graphics/vulkan/vk_core_pipeline.ixx", "fan/graphics/vulkan/vk_core_camera_subsystem.ixx", "fan/graphics/vulkan/vk_core_uniform_block.ixx", "fan/graphics/vulkan/vk_core_shader_subsystem.ixx", "fan/graphics/vulkan/vk_core.ixx"
+              "fan/graphics/vulkan/vk_core_types.ixx", "fan/graphics/vulkan/vk_core_vai.ixx", "fan/graphics/vulkan/vk_core_image.ixx", "fan/graphics/vulkan/vk_core_compute.ixx", "fan/graphics/vulkan/vk_core_pipeline.ixx", "fan/graphics/vulkan/vk_core_camera_subsystem.ixx", "fan/graphics/vulkan/vk_core_uniform_block.ixx", "fan/graphics/vulkan/vk_core_shader_subsystem.ixx", "fan/graphics/vulkan/vk_core.ixx", "fan/tween.ixx"
   },
   FAN_JSON = { "fan/types/json.ixx" },
   FAN_FMT = { "fan/fmt.ixx" },
