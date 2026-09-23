@@ -53,6 +53,11 @@ export namespace fan {
       const std::function<void(const std::filesystem::path& full, const std::filesystem::path& rel)>& function
     );
 
+   void iterate_files_recursive_parallel(
+      const std::filesystem::path& path,
+      std::uint32_t thread_count,
+      const std::function<void(const std::filesystem::path& full, const std::filesystem::path& rel)>& function
+    ); 
     bool is_safe_path(const std::filesystem::path& path);
 
     struct vfs_provider_t : public data_provider_t {
