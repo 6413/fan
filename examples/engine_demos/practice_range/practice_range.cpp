@@ -173,7 +173,7 @@ engine->shadow_enable_tile_mode();
       fan::graphics::sprite(fan::vec3(fan::vec2(0, 0), 0), 12300, fan::colors::gray);
       
       
-      f32_t dt = pile.get_delta_time();
+      f32_t dt = engine->get_delta_time();
 
       if (is_hitstop) {
         dt *= 0.08f;

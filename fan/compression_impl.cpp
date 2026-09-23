@@ -806,7 +806,7 @@ namespace fan::fcs {
   compress_candidate_t compress_best_candidate(std::vector<compress_candidate_t>& candidates, compress_params_t params, fan::progress_t* prog, std::size_t thread_count, bool verbose) {
     std::size_t actual_threads = thread_count ? thread_count : std::max<std::size_t>(1, std::thread::hardware_concurrency()), best_idx = 0;
     if (candidates.size() > 1) {
-      if (verbose) { fan::print("quick testing candidates..."); }
+      if (verbose) { fan::print_impl("quick testing candidates..."); }
       std::vector<std::size_t> scores(candidates.size(), -1uz); std::atomic<std::size_t> next = 0;
       std::vector<std::jthread> workers;
       for (std::size_t w = 0; w < std::min<std::size_t>(actual_threads, candidates.size()); ++w) {
@@ -814,18 +814,18 @@ namespace fan::fcs {
       }
       workers.clear(); std::size_t best_s = -1uz;
       for (std::size_t i = 0; i < candidates.size(); ++i) {
-        if (verbose) { fan::print("candidate:", candidates[i].name, "sample size:", scores[i]); }
+        if (verbose) { fan::print_impl("candidate:", candidates[i].name, "sample size:", scores[i]); }
         if (scores[i] < best_s) { best_s = scores[i]; best_idx = i; }
       }
     }
-    auto& c = candidates[best_idx]; if (verbose) { fan::print("selected:", c.name, "for full compression"); }
+    auto& c = candidates[best_idx]; if (verbose) { fan::print_impl("selected:", c.name, "for full compression"); }
     if (!params.parser_verify) {
       if (prog) { prog->total.store(c.data.size() * progress_scale, std::memory_order_relaxed); prog->done.store(0, std::memory_order_relaxed); }
       c.chunk_size = run_compress_core(c.data, params, prog, actual_threads, c.comp);
       if (prog) { prog->done.store(c.data.size() * progress_scale, std::memory_order_relaxed); }
       return std::move(c);
     }
-    auto full_params = make_full_param_candidates(params); if (verbose && full_params.size() > 1) { fan::print("full testing parser settings..."); }
+    auto full_params = make_full_param_candidates(params); if (verbose && full_params.size() > 1) { fan::print_impl("full testing parser settings..."); }
     std::size_t best_full = -1uz, best_chunk = 0; fan::bytes_t best_comp;
     std::uint64_t full_unit = c.data.size() * progress_scale, done_base = 0;
     if (prog) { prog->total.store(full_unit * full_params.size(), std::memory_order_relaxed); prog->done.store(0, std::memory_order_relaxed); }
@@ -839,7 +839,7 @@ namespace fan::fcs {
       try { ch = run_compress_core(c.data, fp.params, prog ? &local_prog : nullptr, actual_threads, comp); }
       catch (...) { if (prog) { pump_done.store(true, std::memory_order_relaxed); } throw; }
       if (prog) { pump_done.store(true, std::memory_order_relaxed); }
-      if (verbose && full_params.size() > 1) { fan::print("parser:", fp.name, "size:", comp.size()); }
+      if (verbose && full_params.size() > 1) { fan::print_impl("parser:", fp.name, "size:", comp.size()); }
       if (comp.size() < best_full) { best_full = comp.size(); best_chunk = ch; best_comp = std::move(comp); }
       if (prog) { done_base += full_unit; prog->done.store(done_base, std::memory_order_relaxed); }
     }
@@ -851,8 +851,8 @@ namespace fan::fcs {
   bool compress_path_to_file(const std::filesystem::path& in, const std::filesystem::path& out_path, compress_params_t params, fan::progress_t* prog, bool verbose, std::size_t thread_count) {
     std::vector<fan::io::file_info_t> files;
     if (std::filesystem::is_directory(in)) {
-      fan::io::iterate_files_recursive(in, [&](const auto& full, const auto& rel) { if (verbose) { fan::print("found:", rel.generic_string()); } files.push_back({full, rel.generic_string(), std::filesystem::file_size(full)}); });
-    } else { if (verbose) { fan::print("found:", in.filename().string()); } files.push_back({in, in.filename().string(), std::filesystem::file_size(in)}); }
+      fan::io::iterate_files_recursive(in, [&](const auto& full, const auto& rel) { if (verbose) { fan::print_impl("found:", rel.generic_string()); } files.push_back({full, rel.generic_string(), std::filesystem::file_size(full)}); });
+    } else { if (verbose) { fan::print_impl("found:", in.filename().string()); } files.push_back({in, in.filename().string(), std::filesystem::file_size(in)}); }
     fan::io::vfs_provider_t provider; std::uint8_t u32_buf[4]; fan::memory::write_le32(u32_buf, std::uint32_t(files.size())); provider.append_bytes(std::span<const std::uint8_t>(u32_buf, 4));
     for (const auto& f : files) {
       if (f.archive_path.size() > std::numeric_limits<std::uint16_t>::max()) { throw std::runtime_error("path too long"); }

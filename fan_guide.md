@@ -137,7 +137,7 @@ loco_t internals:
   render_context_call_raw(gl_expr, vk_expr) // raw expression dispatch
 
 pile (stage system):
-  pile.get_delta_time()                     // use this for dt, not a manual clock
+  get_delta_time()                     // use this for dt, not a manual clock
   pile.viewport_get_size()                  // matches world coordinate space
   open()   // called on stage load and on restart — always reinitialize all state here
   close()  // called on stage unload — shape_t destructors handle GPU cleanup automatically
