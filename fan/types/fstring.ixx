@@ -2,6 +2,8 @@ module;
 
 #include <fan/utility.h>
 
+#include <cstring>
+
 export module fan.types.fstring;
 
 import std;
@@ -533,6 +535,18 @@ export namespace fan {
     return b;
   }
 
+
+  inline std::size_t find_fast(std::string_view hay, std::string_view needle, std::size_t from = 0) {
+    if (needle.empty() || from > hay.size()) {
+      return std::string_view::npos;
+    }
+#if defined(fan_platform_unix)
+    const void* p = ::memmem(hay.data() + from, hay.size() - from, needle.data(), needle.size());
+    return p ? static_cast<const char*>(p) - hay.data() : std::string_view::npos;
+#else
+    return hay.find(needle, from);
+#endif
+  }
   #define fan_enum_string_runtime(m_name, ...) \
     enum m_name { __VA_ARGS__ }; \
     inline std::vector<std::string> m_name##_strings = fan::split(#__VA_ARGS__)

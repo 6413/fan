@@ -160,6 +160,34 @@ void fan::io::iterate_files_recursive(
   }
 }
 
+void fan::io::iterate_files_recursive_parallel(
+  const std::filesystem::path& path,
+  std::uint32_t thread_count,
+  const std::function<void(const std::filesystem::path& full, const std::filesystem::path& rel)>& function
+) {
+  std::vector<std::filesystem::path> files;
+  std::error_code ec;
+  for (const auto& e : std::filesystem::recursive_directory_iterator(path, ec)) {
+    if (e.is_regular_file(ec)) {
+      files.push_back(e.path());
+    }
+  }
+  if (files.empty()) {
+    return;
+  }
+  thread_count = std::max<std::uint32_t>(1, std::min<std::uint32_t>(thread_count, files.size()));
+  std::atomic<std::size_t> next{0};
+  std::vector<std::jthread> workers;
+  workers.reserve(thread_count);
+  for (std::uint32_t t = 0; t < thread_count; ++t) {
+    workers.emplace_back([&] {
+      for (std::size_t i; (i = next.fetch_add(1, std::memory_order_relaxed)) < files.size(); ) {
+        function(files[i], std::filesystem::relative(files[i], path));
+      }
+    });
+  }
+}
+
 bool fan::io::is_safe_path(const std::filesystem::path& path) {
   if (path.empty() || path.is_absolute()) { return false; }
   for (const auto& part : path) { if (part == "..") { return false; } }
