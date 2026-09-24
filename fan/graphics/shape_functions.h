@@ -230,14 +230,19 @@ static void set_image(fan::graphics::shapes::shape_t* shape, fan::graphics::imag
   auto texture_id = image.valid() ? image.NRI : fan::graphics::ctx().default_texture.NRI;
   if (sti == fan::graphics::shapes::shape_type_t::sprite || sti == fan::graphics::shapes::shape_type_t::unlit_sprite) {
     if (sti == fan::graphics::shapes::shape_type_t::sprite) {
-      auto* vi = (fan::graphics::shapes::sprite_t::vi_t*)shape->GetRenderData(fan::graphics::g_shapes->shaper);
-      vi->texture_id = texture_id;
-      update_shape(shape, [](auto, auto) {});
+      // visual may not exist yet when culling is enabled (shape is static
+      // and not in view). draw data below is the source of truth and
+      // push_shaper picks it up once the shape becomes visible.
+      if (auto* vi = (fan::graphics::shapes::sprite_t::vi_t*)shape->GetRenderData(fan::graphics::g_shapes->shaper)) {
+        vi->texture_id = texture_id;
+        update_shape(shape, [](auto, auto) {});
+      }
     }
     else {
-      auto* vi = (fan::graphics::shapes::unlit_sprite_t::vi_t*)shape->GetRenderData(fan::graphics::g_shapes->shaper);
-      vi->texture_id = texture_id;
-      update_shape(shape, [](auto, auto) {});
+      if (auto* vi = (fan::graphics::shapes::unlit_sprite_t::vi_t*)shape->GetRenderData(fan::graphics::g_shapes->shaper)) {
+        vi->texture_id = texture_id;
+        update_shape(shape, [](auto, auto) {});
+      }
     }
   } else {
     update_shape(shape, [&](auto sti2, auto key_pack) {
@@ -248,8 +253,10 @@ static void set_image(fan::graphics::shapes::shape_t* shape, fan::graphics::imag
     if constexpr (requires { props.image; }) {
       props.image = image;
     }
-    else if constexpr (requires { props.images; }) {
-      props.images[0] = image;
+    if constexpr (requires { props.images; }) {
+      if (props.images.size() > 0) {
+        props.images[0] = image;
+      }
     }
   });
 }

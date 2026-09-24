@@ -1905,21 +1905,70 @@ namespace fan::graphics{
   std::array<fan::graphics::image_t, 30> shapes::shape_t::get_images() const {
     auto shape_type = get_shape_type();
     if (shape_type == shape_type_t::sprite) {
-      auto* vi = (const sprite_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper);
-      std::array<fan::graphics::image_t, 30> ret;
-      ret[0].gint() = vi->texture_id;
-      ret[1].gint() = vi->texture_id1;
-      ret[2].gint() = vi->texture_id2;
-      ret[3].gint() = vi->texture_id3;
+      if (auto* vi = (const sprite_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper)) {
+        std::array<fan::graphics::image_t, 30> ret;
+        ret[0].gint() = vi->texture_id;
+        ret[1].gint() = vi->texture_id1;
+        ret[2].gint() = vi->texture_id2;
+        ret[3].gint() = vi->texture_id3;
+        return ret;
+      }
+      // culled (no visual) - fall back to draw data which is source of truth
+      std::array<fan::graphics::image_t, 30> ret{};
+      g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
+        if constexpr (requires { props.image; props.images; }) {
+          if constexpr (std::tuple_size_v<std::remove_cvref_t<decltype(props.images)>> == ret.size()) {
+            ret = props.images;
+          }
+          else {
+            for (std::size_t i = 1; i < ret.size() && i < props.images.size(); ++i) {
+              ret[i] = props.images[i];
+            }
+          }
+          ret[0] = props.image;
+        }
+        else if constexpr (requires { props.image; }) {
+          ret[0] = props.image;
+        }
+        else if constexpr (requires { props.images; }) {
+          for (std::size_t i = 0; i < ret.size() && i < props.images.size(); ++i) {
+            ret[i] = props.images[i];
+          }
+        }
+      });
       return ret;
     }
     else if (shape_type == shape_type_t::unlit_sprite) {
-      auto* vi = (const unlit_sprite_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper);
-      std::array<fan::graphics::image_t, 30> ret;
-      ret[0].gint() = vi->texture_id;
-      ret[1].gint() = vi->texture_id1;
-      ret[2].gint() = vi->texture_id2;
-      ret[3].gint() = vi->texture_id3;
+      if (auto* vi = (const unlit_sprite_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper)) {
+        std::array<fan::graphics::image_t, 30> ret;
+        ret[0].gint() = vi->texture_id;
+        ret[1].gint() = vi->texture_id1;
+        ret[2].gint() = vi->texture_id2;
+        ret[3].gint() = vi->texture_id3;
+        return ret;
+      }
+      std::array<fan::graphics::image_t, 30> ret{};
+      g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
+        if constexpr (requires { props.image; props.images; }) {
+          if constexpr (std::tuple_size_v<std::remove_cvref_t<decltype(props.images)>> == ret.size()) {
+            ret = props.images;
+          }
+          else {
+            for (std::size_t i = 1; i < ret.size() && i < props.images.size(); ++i) {
+              ret[i] = props.images[i];
+            }
+          }
+          ret[0] = props.image;
+        }
+        else if constexpr (requires { props.image; }) {
+          ret[0] = props.image;
+        }
+        else if constexpr (requires { props.images; }) {
+          for (std::size_t i = 0; i < ret.size() && i < props.images.size(); ++i) {
+            ret[i] = props.images[i];
+          }
+        }
+      });
       return ret;
     }
     else if (shape_type == shape_type_t::universal_image_renderer) {
@@ -1940,26 +1989,32 @@ namespace fan::graphics{
   void shapes::shape_t::set_images(const std::array<fan::graphics::image_t, 30>& images) {
     auto shape_type = get_shape_type();
     g_shapes->visit_shape_draw_data(NRI, [&](auto& properties) {
-      if constexpr (requires { 
-        properties.images; 
+      if constexpr (requires {
+        properties.images;
         requires std::tuple_size_v<std::remove_reference_t<decltype(properties.images)>> == images.size();
       }) {
         properties.images = images;
       }
+      if constexpr (requires { properties.image; }) {
+        properties.image = images[0];
+      }
     });
+    auto default_nri = fan::graphics::ctx().default_texture.NRI;
     if (shape_type == shape_type_t::sprite) {
-      auto* vi = (sprite_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper);
-      vi->texture_id = images[0].valid() ? images[0].NRI : fan::graphics::ctx().default_texture.NRI;
-      vi->texture_id1 = images[1].valid() ? images[1].NRI : fan::graphics::ctx().default_texture.NRI;
-      vi->texture_id2 = images[2].valid() ? images[2].NRI : fan::graphics::ctx().default_texture.NRI;
-      vi->texture_id3 = images[3].valid() ? images[3].NRI : fan::graphics::ctx().default_texture.NRI;
+      if (auto* vi = (sprite_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper)) {
+        vi->texture_id = images[0].valid() ? images[0].NRI : default_nri;
+        vi->texture_id1 = images[1].valid() ? images[1].NRI : default_nri;
+        vi->texture_id2 = images[2].valid() ? images[2].NRI : default_nri;
+        vi->texture_id3 = images[3].valid() ? images[3].NRI : default_nri;
+      }
     }
     else if (shape_type == shape_type_t::unlit_sprite) {
-      auto* vi = (unlit_sprite_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper);
-      vi->texture_id = images[0].valid() ? images[0].NRI : fan::graphics::ctx().default_texture.NRI;
-      vi->texture_id1 = images[1].valid() ? images[1].NRI : fan::graphics::ctx().default_texture.NRI;
-      vi->texture_id2 = images[2].valid() ? images[2].NRI : fan::graphics::ctx().default_texture.NRI;
-      vi->texture_id3 = images[3].valid() ? images[3].NRI : fan::graphics::ctx().default_texture.NRI;
+      if (auto* vi = (unlit_sprite_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper)) {
+        vi->texture_id = images[0].valid() ? images[0].NRI : default_nri;
+        vi->texture_id1 = images[1].valid() ? images[1].NRI : default_nri;
+        vi->texture_id2 = images[2].valid() ? images[2].NRI : default_nri;
+        vi->texture_id3 = images[3].valid() ? images[3].NRI : default_nri;
+      }
     }
   #if FAN_DEBUG >= fan_debug_medium
     else {
@@ -2712,7 +2767,15 @@ namespace fan::graphics{
     if (get_shape_type() != fan::graphics::shapes::shape_type_t::shadow) {
       fan::throw_error("invalid function call for current shape");
     }
+    g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
+      if constexpr (requires { props.light_position; }) {
+        props.light_position = new_pos;
+      }
+    });
     auto* vi = reinterpret_cast<shadow_t::vi_t*>(GetRenderData(fan::graphics::g_shapes->shaper));
+    if (!vi) {
+      return;
+    }
     vi->light_position = new_pos;
     auto vid = get_visual_id();
     if (!vid.iic()) {
@@ -2730,7 +2793,15 @@ namespace fan::graphics{
       fan::throw_error("invalid function call for current shape");
     }
 
+    g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
+      if constexpr (requires { props.light_radius; }) {
+        props.light_radius = radius;
+      }
+    });
     auto* vi = reinterpret_cast<shadow_t::vi_t*>(GetRenderData(fan::graphics::g_shapes->shaper));
+    if (!vi) {
+      return;
+    }
     vi->light_radius = radius;
     auto vid = get_visual_id();
     if (!vid.iic()) {
@@ -3690,8 +3761,10 @@ namespace fan::graphics {
           }
           else {
             auto images = shape->get_images();
-            images[i - 1] = image;
-            shape->set_images(images);
+            if ((std::size_t)i < images.size()) {
+              images[i] = image;
+              shape->set_images(images);
+            }
           }
           i++;
         }
@@ -3754,8 +3827,10 @@ namespace fan::graphics {
             }
             else {
               auto images = shape->get_images();
-              images[i - 1] = image;
-              shape->set_images(images);
+              if (i < images.size()) {
+                images[i] = image;
+                shape->set_images(images);
+              }
             }
             (*fan::graphics::ctx().image_list)[image].image_path = path;
           }
