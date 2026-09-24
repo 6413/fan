@@ -99,14 +99,35 @@ export namespace fan::vulkan {
       VkPrimitiveTopology shape_type = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     };
 
+    pipeline_t() = default;
+    pipeline_t(const pipeline_t&) = default;
+    pipeline_t(pipeline_t&& other) noexcept {
+      *this = std::move(other);
+    }
+    pipeline_t& operator=(const pipeline_t&) = default;
+    pipeline_t& operator=(pipeline_t&& other) noexcept {
+      if (this == &other) { return *this; }
+      shader_nr = other.shader_nr;
+      m_layout = other.m_layout;
+      m_shaders[0] = other.m_shaders[0];
+      m_shaders[1] = other.m_shaders[1];
+      properties = std::move(other.properties);
+      shader_descriptor_sets = other.shader_descriptor_sets;
+      other.m_layout = VK_NULL_HANDLE;
+      other.m_shaders[0] = VK_NULL_HANDLE;
+      other.m_shaders[1] = VK_NULL_HANDLE;
+      other.shader_descriptor_sets = nullptr;
+      return *this;
+    }
+
     void open(fan::vulkan::context_t& context, const properties_t& p);
     void close(fan::vulkan::context_t& context);
 #if defined(FAN_2D)
     fan::graphics::shader_nr_t shader_nr;
 #endif
 
-    VkPipelineLayout m_layout;
-    VkShaderEXT m_shaders[2]; // [0] = Vertex, [1] = Fragment
+    VkPipelineLayout m_layout = VK_NULL_HANDLE;
+    VkShaderEXT m_shaders[2] = { VK_NULL_HANDLE, VK_NULL_HANDLE }; // [0] = Vertex, [1] = Fragment
     properties_t properties;
     VkDescriptorSet* shader_descriptor_sets = nullptr; // per-shader descriptor sets (custom shader shapes)
   };
