@@ -267,8 +267,7 @@ struct shaper_t{
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_NodeDataType ShapeType_t
   #define BLL_set_type_node ShapeTypeAmount_t
-  #define BLL_set_CPP_ConstructNode 1
-  #define BLL_set_CPP_DestructNode 1
+  #define BLL_set_CPP_Node_ConstructDestruct 1
   #define BLL_set_CPP_CopyAtPointerChange 1
   #include <BLL/BLL.h>
   ShapeTypes_t ShapeTypes;

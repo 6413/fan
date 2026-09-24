@@ -232,10 +232,11 @@ export namespace fan::graphics::shaper {
 
   #define shaper_set_ExpandInside_SetShapeType \
     ShapeType_t::vk_t d;\
+    if (st.renderer.vk.pipeline.m_layout) { st.renderer.vk.pipeline.close(*static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::ctx()))); }\
     st.renderer.vk.~vk_t();\
     std::construct_at(&st.renderer.vk);\
     auto& bpr = bp.renderer.vk;\
-    d.pipeline = bpr.pipeline;\
+    d.pipeline = std::move(bpr.pipeline);\
     d.shape_data = std::move(bpr.shape_data);\
     d.vertex_count = bpr.vertex_count;\
     st.renderer.vk = std::move(d);
