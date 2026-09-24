@@ -2570,7 +2570,7 @@ void loco_t::shape_open(
   pipe_p.enable_depth_test = false;
   pipe_p.shape_type = (VkPrimitiveTopology)fan::graphics::get_draw_mode(draw_mode);
   p.open(context.vk, pipe_p);
-  vk.pipeline = p;
+  vk.pipeline = std::move(p);
   bp.renderer.vk = std::move(vk);
 
   fan::graphics::g_shapes->shaper.SetShapeType(shape_type, bp);
