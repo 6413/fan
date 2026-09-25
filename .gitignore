@@ -68,3 +68,4 @@ temp/
 .directory  
 programs/
 imgui.ini
+*.spv
