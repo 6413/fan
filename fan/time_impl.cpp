@@ -21,13 +21,17 @@ module;
     interval.QuadPart = (LONGLONG)(-10.f * us);
     NtDelayExecution(false, &interval);
   }
-#elif defined(fan_platform_unix)
-  #include <time.h>
 #endif
 
 module fan.time;
 
+import std;
 import fan.print;
+
+// NOTE: Do NOT #include <time.h> here (neither in GMF nor after imports).
+// It conflicts with `import std;` both via GCC reflection GMF bug
+// (see gcc_bug.txt) and via redeclaration (mktime etc.) in module purview.
+// Use std::chrono / std::this_thread instead of POSIX clock_gettime.
 
 namespace fan {
   namespace time {
@@ -41,10 +45,8 @@ namespace fan {
       QueryPerformanceCounter(&time);
       return (std::uint64_t)((double)time.QuadPart * nanoseconds_per_count);
     #elif defined(fan_platform_unix)
-      struct timespec t;
-      clock_gettime(CLOCK_MONOTONIC, &t);
-
-      return (std::uint64_t)t.tv_sec * 1000000000 + t.tv_nsec;
+      return (std::uint64_t)std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
     #endif
     }
 
@@ -61,10 +63,7 @@ namespace fan {
     #ifdef fan_platform_windows
       delay_w((float)(time / 1000));
     #elif defined(fan_platform_unix)
-      struct timespec t;
-      t.tv_sec = time / 1000000000;
-      t.tv_nsec = time % 1000000000;
-      nanosleep(&t, 0);
+      std::this_thread::sleep_for(std::chrono::nanoseconds(time));
     #endif
     }
 

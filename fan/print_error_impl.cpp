@@ -1,10 +1,11 @@
 module;
 
-#include <ctime>
-
 module fan.print.error;
 
 import std;
+
+// NOTE: Do NOT #include <ctime> here. `import std;` already provides
+// std::chrono, std::time_t, std::tm. See gcc_bug.txt.
 
 namespace fan {
   log_t& get_error_log() {
@@ -15,16 +16,17 @@ namespace fan {
   void write_error_to_disk(const std::string& msg) {
     auto& log = get_error_log();
     auto now = std::chrono::system_clock::now();
-    std::time_t t = std::chrono::system_clock::to_time_t(now);
-    std::tm tm{};
-  #ifdef _WIN32
-    localtime_s(&tm, &t);
-  #else
-    localtime_r(&t, &tm);
-  #endif
-    std::ostringstream oss;
-    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << " - " << msg << '\n';
-    std::string new_entry = oss.str();
+    // NOTE: use std::format chrono (no <ctime> / localtime_r) to stay
+    // compatible with `import std;` + GCC -freflection (see gcc_bug.txt).
+    std::string ts;
+    try {
+      ts = std::format("{:%Y-%m-%d %H:%M:%S}",
+        std::chrono::floor<std::chrono::seconds>(now));
+    }
+    catch (...) {
+      ts = "unknown-time";
+    }
+    std::string new_entry = ts + " - " + msg + '\n';
 
     std::lock_guard<std::mutex> lock(log.mtx);
     std::ifstream in(log.filename, std::ios::binary);
