@@ -113,6 +113,13 @@ consteval auto members() {
     return *ptr;
   }
 
+  template <typename T>
+  void unpack(T&& val, auto&& func) {
+    [&]<typename T2>(T2&& t){
+      auto&& [...xs] = std::forward<T>(t);
+      (func(xs), ...);
+    }(val);
+  }
   template <typename T, typename F>
   constexpr void iterate_members(auto&& obj, F&& func) {
     for_each_member<T>([&]<std::meta::info m> { func(std::meta::identifier_of(m), obj.[:m:]); });
