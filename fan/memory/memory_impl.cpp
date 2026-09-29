@@ -7,12 +7,16 @@ module;
 #include <fan/utility.h>
 #include <cstdlib>
 
+module fan.memory;
+
+import fan.time;
 namespace fan::memory::detail {
   inline void* (*malloc_fn)(std::size_t) = nullptr;
   inline void* (*realloc_fn)(void*, std::size_t) = nullptr;
   inline void (*free_fn)(void*) = nullptr;
 }
 
+/*
 void* operator new(std::size_t size) {
   return fan::memory::detail::malloc_fn ? fan::memory::detail::malloc_fn(size) : std::malloc(size);
 }
@@ -31,11 +35,7 @@ void operator delete(void* ptr, std::size_t) noexcept {
 void operator delete[](void* ptr, std::size_t) noexcept {
   fan::memory::detail::free_fn ? fan::memory::detail::free_fn(ptr) : std::free(ptr);
 }
-
-module fan.memory;
-
-import fan.time;
-
+*/
 namespace fan::memory {
   heap_profiler_t::~heap_profiler_t() {
     if (!enabled) {
