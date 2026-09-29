@@ -6,11 +6,16 @@ module;
   #define USE_STD_PRINT
 #endif
 
-#include <cstdio>
-
 module fan.print;
 
 import std;
+
+// NOTE: Do NOT #include <cstdio> here (neither in GMF nor after imports).
+// GCC 16 + -freflection + `import std;` conflicts with C++ std headers
+// (see gcc_bug.txt), and including <cstdio> in module purview redeclares
+// std::size_t etc. `import std;` already provides std::fflush, std::print,
+// std::cout. ::stdout is provided transitively on Linux; fflush(nullptr)
+// is used to avoid depending on the stdout macro.
 
 namespace fan::detail {
   static void print_raw(std::string_view msg) {
@@ -103,7 +108,9 @@ namespace fan {
     buf[40] = '\0';
   #if defined(USE_STD_PRINT)
     std::print("\r[{}] {:>5.3f}%", buf, pct);
-    std::fflush(stdout);  // flush the C stream, not cout
+    // NOTE: fflush(nullptr) flushes all C streams including stdout.
+    // Avoids needing ::stdout from <cstdio> (conflicts with import std).
+    std::fflush(nullptr);
   #else
     std::cout << std::format("\r[{}] {:>5.3f}%", buf, pct) << std::flush;
   #endif
@@ -111,7 +118,7 @@ namespace fan {
 
   void flush_console() {
   #if defined(USE_STD_PRINT)
-    std::fflush(stdout);
+    std::fflush(nullptr);
   #else
     std::cout.flush();
   #endif

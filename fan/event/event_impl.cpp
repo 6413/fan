@@ -1,14 +1,17 @@
 module;
 
-#include <coroutine>
-#include <ctype.h>
-
 module fan.event;
 
+import std;
 import fan.print;
 import fan.print.error;
 import fan.event.uv_raw;
 import fan.io.file;
+
+// NOTE: Do NOT #include <coroutine> / <ctype.h> here: they are C++ std
+// headers already provided by `import std;` (std::coroutine_handle,
+// std::tolower etc.). Including them conflicts both in GMF (GCC
+// reflection bug, see gcc_bug.txt) and in module purview.
 
 namespace fan::event {
 
@@ -762,8 +765,8 @@ namespace fan::io {
             if (a_is_dir == b_is_dir) {
               std::string a_stem = a.path().stem().string();
               std::string b_stem = b.path().stem().string();
-              std::transform(a_stem.begin(), a_stem.end(), a_stem.begin(), ::tolower);
-              std::transform(b_stem.begin(), b_stem.end(), b_stem.begin(), ::tolower);
+              std::transform(a_stem.begin(), a_stem.end(), a_stem.begin(), [](unsigned char c) { return std::tolower(c); });
+              std::transform(b_stem.begin(), b_stem.end(), b_stem.begin(), [](unsigned char c) { return std::tolower(c); });
               return a_stem < b_stem;
             }
             return a_is_dir && !b_is_dir;

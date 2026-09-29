@@ -2,9 +2,8 @@ module;
 
 #include <fan/utility.h>
 
-#include <stdlib.h>
-
 #if !defined(fan_compiler_gcc)
+#include <stdlib.h>
 
   #include <coroutine>
   #include <uv.h>
