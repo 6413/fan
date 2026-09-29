@@ -5,10 +5,10 @@ module;
 #endif
 
 #include <fan/utility.h>
-#include <cstdlib>
 
 module fan.memory;
 
+import std;
 import fan.time;
 namespace fan::memory::detail {
   inline void* (*malloc_fn)(std::size_t) = nullptr;

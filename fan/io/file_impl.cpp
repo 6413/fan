@@ -2,19 +2,26 @@ module;
 
 #include <fan/utility.h>
 
-#include <climits>
+module fan.io.file;
 
+import std;
+import fan.print;
+import fan.utility;
+import fan.types.fstring;
+
+// NOTE: Do NOT #include C++ std headers (<climits>, <cstdio>, ...) here:
+// they conflict with `import std;` both in GMF (GCC reflection bug,
+// see gcc_bug.txt) and in module purview (redeclares std::size_t).
+// POSIX headers (<unistd.h>, <Windows.h>) are safe after imports.
 #if defined(fan_platform_windows)
 #include <Windows.h>
 #elif defined(fan_platform_unix)
 #include <unistd.h>
+#include <limits.h>
+#ifndef PATH_MAX
+  #define PATH_MAX 4096
 #endif
-
-module fan.io.file;
-
-import fan.print;
-import fan.utility;
-import fan.types.fstring;
+#endif
 
 namespace fan::io::file {
 

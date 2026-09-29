@@ -44,18 +44,27 @@ export namespace fan::refl {
 
 template <typename T>
 consteval auto members() {
-  std::vector<std::meta::info> all_members;
   constexpr auto ctx = std::meta::access_context::unchecked();
-  auto collect = [&](auto&& self, std::meta::info type_refl) -> void {
-    for (auto m : std::meta::nonstatic_data_members_of(type_refl, ctx)) {
-      all_members.push_back(m);
-    }
-    for (auto base : std::meta::bases_of(type_refl, ctx)) {
-      self(self, std::meta::type_of(base));
-    }
-  };
-  collect(collect, ^^T);
-  return std::define_static_array(all_members);
+  // Fast path: types without bases avoid local std::vector in consteval.
+  // Works around GCC 16 experimental bug where vector<std::meta::info>
+  // destructor in consteval fails with "accessing uninitialized member"
+  // (see build of examples/reflection/tests.cpp with --gcc --reflection).
+  if constexpr (std::meta::bases_of(^^T, ctx).size() == 0) {
+    return std::define_static_array(
+      std::meta::nonstatic_data_members_of(^^T, ctx));
+  } else {
+    std::vector<std::meta::info> all_members;
+    auto collect = [&](auto&& self, std::meta::info type_refl) -> void {
+      for (auto m : std::meta::nonstatic_data_members_of(type_refl, ctx)) {
+        all_members.push_back(m);
+      }
+      for (auto base : std::meta::bases_of(type_refl, ctx)) {
+        self(self, std::meta::type_of(base));
+      }
+    };
+    collect(collect, ^^T);
+    return std::define_static_array(all_members);
+  }
 }
 
   template <typename T>
