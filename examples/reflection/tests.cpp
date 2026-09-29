@@ -142,7 +142,7 @@ int main() {
 
   entity_t e{.health = 100, .speed = 5.5f, .armor = 30, .alive = true};
   fan::print(e);
-
+  fan::print(type_t());
   auto s = fan::to_rjson_string(e, 2);
   fan::print(s);
 
