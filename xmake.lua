@@ -187,11 +187,11 @@ local module_files = {
   "fan/types/types.ixx", "fan/types/color.ixx", "fan/types/vector.ixx", "fan/types/quaternion.ixx",
   "fan/types/matrix.ixx", "fan/types/fstring.ixx", "fan/types/compile_time_string.ixx",
   "fan/types/flat_hash_map.ixx", "fan/types/bitset.ixx", "fan/memory/memory.ixx",
-  "fan/math/math.ixx", "fan/math/intersection.ixx", "fan/time.ixx", "fan/mpl.ixx",
-  "fan/utility.ixx", "fan/formatter.ixx", "fan/print_error.ixx", "fan/print.ixx",
-  "fan/random.ixx", "fan/log_dispatcher.ixx", "fan/crypto.ixx", "fan/process.ixx",
+  "fan/math/math.ixx", "fan/math/intersection.ixx", "fan/system/time.ixx", "fan/utils/mpl.ixx",
+  "fan/utils/utility.ixx", "fan/debug/formatter.ixx", "fan/debug/print_error.ixx", "fan/debug/print.ixx",
+  "fan/utils/random.ixx", "fan/debug/log_dispatcher.ixx", "fan/utils/crypto.ixx", "fan/system/process.ixx",
   "fan/io/io_types.ixx", "fan/io/directory.ixx", "fan/io/file.ixx", "fan/io/io_prompt.ixx",
-  "fan/event/event_types.ixx", "fan/event/event.ixx", "fan/event/uv_raw.ixx", "fan/compression.ixx"
+  "fan/event/event_types.ixx", "fan/event/event.ixx", "fan/event/uv_raw.ixx", "fan/utils/compression.ixx"
 }
 
 local feature_modules = {
@@ -203,16 +203,16 @@ local feature_modules = {
     "fan/graphics/loco.ixx", "fan/graphics/graphics.ixx", "fan/graphics/file_dialog.ixx",
     "fan/graphics/2D/algorithm/raycast_grid.ixx", "fan/graphics/2D/algorithm/raymarch.ixx", "fan/graphics/2D/algorithm/chunk_renderer.ixx", "fan/graphics/gameplay/gameplay_types.ixx",
     "fan/graphics/gameplay/gameplay.ixx", "fan/graphics/graphics_event.ixx", "fan/texture_pack/tp0.ixx",
-    "fan/physics/physics_types.ixx", "fan/noise.ixx", "fan/pathfind.ixx", "fan/spatial.ixx", "fan/ecs.ixx",
+    "fan/physics/physics_types.ixx", "fan/algorithm/noise.ixx", "fan/algorithm/pathfind.ixx", "fan/gameplay/spatial.ixx", "fan/gameplay/ecs.ixx",
     "fan/graphics/gui/console.ixx",
     "fan/graphics/gui/tilemap_editor/loader.ixx", "fan/graphics/gui/tilemap_editor/renderer0.ixx"
   },
 
   FAN_2D = { "fan/graphics/2D/shapes_types.ixx", "fan/graphics/2D/grid_placer.ixx", "fan/graphics/2D/culling.ixx", "fan/graphics/2D/shapes.ixx",
-              "fan/graphics/vulkan/vk_core_types.ixx", "fan/graphics/vulkan/vk_core_vai.ixx", "fan/graphics/vulkan/vk_core_image.ixx", "fan/graphics/vulkan/vk_core_compute.ixx", "fan/graphics/vulkan/vk_core_pipeline.ixx", "fan/graphics/vulkan/vk_core_camera_subsystem.ixx", "fan/graphics/vulkan/vk_core_uniform_block.ixx", "fan/graphics/vulkan/vk_core_shader_subsystem.ixx", "fan/graphics/vulkan/vk_core.ixx", "fan/tween.ixx"
+              "fan/graphics/vulkan/vk_core_types.ixx", "fan/graphics/vulkan/vk_core_vai.ixx", "fan/graphics/vulkan/vk_core_image.ixx", "fan/graphics/vulkan/vk_core_compute.ixx", "fan/graphics/vulkan/vk_core_pipeline.ixx", "fan/graphics/vulkan/vk_core_camera_subsystem.ixx", "fan/graphics/vulkan/vk_core_uniform_block.ixx", "fan/graphics/vulkan/vk_core_shader_subsystem.ixx", "fan/graphics/vulkan/vk_core.ixx", "fan/algorithm/tween.ixx"
   },
   FAN_JSON = { "fan/types/json.ixx" },
-  FAN_FMT = { "fan/fmt.ixx" },
+  FAN_FMT = { "fan/utils/fmt.ixx" },
   FAN_NETWORK = { "fan/network/network.ixx", "fan/network/network_socket.ixx", "fan/graphics/2D/graphics_network.ixx" },
   FAN_AUDIO = { "fan/audio/audio.ixx" },
   FAN_PHYSICS_2D = { "fan/physics/b2_integration.ixx", "fan/physics/physics_common_context.ixx", "fan/graphics/physics_shapes.ixx", "fan/physics/vehicle_controller.ixx" },
