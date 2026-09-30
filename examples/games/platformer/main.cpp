@@ -1,4 +1,4 @@
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 #include <fan/types/dme.h>
 
 #include <cmath>
@@ -17,7 +17,7 @@
 #include <string_view>
 #include <sstream>
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #include <source_location>
 #include <set>

@@ -6,7 +6,7 @@ module;
 #define POSITION2_WINDOW_CENTER fan::vec2(fan::graphics::ctx().window->get_size() / 2.f)
 #define POSITION3_WINDOW_CENTER fan::vec3(POSITION2_WINDOW_CENTER, 0)
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #endif
 

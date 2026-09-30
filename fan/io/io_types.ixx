@@ -1,7 +1,7 @@
 // fan.io.types.ixx
 module;
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 export module fan.io.types;
 

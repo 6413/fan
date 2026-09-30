@@ -6,7 +6,7 @@ module;
 #include <libavformat/avformat.h>
 
 #if defined(FAN_2D)
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 #include <WITCH/WITCH.h>
 #include <WITCH/PR/PR.h>
 #include <WITCH/MD/SCR/SCR.h>

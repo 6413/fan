@@ -2,7 +2,7 @@ module;
 
 #if defined (FAN_WINDOW)
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #if defined(FAN_3D)
   #include <assimp/Exporter.hpp>

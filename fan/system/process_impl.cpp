@@ -1,6 +1,6 @@
 module;
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #if !defined(fan_compiler_gcc)
 #include <stdlib.h>
@@ -17,7 +17,7 @@ module;
     #define DPRINT(...) ((void)0)
   #endif
 
-  #include <fan/utility.h>
+  #include <fan/utils/utility.h>
 
 #endif
 

@@ -4,7 +4,7 @@ module;
 
 #include <cstdint>
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 #endif
 
 module fan.texture_pack.tp0;
@@ -20,7 +20,7 @@ import fan.graphics.image_load;
 
 namespace fan::graphics {
 
-  #include <fan/fan_bll_preset.h>
+  #include <fan/memory/fan_bll_preset.h>
   #define BLL_set_prefix texture_unique_map
   #define BLL_set_Language 1
   #define BLL_set_Usage 1

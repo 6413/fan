@@ -6,7 +6,7 @@ module;
 
 #if defined(FAN_2D)
   #if defined(FAN_PHYSICS_2D)
-    #include <fan/utility.h>
+    #include <fan/utils/utility.h>
   #endif
 #endif
 

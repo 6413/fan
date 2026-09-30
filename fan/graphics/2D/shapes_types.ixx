@@ -2,7 +2,7 @@ module;
 
 #if defined (FAN_WINDOW)
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 #include <cstdint>
 #include <vk_mem_alloc.h>
 

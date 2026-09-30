@@ -4,7 +4,7 @@ module;
   #define ____mbstate_t_defined
 #endif
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 module fan.memory;
 

@@ -1,6 +1,6 @@
 module;
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #ifdef fan_platform_windows
   #define WIN32_LEAN_AND_MEAN
