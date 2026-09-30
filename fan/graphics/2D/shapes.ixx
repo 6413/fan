@@ -2,7 +2,7 @@ module;
 
 #if defined (FAN_WINDOW)
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 #include <cstdint>
 
 #endif
@@ -1529,7 +1529,7 @@ export namespace fan::graphics {
 
     #define BLL_set_AreWeInsideStruct 1
     #define BLL_set_prefix shape_ids
-    #include <fan/fan_bll_preset.h>
+    #include <fan/memory/fan_bll_preset.h>
     #define BLL_set_Link 1
     #define BLL_set_type_node shape_nr_t
     #define BLL_set_NodeDataType shape_list_data_t

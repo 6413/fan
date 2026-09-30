@@ -1,6 +1,6 @@
 module;
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #if defined(FAN_NETWORK)
   #include <uv.h>
@@ -266,7 +266,7 @@ export namespace fan {
 #define BLL_set_SafeNext 1
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_prefix client_list
-#include <fan/fan_bll_preset.h>
+#include <fan/memory/fan_bll_preset.h>
 #define BLL_set_Link 1
 #define BLL_set_type_node uint32_t
 #define BLL_set_NodeDataType fan::network::tcp_t*

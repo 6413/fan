@@ -2,7 +2,7 @@ module;
 #if defined (FAN_WINDOW)
 // /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup for no console in windows
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #if defined(fan_compiler_gcc)
   // fixes collision with GLFW3 headers while doing import std;

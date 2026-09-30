@@ -3,7 +3,7 @@ module;
 #if defined(FAN_2D)
 
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #define USE_SHADERC
 

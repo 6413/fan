@@ -13,7 +13,7 @@ module system:
 preprocessor style:
   // #if blocks indent contents 2 spaces at file/namespace scope:
   #if defined(FAN_AUDIO)
-    #include <fan/utility.h>
+    #include <fan/utils/utility.h>
     export import fan.audio;
   #endif
   // inside function bodies, #if contents follow function indentation (no extra indent)

@@ -2,7 +2,7 @@ module;
 
 //#undef FAN_GUI
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 export module fan.types.color;
 

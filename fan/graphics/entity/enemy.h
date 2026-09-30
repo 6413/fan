@@ -20,7 +20,7 @@ namespace fan::graphics::entity {
     #define BLL_enable_iterator
     #define BLL_set_prefix enemies
     #define BLL_set_NodeDataType enemy_t
-    #include <fan/fan_bll_preset.h>
+    #include <fan/memory/fan_bll_preset.h>
     #include <BLL/BLL.h>
 
     using nr_t = enemies_t::nr_t;

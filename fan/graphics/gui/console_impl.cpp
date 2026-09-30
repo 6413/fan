@@ -9,7 +9,7 @@ module;
   #include <fan/imgui/imgui.h>
 #endif
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #endif
 
@@ -217,7 +217,7 @@ namespace fan {
     #define BLL_set_SafeNext 1
     #define BLL_set_AreWeInsideStruct 1
     #define BLL_set_prefix frame_cb
-    #include <fan/fan_bll_preset.h>
+    #include <fan/memory/fan_bll_preset.h>
     #define BLL_set_Link 1
     #define BLL_set_type_node std::uint16_t
     #define BLL_set_NodeDataType std::function<void()>

@@ -2,7 +2,7 @@ module;
 
 #if defined (FAN_WINDOW)
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #include <cstdint>
 #include <coroutine>
@@ -226,7 +226,7 @@ export namespace fan {
 }
 
 namespace bll_builds {
-#include <fan/fan_bll_preset.h>
+#include <fan/memory/fan_bll_preset.h>
 #define BLL_set_prefix camera_list
 #define BLL_set_type_node std::uint8_t
 #define BLL_set_NodeDataType fan::graphics::context_camera_t
@@ -237,7 +237,7 @@ namespace bll_builds {
 #include <BLL/BLL.h>
   using camera_nr_t = camera_list_NodeReference_t;
 
-#include <fan/fan_bll_preset.h>
+#include <fan/memory/fan_bll_preset.h>
 #define BLL_set_prefix shader_list
 #define BLL_set_type_node uint16_t
 #define BLL_set_NodeDataType fan::graphics::shader_data_t
@@ -249,7 +249,7 @@ namespace bll_builds {
 #include <BLL/BLL.h>
   using shader_nr_t = shader_list_NodeReference_t;
 
-#include <fan/fan_bll_preset.h>
+#include <fan/memory/fan_bll_preset.h>
 #define BLL_set_prefix image_list
 #define BLL_set_type_node std::uint16_t
 #define BLL_set_NodeDataType fan::graphics::image_data_t
@@ -262,7 +262,7 @@ namespace bll_builds {
 #include <BLL/BLL.h>
   using image_nr_t = image_list_NodeReference_t;
 
-#include <fan/fan_bll_preset.h>
+#include <fan/memory/fan_bll_preset.h>
 #define BLL_set_prefix viewport_list
 #define BLL_set_type_node std::uint8_t
 #define BLL_set_NodeDataType fan::graphics::context_viewport_t
@@ -385,7 +385,7 @@ export namespace fan {
 namespace bll_builds {
   #define BLL_set_SafeNext 1
   #define BLL_set_prefix update_callback
-  #include <fan/fan_bll_preset.h>
+  #include <fan/memory/fan_bll_preset.h>
   #define BLL_set_Link 1
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeDataType std::function<void(void*)>
@@ -396,7 +396,7 @@ namespace bll_builds {
 #if defined(FAN_GUI)
   #define BLL_set_SafeNext 1
   #define BLL_set_prefix gui_draw_cb
-  #include <fan/fan_bll_preset.h>
+  #include <fan/memory/fan_bll_preset.h>
   #define BLL_set_Link 1
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeDataType std::function<void()>

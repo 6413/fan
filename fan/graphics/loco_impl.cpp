@@ -12,7 +12,7 @@ module;
 
 #include <fan/graphics/shape_macros.h>
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #if defined(fan_platform_windows)
   #include <Windows.h>

@@ -1,4 +1,4 @@
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 #include <fftw/fftw3.h>
 
 import fan;
