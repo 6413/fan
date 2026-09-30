@@ -4,7 +4,7 @@ module;
 #undef min
 #undef max
 #undef NO_ERROR
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 export module fan.network.socket;
 

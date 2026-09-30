@@ -9,7 +9,7 @@ module;
   #define VK_USE_PLATFORM_XLIB_KHR
 #endif
 #include <vulkan/vulkan.h>
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #endif
 

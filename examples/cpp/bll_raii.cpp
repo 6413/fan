@@ -1,9 +1,9 @@
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 #include <functional>
 
 import fan;
 
-#include <fan/fan_bll_preset.h>
+#include <fan/memory/fan_bll_preset.h>
 #define BLL_set_CPP_ConstructDestruct 1
 #define BLL_set_Language 1
 #define BLL_set_SafeNext 1

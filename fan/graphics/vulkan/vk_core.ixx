@@ -22,7 +22,7 @@ module;
 
 import fan.window;
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #endif
 

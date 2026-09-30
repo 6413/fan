@@ -2,7 +2,7 @@ module;
 
 #include <coroutine>
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 export module fan.event;
 

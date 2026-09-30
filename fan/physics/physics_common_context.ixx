@@ -1,6 +1,6 @@
 module;
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #include <cstdint>
 #include <cstddef>
@@ -29,7 +29,7 @@ export namespace fan::physics {
 namespace bll_builds {
   #define BLL_set_SafeNext 1
   #define BLL_set_prefix physics_update_cbs
-  #include <fan/fan_bll_preset.h>
+  #include <fan/memory/fan_bll_preset.h>
   #define BLL_set_Link 1
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeDataType fan::physics::physics_update_data_t

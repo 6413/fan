@@ -10,7 +10,7 @@ module;
 #endif
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #endif
 

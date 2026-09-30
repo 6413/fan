@@ -1,4 +1,4 @@
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 #include <vector>
 #include <string>
 #include <filesystem>
@@ -9,7 +9,7 @@ import fan;
 using namespace fan::graphics;
 
 #define BLL_set_prefix bll
-#include <fan/fan_bll_preset.h>
+#include <fan/memory/fan_bll_preset.h>
 #define BLL_set_Link 1
 #define BLL_set_type_node uint16_t
 #define BLL_set_NodeData \

@@ -60,7 +60,7 @@ struct model_list_t {
     std::vector<std::vector<group_data_t>> groups;
   };
 
-  #include <fan/fan_bll_preset.h>
+  #include <fan/memory/fan_bll_preset.h>
   #define BLL_set_prefix internal_model_list
   #define BLL_set_type_node uint32_t
   #define BLL_set_NodeDataType model_data_t

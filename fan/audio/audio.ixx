@@ -1,6 +1,6 @@
 module;
 
-#include <fan/utility.h> // abort
+#include <fan/utils/utility.h> // abort
 
 #include <cstring>
 

@@ -2,7 +2,7 @@ module;
 
 #if defined(FAN_GUI)
 
-#include <fan/utility.h>
+#include <fan/utils/utility.h>
 
 #endif
 
