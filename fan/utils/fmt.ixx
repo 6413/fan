@@ -54,13 +54,13 @@ export namespace fan {
   template <typename... args_t>
   constexpr auto print_throttled_format(current_fmt::format_string<args_t...> fmt, args_t&&... args) {
     std::string formatted = current_fmt::format(fmt, std::forward<args_t>(args)...);
-    print_throttled(formatted, 1000);
+    //print_throttled(formatted, 1000);
   }
 
   template <typename... args_t>
   constexpr auto print_throttled_format(int throttle_ms, current_fmt::format_string<args_t...> fmt, args_t&&... args) {
     std::string formatted = current_fmt::format(fmt, std::forward<args_t>(args)...);
-    print_throttled(formatted, throttle_ms);
+    //print_throttled(formatted, throttle_ms);
   }
 
 }

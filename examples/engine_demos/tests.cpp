@@ -1,5 +1,4 @@
 #include <fan/utils/utility.h>
-
 import fan;
 import std;
 
@@ -50,7 +49,7 @@ struct shape_tester_t {
   }
 
   template<typename Func>
-  void run_benchmark(const std::string& name, uint64_t iterations, Func&& bench_func) {
+  void run_benchmark(const std::string& name, std::uint64_t iterations, Func&& bench_func) {
     benchmark_result_t result;
     result.name = name;
     result.iterations = iterations;

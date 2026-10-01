@@ -101,7 +101,7 @@ consteval std::size_t time_seed() {
          (t[6]-'0')*10    + (t[7]-'0');
 }
 
-using type_t = gen_types_t<int, 5, time_seed() ^ (__COUNTER__ * 2654435761ULL)>;
+using type_t = gen_types_t<int, 100, time_seed() ^ (__COUNTER__ * 2654435761ULL)>;
 
 
 struct MyTypeBase;  // incomplete - declared but not defined
@@ -148,4 +148,11 @@ int main() {
 
   auto e2 = fan::from_rjson_string<entity_t>(s);
   fan::print(e2);
+  struct temp_t {
+    int x;
+    double y;
+  };
+  fan::print(temp_t());
+
+  fan::print(type_t());
 }
