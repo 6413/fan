@@ -82,6 +82,8 @@ export import fan.event;
 #endif
 
 export import fan.process;
+export import fan.system.dynamic_library;
+export import fan.system.hot_reload;
 #if defined(FAN_WINDOW)
 export import fan.spatial;
 
