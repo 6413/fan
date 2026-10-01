@@ -27,10 +27,11 @@ export struct dynamic_library_t {
   }
   bool load(const std::string& path) {
     unload();
-    
+
 #if defined(fan_platform_windows)
     handle = (void*)LoadLibraryA(path.c_str());
 #elif defined(fan_platform_linux)
+    dlerror(); // clear stale errors so last_error() is accurate
     handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
 #endif
     return handle != nullptr;
@@ -52,6 +53,10 @@ export struct dynamic_library_t {
     return static_cast<void*>(GetProcAddress(
           static_cast<HMODULE>(handle), name));
 #elif defined(fan_platform_linux)
+    if (!handle) {
+      return nullptr;
+    }
+    dlerror(); // clear stale errors so last_error() is accurate
     return dlsym(handle, name);
 #endif
   }

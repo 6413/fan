@@ -190,6 +190,7 @@ local module_files = {
   "fan/math/math.ixx", "fan/math/intersection.ixx", "fan/system/time.ixx", "fan/utils/mpl.ixx",
   "fan/utils/utility.ixx", "fan/debug/formatter.ixx", "fan/debug/print_error.ixx", "fan/debug/print.ixx",
   "fan/utils/random.ixx", "fan/debug/log_dispatcher.ixx", "fan/utils/crypto.ixx", "fan/system/process.ixx",
+  "fan/system/dynamic_library.ixx", "fan/system/hot_reload.ixx",
   "fan/io/io_types.ixx", "fan/io/directory.ixx", "fan/io/file.ixx", "fan/io/io_prompt.ixx",
   "fan/event/event_types.ixx", "fan/event/event.ixx", "fan/event/uv_raw.ixx", "fan/utils/compression.ixx"
 }
@@ -347,6 +348,19 @@ if not is_plat("wasm") and has_config("FAN_WINDOW") then
 end
 
 option("buildlib") set_default(false) option_end()
+
+-- Hot-reloadable game module: Game.dll (Windows) / libGame.so (Linux).
+-- Plain C++ only, no `import fan` -> rebuilds in ~1s.
+-- Engine (a.exe with examples/hot_reload/main.cpp) owns GameState
+-- and reloads this library live via dynamic_library_t + GetGameAPI().
+target("Game")
+  set_kind("shared")
+  set_languages("cxx23")
+  set_targetdir("$(projectdir)")
+  add_files("examples/hot_reload/Game.cpp")
+  add_includedirs(".", {public = true})
+  set_warnings("none")
+target_end()
 
 target("a.exe")
   set_kind(has_config("buildlib") and "static" or "binary")
