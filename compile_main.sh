@@ -14,6 +14,7 @@ WASM=false
 XMAKE_ARGS=()
 FEATURE_ARGS=()
 BUILDLIB=false
+GAME_ONLY=false
 JOBS="$(nproc 2>/dev/null || echo 4)"
 
 declare -A FEATURE_DEFAULTS=(
@@ -38,6 +39,15 @@ Modes:
   --clang | --gcc | --g++
   --wasm
   --buildlib
+  --hot-reload
+      Host preset: sets --main to examples/hot_reload/main.cpp
+      (engine owns window/renderer/GameState, game code hot-reloads
+      from Game.dll / libGame.so). Builds host + Game library.
+  --game
+      Fast iteration: rebuild only the Game shared library
+      (Game.dll / libGame.so) without touching the engine.
+      Edit examples/hot_reload/Game.cpp, run this, the running
+      engine picks it up without restarting.
   -j <n> | --jobs <n> | --threads <n>
       Parallel build threads (default: nproc).
 
@@ -68,6 +78,11 @@ Examples:
   ./compile_main.sh --gcc --only-network --main examples/network/network_socket.cpp
   ./compile_main.sh --core --enable-network --enable-json
   ./compile_main.sh --2d --disable-audio --release
+  ./compile_main.sh --hot-reload
+      Build engine host + Game library for hot-reload demo.
+  ./compile_main.sh --game
+      Rebuild only Game.dll / libGame.so after editing Game.cpp
+      (~1s, engine keeps running and reloads it live).
 EOF
 }
 
@@ -156,6 +171,16 @@ while [[ $# -gt 0 ]]; do
     --buildlib)
       BUILDLIB=true
       FEATURE_ARGS+=("--buildlib=y")
+      shift
+      ;;
+    --hot-reload)
+      if [[ -z "$MAIN_FILE" ]]; then
+        MAIN_FILE="examples/hot_reload/main.cpp"
+      fi
+      shift
+      ;;
+    --game)
+      GAME_ONLY=true
       shift
       ;;
     -j|--jobs|--threads)
@@ -343,6 +368,21 @@ if [[ "$WASM" == false ]]; then
   echo -e "${CYAN}Compiler:${NC} $($CXX --version | head -1)"
 fi
 
+if [[ "$GAME_ONLY" == true ]]; then
+  echo -e "${CYAN}Building Game library only...${NC}"
+  if ! xmake -j"$JOBS" Game "${XMAKE_ARGS[@]}"; then
+    echo -e "${RED}✗ XMake build failed!${NC}"
+    exit 1
+  fi
+  if [[ -f "libGame.so" ]]; then
+    echo -e "${GREEN}✓ Game library:${NC} ./libGame.so"
+  elif [[ -f "Game.dll" ]]; then
+    echo -e "${GREEN}✓ Game library:${NC} ./Game.dll"
+  fi
+  echo -e "${GREEN}Done.${NC} The running engine reloads it automatically (~0.25s poll, or press R)."
+  exit 0
+fi
+
 if ! xmake -j"$JOBS" "${XMAKE_ARGS[@]}"; then
   echo -e "${RED}✗ XMake build failed!${NC}"
   exit 1
@@ -388,4 +428,9 @@ else
   out_path="./${target_name}.exe"
   cp "$exe_path" "$out_path"
   echo -e "${GREEN}✓ Copied:${NC} ${exe_path} → ${out_path}"
+  if [[ -f "libGame.so" ]]; then
+    echo -e "${GREEN}✓ Game library:${NC} ./libGame.so (hot-reload with ./compile_main.sh --game)"
+  elif [[ -f "Game.dll" ]]; then
+    echo -e "${GREEN}✓ Game library:${NC} ./Game.dll (hot-reload with ./compile_main.sh --game)"
+  fi
 fi
