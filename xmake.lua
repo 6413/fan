@@ -60,7 +60,7 @@ local fan_features = {
   FAN_JSON = true,
   FAN_3D = false,
 
-  FAN_FMT = false,
+  FAN_FMT = true,
   FAN_WAYLAND_SCREEN = false,
   FAN_NETWORK = false,
   FAN_AUDIO = false,
