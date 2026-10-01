@@ -9,6 +9,10 @@ module;
   #include <dlfcn.h>
 #endif
 
+module fan.system.dynamic_library;
+
+import std;
+
 struct dynamic_library_t {
   dynamic_library_t() = default;
   dynamic_library_t(dynamic_library_t&& o) : handle(std::exchange(o.handle, nullptr)) {}
@@ -43,11 +47,15 @@ struct dynamic_library_t {
 #endif
     handle = nullptr;
   }
-  void symbol(const char* name) {
-#if defined
+  void* symbol(const char* name) {
+#if defined(fan_platform_windows)
+    return static_cast<void*>(GetProcAddress(
+          static_cast<HMODULE>(handle), name));
+#elif defined(fan_platform_linux)
+    return dlsym(handle, name);
+#endif
   }
 
+  void* handle = nullptr;
+};
 
-
-
-import std;
