@@ -9,11 +9,11 @@ module;
   #include <dlfcn.h>
 #endif
 
-module fan.system.dynamic_library;
+export module fan.system.dynamic_library;
 
 import std;
 
-struct dynamic_library_t {
+export struct dynamic_library_t {
   dynamic_library_t() = default;
   dynamic_library_t(dynamic_library_t&& o) : handle(std::exchange(o.handle, nullptr)) {}
   dynamic_library_t& operator=(dynamic_library_t&& o) {
