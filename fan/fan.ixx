@@ -38,6 +38,7 @@ export import fan.graphics.loco;
   export import fan.graphics.shapes.types;
   export import fan.graphics.shapes;
   export import fan.graphics;
+  export import fan.graphics.hot_shape_store;
   export import fan.graphics.scene;
   export import fan.graphics.grid_placer;
   export import fan.graphics.algorithm.raymarch;

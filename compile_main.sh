@@ -14,7 +14,7 @@ WASM=false
 XMAKE_ARGS=()
 FEATURE_ARGS=()
 BUILDLIB=false
-GAME_ONLY=false
+SHARED_TARGET=""
 JOBS="$(nproc 2>/dev/null || echo 4)"
 
 declare -A FEATURE_DEFAULTS=(
@@ -43,11 +43,8 @@ Modes:
       Host preset: sets --main to examples/hot_reload/main.cpp
       (engine owns window/renderer/GameState, game code hot-reloads
       from Game.dll / libGame.so). Builds host + Game library.
-  --game
-      Fast iteration: rebuild only the Game shared library
-      (Game.dll / libGame.so) without touching the engine.
-      Edit examples/hot_reload/Game.cpp, run this, the running
-      engine picks it up without restarting.
+  --shared <target>
+      Only build this shared target, skip the rest.
   -j <n> | --jobs <n> | --threads <n>
       Parallel build threads (default: nproc).
 
@@ -80,9 +77,8 @@ Examples:
   ./compile_main.sh --2d --disable-audio --release
   ./compile_main.sh --hot-reload
       Build engine host + Game library for hot-reload demo.
-  ./compile_main.sh --game
-      Rebuild only Game.dll / libGame.so after editing Game.cpp
-      (~1s, engine keeps running and reloads it live).
+  ./compile_main.sh --shared Game
+      Rebuild a single shared target without rebuilding the exe.
 EOF
 }
 
@@ -179,8 +175,20 @@ while [[ $# -gt 0 ]]; do
       fi
       shift
       ;;
-    --game)
-      GAME_ONLY=true
+    --shared)
+      if [[ -z "$2" ]]; then
+        echo -e "${RED}Error:${NC} --shared needs a target name (e.g. --shared Game)" >&2
+        exit 1
+      fi
+      SHARED_TARGET="$2"
+      shift 2
+      ;;
+    --shared=*)
+      SHARED_TARGET="${1#--shared=}"
+      if [[ -z "$SHARED_TARGET" ]]; then
+        echo -e "${RED}Error:${NC} --shared needs a target name (e.g. --shared=Game)" >&2
+        exit 1
+      fi
       shift
       ;;
     -j|--jobs|--threads)
@@ -368,18 +376,26 @@ if [[ "$WASM" == false ]]; then
   echo -e "${CYAN}Compiler:${NC} $($CXX --version | head -1)"
 fi
 
-if [[ "$GAME_ONLY" == true ]]; then
-  echo -e "${CYAN}Building Game library only...${NC}"
-  if ! xmake -j"$JOBS" Game "${XMAKE_ARGS[@]}"; then
+mkdir -p .xmake
+touch .xmake/build_start_marker
+
+if [[ -n "$SHARED_TARGET" ]]; then
+  echo -e "${CYAN}Building shared target '$SHARED_TARGET' only...${NC}"
+  if ! xmake -j"$JOBS" "$SHARED_TARGET" "${XMAKE_ARGS[@]}"; then
     echo -e "${RED}✗ XMake build failed!${NC}"
     exit 1
   fi
-  if [[ -f "libGame.so" ]]; then
-    echo -e "${GREEN}✓ Game library:${NC} ./libGame.so"
-  elif [[ -f "Game.dll" ]]; then
-    echo -e "${GREEN}✓ Game library:${NC} ./Game.dll"
+  lib_path=""
+  for cand in "lib${SHARED_TARGET}.so" "${SHARED_TARGET}.dll" "lib${SHARED_TARGET}.dylib" "${SHARED_TARGET}.so"; do
+    if [[ -f "$cand" ]]; then lib_path="$cand"; break; fi
+  done
+  if [[ -z "$lib_path" ]]; then
+    lib_path=$(find build -name "*${SHARED_TARGET}*.so" -o -name "*${SHARED_TARGET}*.dll" -o -name "*${SHARED_TARGET}*.dylib" 2>/dev/null | head -n1)
   fi
-  echo -e "${GREEN}Done.${NC} The running engine reloads it automatically (~0.25s poll, or press R)."
+  if [[ -n "$lib_path" ]]; then
+    echo -e "${GREEN}✓ Shared library:${NC} $lib_path"
+  fi
+  echo -e "${GREEN}Done.${NC}"
   exit 0
 fi
 
@@ -428,9 +444,9 @@ else
   out_path="./${target_name}.exe"
   cp "$exe_path" "$out_path"
   echo -e "${GREEN}✓ Copied:${NC} ${exe_path} → ${out_path}"
-  if [[ -f "libGame.so" ]]; then
-    echo -e "${GREEN}✓ Game library:${NC} ./libGame.so (hot-reload with ./compile_main.sh --game)"
-  elif [[ -f "Game.dll" ]]; then
-    echo -e "${GREEN}✓ Game library:${NC} ./Game.dll (hot-reload with ./compile_main.sh --game)"
-  fi
+  for _lib in libGame.so Game.dll libGame.dylib; do
+    if [[ -f "$_lib" && "$_lib" -nt .xmake/build_start_marker ]]; then
+      echo -e "${GREEN}✓ Game library:${NC} ./$_lib (hot-reload with ./compile_main.sh --shared Game)"
+    fi
+  done
 fi

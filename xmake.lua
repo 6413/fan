@@ -210,6 +210,7 @@ local feature_modules = {
   },
 
   FAN_2D = { "fan/graphics/2D/shapes_types.ixx", "fan/graphics/2D/grid_placer.ixx", "fan/graphics/2D/culling.ixx", "fan/graphics/2D/shapes.ixx",
+              "fan/graphics/hot_shape_store.ixx",
               "fan/graphics/vulkan/vk_core_types.ixx", "fan/graphics/vulkan/vk_core_vai.ixx", "fan/graphics/vulkan/vk_core_image.ixx", "fan/graphics/vulkan/vk_core_compute.ixx", "fan/graphics/vulkan/vk_core_pipeline.ixx", "fan/graphics/vulkan/vk_core_camera_subsystem.ixx", "fan/graphics/vulkan/vk_core_uniform_block.ixx", "fan/graphics/vulkan/vk_core_shader_subsystem.ixx", "fan/graphics/vulkan/vk_core.ixx", "fan/algorithm/tween.ixx"
   },
   FAN_JSON = { "fan/types/json.ixx" },
@@ -357,6 +358,8 @@ target("Game")
   set_kind("shared")
   set_languages("cxx23")
   set_targetdir("$(projectdir)")
+  set_policy("build.c++.modules", true)
+  set_policy("build.c++.modules.std", true)
   add_files("examples/hot_reload/Game.cpp")
   add_includedirs(".", {public = true})
   set_warnings("none")
