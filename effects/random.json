@@ -1,0 +1,79 @@
+{
+  "alive_time": 2.0,
+  "begin_angle": 1.2769999504089355,
+  "begin_color": [
+    0.9398090243339539,
+    0.5009194016456604,
+    0.5009194016456604,
+    1.0
+  ],
+  "count": 100000,
+  "end_angle": 5.65500020980835,
+  "end_angle_velocity": [
+    3.5999999046325684,
+    6.5,
+    0.0
+  ],
+  "end_color": [
+    1.0,
+    0.0,
+    0.0,
+    1.0
+  ],
+  "end_size": [
+    5.0,
+    5.0
+  ],
+  "end_spread": [
+    1000.0,
+    0.0
+  ],
+  "end_velocity": [
+    100.0,
+    100.0
+  ],
+  "image_mag_filter": 0,
+  "image_min_filter": 0,
+  "image_path": "../images/bubble.webp",
+  "image_visual_output": 3,
+  "jitter_end": [
+    4.400000095367432,
+    0.0
+  ],
+  "jitter_speed": 100.0,
+  "jitter_start": [
+    -6.800000190734863,
+    5.800000190734863
+  ],
+  "position": [
+    960.0,
+    497.0,
+    10.0
+  ],
+  "shape": "particles",
+  "size_random_range": [
+    1.0,
+    10.0
+  ],
+  "spawn_spacing": [
+    0.0,
+    0.0
+  ],
+  "start_angle_velocity": [
+    10.0,
+    1.0,
+    0.0
+  ],
+  "start_size": [
+    5.0,
+    5.0
+  ],
+  "start_spread": [
+    1000.0,
+    0.0
+  ],
+  "start_velocity": [
+    100.0,
+    100.0
+  ]
+}
