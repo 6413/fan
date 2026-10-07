@@ -1512,6 +1512,7 @@ export namespace fan::graphics {
       int used_this_frame = 0;
     };
     std::vector<immediate_shape_cache_t> immediate_shape_caches;
+    std::vector<fan::graphics::image_t> immediate_image_list;
 
     // dont look here
     // -----------------------------------shape lists-----------------------------------
