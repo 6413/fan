@@ -100,44 +100,45 @@ struct wl_t {
             registry = 2, callback = 3;
 };
 
-int main() {
-  constexpr std::uint32_t w = 640, h = 480, size = w * h * 4;
-  
-  wl_t wl;
-  wl.init();
-  wl.send(wl_t::display, 1, {wl_t::registry});
-  wl.send(wl_t::display, 0, {wl_t::callback});
-  std::uint32_t comp = 0, shm = 0, wm = 0, surface = 0, xsurf = 0, top = 0;
+struct window_t : wl_t {
 
-  bool configured = false, quit = false;
-  auto on_event = [&](std::uint32_t id, std::uint32_t op, const std::vector<std::uint32_t>& a)
+  static constexpr std::uint32_t w = 640, h = 480, size = w * h * 4;
+  window_t() {
+    init();
+    send(wl_t::display, 1, {wl_t::registry});
+    send(wl_t::display, 0, {wl_t::callback});
+  }
+  void on_event(std::uint32_t id, std::uint32_t op, const std::vector<std::uint32_t>& a)
   {
+    std::uint32_t comp = 0, shm = 0, wm = 0, surface = 0, xsurf = 0, top = 0;
+    bool configured = false;
+
     if (id == wl_t::display && op == 0 ) {
       std::println("error obj={} code={} {}", a[0], a[1], (const char*)&a[3]);
     }
     else if (id == wl_t::registry && op == 0) {
-      wl.globals[std::string((const char*)&a[2], a[1] - 1)] = a[0];
+      globals[std::string((const char*)&a[2], a[1] - 1)] = a[0];
     }
     else if (id == wl_t::callback) {
-      comp = wl.bind("wl_compositor", 4);
-      shm = wl.bind("wl_shm", 1);
-      wm = wl.bind("xdg_wm_base", 1);
-      surface = wl.new_id();
-      wl.send(comp, 0, {surface});
-      xsurf = wl.new_id();
-      wl.send(wm, 2, {xsurf, surface});
-      top = wl.new_id();
-      wl.send(xsurf, 1, {top});
-      wl.send(surface, 6);
+      comp = bind("wl_compositor", 4);
+      shm = bind("wl_shm", 1);
+      wm = bind("xdg_wm_base", 1);
+      surface = new_id();
+      send(comp, 0, {surface});
+      xsurf = new_id();
+      send(wm, 2, {xsurf, surface});
+      top = new_id();
+      send(xsurf, 1, {top});
+      send(surface, 6);
     }
     else if (id == wm && op == 0) {
-      wl.send(wm, 3, {a[0]});
+      send(wm, 3, {a[0]});
     }
     else if (id == top && op == 1) {
       quit = true;
     }
     else if (id == xsurf && op == 0) {
-      wl.send(xsurf, 4, {a[0]});
+      send(xsurf, 4, {a[0]});
       if (configured) {
         return;
       }
@@ -150,16 +151,21 @@ int main() {
           px[y * w + x] = 0xff000080u | (x * 255 / w) << 16 | (y * 255 / h) << 8;
         }
       }
-      std::uint32_t pool = wl.new_id(), buf = wl.new_id();
-      wl.send(shm, 0, {pool, size}, mfd);
-      wl.send(pool, 0, {buf, 0, w, h, w * 4, 1});
+      std::uint32_t pool = new_id(), buf = wl.new_id();
+      send(shm, 0, {pool, size}, mfd);
+      send(pool, 0, {buf, 0, w, h, w * 4, 1});
       close(mfd);
-      wl.send(surface, 1, {buf, 0, 0});
-      wl.send(surface, 2, {0, 0, w, h});
-      wl.send(surface, 6);
+      send(surface, 1, {buf, 0, 0});
+      send(surface, 2, {0, 0, w, h});
+      send(surface, 6);
     } 
-  };
-  while(!quit && !wl.closed) {
-    wl.dispatch(on_event);
+  }
+};
+
+int main() {
+  window_t window;
+  bool quit = false;
+  while(!quit && !window.closed) {
+    window.dispatch(on_event);
   }
 }
