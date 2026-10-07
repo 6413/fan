@@ -215,7 +215,7 @@ namespace fan::graphics {
     .size = size,
     .image = fan::graphics::image_load(std::span<const fan::color>(colors.begin(), colors.size()), fan::vec2ui(colors.size(), 1))
   }) {}
-sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view)
+sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view, int channels)
   : sprite_t(sprite_properties_t {
     .render_view = render_view,
     .position = position,
@@ -224,7 +224,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const std::
       fan::image::info_t info;
       info.data = const_cast<void*>((const void*)data.data());
       info.size = tex_size;
-      info.channels = 4;
+      info.channels = channels;
       return fan::graphics::image_load(info, image_presets::pixel_art());
     }()
   }) {}
@@ -272,7 +272,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
         .size = size,
         .image = fan::graphics::image_load(std::span<const fan::color>(colors.begin(), colors.size()), fan::vec2ui(colors.size(), 1))
       }) {}
-  unlit_sprite_t::unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view)
+  unlit_sprite_t::unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view, int channels)
   : unlit_sprite_t(unlit_sprite_properties_t {
     .render_view = render_view,
     .position = position,
@@ -281,7 +281,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
       fan::image::info_t info;
       info.data = const_cast<void*>((const void*)data.data());
       info.size = tex_size;
-      info.channels = 4;
+      info.channels = channels;
       return fan::graphics::image_load(info, image_presets::pixel_art());
     }()
   }) {}
@@ -520,6 +520,11 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     fan::graphics::get_shapes().static_render_list->erase(s.NRI);
   }
 
+  static fan::graphics::image_t track_immediate_image(fan::graphics::image_t img) {
+    fan::graphics::get_shapes().immediate_image_list.push_back(img);
+    return img;
+  }
+
   template<typename T, typename ShapeT>
   static fan::graphics::shapes::shape_t& add_immediate_shape(const T& props, int shape_type) {
     auto& cache = fan::graphics::get_shapes().immediate_shape_caches[shape_type];
@@ -558,18 +563,24 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   }
 
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color) {
+    auto img = track_immediate_image(fan::graphics::image_t{single_color});
     return add_immediate_shape<sprite_t>(fan::graphics::shape_type_t::sprite,
-      [&] { return sprite_properties_t{.position=position,.size=size,.image=fan::graphics::image_t{single_color}}; });
+      [&] { return sprite_properties_t{.position=position,.size=size,.image=img}; });
   }
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view) {
+    auto img = track_immediate_image(fan::graphics::image_load(std::span<const fan::color>(colors.begin(),colors.size()),fan::vec2ui((int)colors.size(),1)));
     return add_immediate_shape<sprite_t>(fan::graphics::shape_type_t::sprite,
-      [&] { return sprite_properties_t{.render_view=render_view,.position=position,.size=size,.image=fan::graphics::image_load(std::span<const fan::color>(colors.begin(),colors.size()),fan::vec2ui((int)colors.size(),1))}; });
+      [&] { return sprite_properties_t{.render_view=render_view,.position=position,.size=size,.image=img}; });
   }
-  fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view) {
-    return add_shape_to_immediate_draw(sprite_t(position, size, data, tex_size, render_view));
+  fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view, int channels) {
+    auto& s = add_shape_to_immediate_draw(sprite_t(position, size, data, tex_size, render_view, channels));
+    track_immediate_image(s.get_image());
+    return s;
   }
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const fan::image::info_t& info, const fan::graphics::image_load_properties_t& p, render_view_t* render_view) {
-    return add_shape_to_immediate_draw(sprite_t(position, size, info, p, render_view));
+    auto& s = add_shape_to_immediate_draw(sprite_t(position, size, info, p, render_view));
+    track_immediate_image(s.get_image());
+    return s;
   }
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view) {
     return add_immediate_shape<sprite_t>(fan::graphics::shape_type_t::sprite,
@@ -580,18 +591,24 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     return add_immediate_shape<unlit_sprite_properties_t, unlit_sprite_t>(props, fan::graphics::shape_type_t::unlit_sprite);
   }
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color) {
+    auto img = track_immediate_image(fan::graphics::image_t{single_color});
     return add_immediate_shape<unlit_sprite_t>(fan::graphics::shape_type_t::unlit_sprite,
-      [&] { return unlit_sprite_properties_t{.position=position,.size=size,.image=fan::graphics::image_t{single_color}}; });
+      [&] { return unlit_sprite_properties_t{.position=position,.size=size,.image=img}; });
   }
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view) {
+    auto img = track_immediate_image(fan::graphics::image_load(std::span<const fan::color>(colors.begin(),colors.size()),fan::vec2ui((int)colors.size(),1)));
     return add_immediate_shape<unlit_sprite_t>(fan::graphics::shape_type_t::unlit_sprite,
-      [&] { return unlit_sprite_properties_t{.render_view=render_view,.position=position,.size=size,.image=fan::graphics::image_load(std::span<const fan::color>(colors.begin(),colors.size()),fan::vec2ui((int)colors.size(),1))}; });
+      [&] { return unlit_sprite_properties_t{.render_view=render_view,.position=position,.size=size,.image=img}; });
   }
-  fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view) {
-    return add_shape_to_immediate_draw(unlit_sprite_t(position, size, data, tex_size, render_view));
+  fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view, int channels) {
+    auto& s = add_shape_to_immediate_draw(unlit_sprite_t(position, size, data, tex_size, render_view, channels));
+    track_immediate_image(s.get_image());
+    return s;
   }
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::image::info_t& info, const fan::graphics::image_load_properties_t& p, render_view_t* render_view) {
-    return add_shape_to_immediate_draw(unlit_sprite_t(position, size, info, p, render_view));
+    auto& s = add_shape_to_immediate_draw(unlit_sprite_t(position, size, info, p, render_view));
+    track_immediate_image(s.get_image());
+    return s;
   }
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view) {
     return add_immediate_shape<unlit_sprite_t>(fan::graphics::shape_type_t::unlit_sprite,

@@ -191,7 +191,7 @@ export namespace fan::graphics {
     // for single color texture
     sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color);
     sprite_t(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
-    sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view, int channels = 4);
     template <std::size_t N>
     sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::color(&colors)[N], render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
       : sprite_t(sprite_properties_t {
@@ -228,7 +228,7 @@ export namespace fan::graphics {
     unlit_sprite_t(unlit_sprite_properties_t p);
     unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
     unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
-    unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view, int channels = 4);
     template <std::size_t N>
     unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::color(&colors)[N], render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
       : unlit_sprite_t(unlit_sprite_properties_t {
@@ -500,12 +500,12 @@ export namespace fan::graphics {
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color);
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const fan::image::info_t& info, const fan::graphics::image_load_properties_t& p = image_presets::pixel_art(), render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
-  fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+  fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view, int channels = 4);
   fan::graphics::shapes::shape_t& unlit_sprite(const unlit_sprite_properties_t& props = {});
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color);
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
-  fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+  fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view, int channels = 4);
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::image::info_t& info, const fan::graphics::image_load_properties_t& p = image_presets::pixel_art(), render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
 
   fan::graphics::shapes::shape_t& line(const line_properties_t& props = {});

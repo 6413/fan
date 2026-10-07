@@ -1551,6 +1551,7 @@ void loco_t::destroy() {
 #if defined(FAN_2D)
   static_render_list.clear();
   immediate_render_list.clear();
+  shapes.immediate_image_list.clear();
   shapes.immediate_shape_caches.clear();
   fan::graphics::flush_destruct_callbacks();
   {
@@ -1622,6 +1623,12 @@ void loco_t::shapes_draw() {
   fan::time::global_profiler.begin("immediate_render_list.clear()");
   immediate_render_list.clear();
   fan::time::global_profiler.end("immediate_render_list.clear()");
+  fan::time::global_profiler.begin("immediate_image_list.clear()");
+  for (auto& img : shapes.immediate_image_list) {
+    image_unload(img);
+  }
+  shapes.immediate_image_list.clear();
+  fan::time::global_profiler.end("immediate_image_list.clear()");
   fan::time::global_profiler.begin("immediate_shape_caches.clear()");
   {
     auto& caches = shapes.immediate_shape_caches;
@@ -1879,6 +1886,10 @@ void loco_t::process_render() {
   fan::time::global_profiler.end("Render: Begin Draw");
   if (vk->image_error != VK_SUCCESS && vk->image_error != VK_SUBOPTIMAL_KHR) {
     immediate_render_list.clear();
+    for (auto& img : shapes.immediate_image_list) {
+      image_unload(img);
+    }
+    shapes.immediate_image_list.clear();
     for (auto& cache : shapes.immediate_shape_caches) {
       cache.used_this_frame = 0;
     }
