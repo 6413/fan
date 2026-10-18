@@ -38,8 +38,8 @@ if is_mode("mode_none") or is_mode("debug") then
 end
 if is_mode("release") then
   set_optimize("fastest")
-  add_cxflags("-O3", {force = true})
-  add_ldflags("-s", {force = true})
+  add_cxflags("-O3", "-ffunction-sections", "-fdata-sections", {force = true})
+  add_ldflags("-s", "-fuse-ld=gold", "-Wl,--gc-sections", "-Wl,--icf=all", {force = true})
   add_defines("NDEBUG", "_DEBUG=0")
 elseif is_mode("release-minsize") then
   set_optimize("smallest")
@@ -102,6 +102,369 @@ if has_config("FAN_FMT") then add_requires("fmt 10.2.1", static_req) end
 if has_config("FAN_2D") then
   add_defines("VK_ENABLE_BETA_EXTENSIONS")
   add_requires("vulkan-headers v1.4.335", {system = false})
+  package("glslang")
+    set_homepage("https://github.com/KhronosGroup/glslang/")
+    set_description("Khronos-reference front end for GLSL/ESSL, partial front end for HLSL, and a SPIR-V generator.")
+    set_license("Apache-2.0")
+
+    add_urls("https://github.com/KhronosGroup/glslang.git")
+    add_versions("1.4.335+0", "b5782e52ee2f7b3e40bb9c80d15b47016e008bc9")
+
+    add_configs("binaryonly",  {description = "Only use binary program.", default = false, type = "boolean"})
+    add_configs("exceptions",  {description = "Build with exception support.", default = false, type = "boolean"})
+    add_configs("spirv_tools", {description = "Enable SPIRV-Tools integration (Optimizer).", default = false, type = "boolean"})
+    add_configs("hlsl",        {description = "Enable HLSL support.", default = false, type = "boolean"})
+    add_configs("rtti",        {description = "Build with RTTI support.", default = false, type = "boolean"})
+    add_configs("tools",       {description = "Build the glslangValidator tool.", default = false, type = "boolean"})
+    add_configs("default_resource_limits", {description = "Build with default resource limits.", default = false, type = "boolean"})
+    if is_plat("wasm") then
+        add_configs("shared", {description = "Build shared library.", default = false, type = "boolean", readonly = true})
+    end
+
+    add_deps("cmake")
+    if is_plat("linux", "bsd") then
+        add_syslinks("pthread")
+    end
+
+    on_load(function (package)
+        if package:is_binary() or package:config("binaryonly") then
+            package:config_set("tools", true)
+            package:set("kind", "binary")
+        end
+        if package:config("spirv_tools") or package:config("tools") then
+            package:add("deps", "python 3.x", {kind = "binary"})
+        end
+        if package:config("spirv_tools") then
+            package:add("deps", "spirv-tools")
+        end
+
+        if package:config("tools") then
+            package:addenv("PATH", "bin")
+        end
+        package:add("links", "glslang", "MachineIndependent", "GenericCodeGen", "OGLCompiler", "OSDependent", "SPIRV", "SPVRemapper")
+        if package:config("hlsl") then
+            package:add("links", "HLSL")
+        end
+        if package:config("default_resource_limits") then
+            package:add("links", "glslang-default-resource-limits")
+        end
+    end)
+
+    on_install(function (package)
+        if package:config("spirv_tools") then
+            io.replace("StandAlone/CMakeLists.txt", "target_link_libraries(glslangValidator ${LIBRARIES})", [[
+                target_link_libraries(glslangValidator ${LIBRARIES} SPIRV-Tools-opt SPIRV-Tools-link SPIRV-Tools-reduce SPIRV-Tools)
+            ]], {plain = true})
+            io.replace("SPIRV/CMakeLists.txt", "target_link_libraries(SPIRV PRIVATE MachineIndependent SPIRV-Tools-opt)", [[
+                target_link_libraries(SPIRV PRIVATE MachineIndependent SPIRV-Tools-opt SPIRV-Tools-link SPIRV-Tools-reduce SPIRV-Tools)
+            ]], {plain = true})
+        end
+
+        io.replace("CMakeLists.txt", 'set(CMAKE_DEBUG_POSTFIX "d")', [[
+            message(WARNING "Disabled CMake Debug Postfix for xmake package generation")
+        ]], {plain = true})
+
+        if package:is_plat("wasm") then
+            io.replace("CMakeLists.txt", [[add_link_options("-Wl,--no-undefined")]], "", {plain = true})
+        end
+
+        local configs = {"-DENABLE_CTEST=OFF", "-DGLSLANG_TESTS=OFF", "-DBUILD_EXTERNAL=OFF", "-DENABLE_PCH=OFF"}
+        table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:is_debug() and "Debug" or "Release"))
+        table.insert(configs, "-DBUILD_SHARED_LIBS=" .. (package:config("shared") and not package:config("binaryonly") and "ON" or "OFF"))
+        table.insert(configs, "-DENABLE_EXCEPTIONS=" .. (package:config("exceptions") and "ON" or "OFF"))
+        table.insert(configs, "-DENABLE_HLSL=" .. (package:config("hlsl") and "ON" or "OFF"))
+        table.insert(configs, "-DENABLE_RTTI=" .. (package:config("rtti") and "ON" or "OFF"))
+        table.insert(configs, "-DENABLE_GLSLANG_BINARIES=" .. (package:config("tools") and "ON" or "OFF"))
+
+        local packagedeps = {}
+        if package:config("spirv_tools") then
+            table.insert(configs, "-DENABLE_OPT=ON")
+            table.insert(configs, "-DALLOW_EXTERNAL_SPIRV_TOOLS=ON")
+            table.insert(packagedeps, "spirv-tools")
+        else
+            table.insert(configs, "-DENABLE_OPT=OFF")
+        end
+        import("package.tools.cmake").install(package, configs, {packagedeps = packagedeps})
+
+        if package:is_binary() then
+            os.rm(package:installdir("*|bin"))
+        else
+            os.cp("glslang/MachineIndependent/**.h", package:installdir("include", "glslang", "MachineIndependent"))
+            os.cp("glslang/Include/**.h", package:installdir("include", "glslang", "Include"))
+
+            if package:config("tools") then
+                local bindir = package:installdir("bin")
+                local glslangValidator = path.join(bindir, "glslangValidator" .. (is_host("windows") and ".exe" or ""))
+                if not os.isfile(glslangValidator) then
+                    local glslang = path.join(bindir, "glslang" .. (is_host("windows") and ".exe" or ""))
+                    os.trycp(glslang, glslangValidator)
+                end
+            end
+        end
+    end)
+
+    on_test(function (package)
+        if not package:is_cross() and package:config("tools") then
+            os.vrun("glslangValidator --version")
+        end
+
+        if not package:is_binary() then
+            assert(package:has_cxxfuncs("ShInitialize", {configs = {languages = "c++11"}, includes = "glslang/Public/ShaderLang.h"}))
+        end
+    end)
+  package_end()
+
+  package("spirv-tools")
+    set_homepage("https://github.com/KhronosGroup/SPIRV-Tools/")
+    set_description("SPIR-V Tools")
+    set_license("Apache-2.0")
+
+    add_urls("https://github.com/KhronosGroup/SPIRV-Tools.git")
+    add_versions("1.4.335+0", "vulkan-sdk-1.4.335.0")
+
+    add_deps("cmake >=3.17.2")
+    add_deps("python 3.x", {kind = "binary"})
+    if is_plat("linux") then
+        add_extsources("apt::spirv-tools", "pacman::spirv-tools")
+    end
+
+    on_load(function (package)
+        local sdkver = package:version():split("%+")[1]
+        package:add("deps", "spirv-headers " .. sdkver)
+    end)
+
+    on_fetch("macosx", function (package, opt)
+        if opt.system then
+            local result = package:find_package("spirv-tools")
+            if result and not result.includedirs then
+                for _, linkdir in ipairs(result.linkdirs) do
+                    if linkdir:startswith("/usr") then
+                        local includedir = path.join(path.directory(linkdir), "include", "spirv-tools")
+                        if os.isdir(includedir) then
+                            includedir = path.directory(includedir)
+                            result.includedirs = result.includedirs or {}
+                            table.insert(result.includedirs, includedir)
+                        end
+                    end
+                end
+            end
+            return result
+        end
+    end)
+
+    on_install(function (package)
+        package:addenv("PATH", "bin")
+        local configs = {"-DSPIRV_SKIP_TESTS=ON", "-DSPIRV_WERROR=OFF"}
+        if package:debug() then
+            table.insert(configs, "-DCMAKE_COMPILE_PDB_OUTPUT_DIRECTORY=''")
+        end
+        table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:debug() and "Debug" or "Release"))
+        table.insert(configs, "-DBUILD_SHARED_LIBS=" .. (package:config("shared") and "ON" or "OFF"))
+        local spirv = package:dep("spirv-headers")
+        table.insert(configs, "-DSPIRV-Headers_SOURCE_DIR=" .. spirv:installdir():gsub("\\", "/"))
+        io.replace("source/libspirv.cpp", [[bool SpirvTools::Validate(const std::vector<uint32_t>& binary) const {
+  return Validate(binary.data(), binary.size());
+}
+
+bool SpirvTools::Validate(const uint32_t* binary,
+                          const size_t binary_size) const {
+  return spvValidateBinary(impl_->context, binary, binary_size, nullptr) ==
+         SPV_SUCCESS;
+}
+
+bool SpirvTools::Validate(const uint32_t* binary, const size_t binary_size,
+                          spv_validator_options options) const {
+  spv_const_binary_t the_binary{binary, binary_size};
+  spv_diagnostic diagnostic = nullptr;
+  bool valid = spvValidateWithOptions(impl_->context, options, &the_binary,
+                                      &diagnostic) == SPV_SUCCESS;
+  if (!valid && impl_->context->consumer) {
+    impl_->context->consumer.operator()(
+        SPV_MSG_ERROR, nullptr, diagnostic->position, diagnostic->error);
+  }
+  spvDiagnosticDestroy(diagnostic);
+  return valid;
+}]], [[bool SpirvTools::Validate(const std::vector<uint32_t>& binary) const {
+  return true;
+}
+
+bool SpirvTools::Validate(const uint32_t* binary,
+                          const size_t binary_size) const {
+  return true;
+}
+
+bool SpirvTools::Validate(const uint32_t* binary, const size_t binary_size,
+                          spv_validator_options options) const {
+  return true;
+}]], {plain = true})
+        if package:is_plat("windows") then
+            import("package.tools.cmake").install(package, configs, {buildir = os.tmpfile() .. ".dir"})
+        else
+            import("package.tools.cmake").install(package, configs)
+        end
+        package:add("links", "SPIRV-Tools-link", "SPIRV-Tools-reduce", "SPIRV-Tools-opt")
+        if package:config("shared") then
+            package:add("links", "SPIRV-Tools-shared")
+        else
+            package:add("links", "SPIRV-Tools")
+        end
+    end)
+
+    on_test(function (package)
+        if not package:is_cross() then
+            os.runv("spirv-as --help")
+            os.runv("spirv-opt --help")
+        end
+        assert(package:has_cxxfuncs("spvContextCreate", {configs = {languages = "c++17"}, includes = "spirv-tools/libspirv.hpp"}))
+    end)
+  package_end()
+
+  package("shaderc")
+    set_homepage("https://github.com/google/shaderc")
+    set_description("A collection of tools, libraries, and tests for Vulkan shader compilation.")
+    set_license("Apache-2.0")
+
+    add_urls("https://github.com/google/shaderc/archive/refs/tags/$(version).tar.gz",
+             "https://github.com/google/shaderc.git")
+
+    add_versions("v2024.1", "eb3b5f0c16313d34f208d90c2fa1e588a23283eed63b101edd5422be6165d528")
+
+    add_configs("binaryonly", {description = "Only use binary program.", default = false, type = "boolean"})
+    add_configs("exceptions", {description = "Enable exception handling", default = true, type = "boolean"})
+    if is_plat("windows", "wasm") then
+        add_configs("shared", {description = "Build shared library.", default = false, type = "boolean", readonly = true})
+    end
+
+    add_deps("cmake")
+
+    if is_plat("linux") then
+        add_syslinks("pthread")
+    end
+
+    on_load(function (package)
+        if package:config("binaryonly") then
+            package:set("kind", "binary")
+        end
+
+        if package:version():ge("2022.3") then
+            package:add("deps", "glslang")
+        else
+            package:add("deps", "glslang <=1.3.211")
+        end
+        package:add("deps", "spirv-tools", "spirv-headers")
+
+        if package:config("shared") then
+            package:add("links", "shaderc_shared")
+        else
+            package:add("links", "shaderc_combined")
+        end
+    end)
+
+    on_fetch(function (package, opt)
+        if opt.system and package:is_binary() then
+            return package:find_tool("glslc")
+        end
+    end)
+
+    on_install(function (package)
+        local opt = {}
+        opt.packagedeps = {"glslang", "spirv-tools", "spirv-headers"}
+        io.replace("CMakeLists.txt", "add_subdirectory(third_party)", "", {plain = true})
+        io.replace("libshaderc_util/src/compiler.cc", "SPIRV/GlslangToSpv.h", "glslang/SPIRV/GlslangToSpv.h", {plain = true})
+        io.replace("libshaderc_util/src/compiler.cc", "shader.setHlslIoMapping(hlsl_iomap_);", "", {plain = true})
+        io.replace("libshaderc_util/src/spirv_tools_wrapper.cc", [[  spvtools::ValidatorOptions val_opts;
+  // This allows flexible memory layout for HLSL.
+  val_opts.SetSkipBlockLayout(true);
+  // This allows HLSL legalization regarding resources.
+  val_opts.SetRelaxLogicalPointer(true);
+  // This uses relaxed rules for pre-legalized HLSL.
+  val_opts.SetBeforeHlslLegalization(true);
+
+  // Set additional optimizer options.
+  optimizer_options.set_validator_options(val_opts);
+  optimizer_options.set_run_validator(true);]], "", {plain = true})
+
+        if not package:has_tool("sh", "link") then
+            local links = {}
+            for _, dep in ipairs({"glslang", "spirv-tools"}) do
+                local fetchinfo = package:dep(dep):fetch()
+                if fetchinfo then
+                    for _, link in ipairs(fetchinfo.links) do
+                        table.insert(links, link)
+                    end
+                end
+            end
+            if package:version():ge("2023.8") then
+                io.replace("libshaderc_util/CMakeLists.txt", "glslang SPIRV", table.concat(links, " "), {plain = true})
+            else
+                io.replace("glslc/CMakeLists.txt", "glslang OSDependent OGLCompiler HLSL glslang SPIRV", "", {plain = true})
+                io.replace("libshaderc_util/CMakeLists.txt", "glslang OSDependent OGLCompiler HLSL glslang SPIRV", table.concat(links, " "), {plain = true})
+            end
+            links = table.join({"shaderc", "shaderc_util"}, links)
+            io.replace("glslc/CMakeLists.txt", "shaderc_util shaderc", table.concat(links, " "), {plain = true})
+        end
+
+        local version_str = format("shaderc %s\nspirv-tools %s\nglslang %s\0", 
+            package:version(),
+            package:dep("spirv-tools"):version(),
+            package:dep("glslang"):version()
+        )
+
+        local version_c_array = "{"
+        for i = 1, #version_str do
+            local char = version_str:sub(i, i)
+            if char == "\n" then
+                char = [[\n]]
+            end
+            if char == "\0" then
+                char = [[\0]]
+            end
+            version_c_array = format([[%s'%s',]], version_c_array, char)
+        end
+        version_c_array = version_c_array .. "}"
+
+        io.writefile("glslc/src/build-version.inc", version_c_array)
+        io.replace("glslc/CMakeLists.txt", "add_dependencies(glslc_exe build-version)", "", {plain = true})
+
+        local configs = {
+            "-DSHADERC_SKIP_EXAMPLES=ON",
+            "-DSHADERC_SKIP_TESTS=ON",
+            "-DSHADERC_ENABLE_COPYRIGHT_CHECK=OFF"
+        }
+        table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:debug() and "Debug" or "Release"))
+        table.insert(configs, "-DBUILD_SHARED_LIBS=" .. (package:config("shared") and "ON" or "OFF"))
+        if package:is_plat("windows") then
+            io.replace("CMakeLists.txt", [[set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")]], "", {plain = true})
+            io.replace("CMakeLists.txt", [[set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")]], "", {plain = true})
+            table.insert(configs, "-DSHADERC_ENABLE_SHARED_CRT=" .. (package:config("vs_runtime"):startswith("MT") and "OFF" or "ON"))
+        end
+
+        if package:config("exceptions") then
+            table.insert(configs, "-DDISABLE_EXCEPTIONS=OFF")
+            if package:is_plat("windows") and package:has_tool("cxx", "cl", "clang_cl") then
+                opt.cxflags = "/EHsc"
+            end
+        else
+            table.insert(configs, "-DDISABLE_EXCEPTIONS=ON")
+        end
+        import("package.tools.cmake").install(package, configs, opt)
+        package:addenv("PATH", "bin")
+    end)
+
+    on_test(function (package)
+        if not package:is_cross() then
+            os.vrun("glslc --version")
+        end
+
+        if not package:is_binary() then
+            assert(package:has_cfuncs("shaderc_compiler_initialize", {includes = "shaderc/shaderc.h"}))
+        end
+    end)
+  package_end()
+
+  add_requires("glslang 1.4.335+0", static_req)
+  add_requires("spirv-tools 1.4.335+0", static_req)
+  add_requires("spirv-headers 1.4.335+0", {system = false})
   add_requires("shaderc", static_req)
 end
 
