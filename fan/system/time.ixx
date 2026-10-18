@@ -196,6 +196,27 @@ export namespace fan {
       f32_t timer = 0.f;
     };
 
+    // fixed timestep accumulator: advance(dt) returns how many fixed steps to run this frame.
+    // when more than max_steps are owed the backlog is dropped instead of spiraling
+    struct fixed_step_t {
+      fixed_step_t() = default;
+      fixed_step_t(f64_t step, int max_steps = 6) : step(step), max_steps(max_steps) {}
+      int advance(f64_t dt) {
+        accumulated += dt;
+        int n = (int)(accumulated / step);
+        accumulated -= n * step;
+        if (n > max_steps) {
+          n = max_steps;
+          accumulated = 0;
+        }
+        return n;
+      }
+      void reset() { accumulated = 0; }
+      f64_t step = 1.0 / 60.0;
+      int max_steps = 6;
+      f64_t accumulated = 0;
+    };
+
     std::string format_seconds(f32_t t) {
       int total = static_cast<int>(t);
 
