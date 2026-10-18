@@ -38,7 +38,7 @@ subsystem module pattern:
 ---
 
 fan library (import fan; — github.com/6413/fan):
-  // C++23/26 2D OpenGL framework, use import fan; at top, #includes above it
+  // C++23/26 2D framework (Vulkan renderer), use import fan; at top, #includes above it
   // using namespace fan::graphics; is common
 
 BLL (Base Linked List) & Storage:
@@ -76,8 +76,10 @@ engine properties / lifecycle:
   props.window_size       = {1280, 720};
   props.window_position   = {0, 0};
   props.samples           = 4;              // MSAA
-  props.renderer          = fan::window_t::renderer_t::opengl;
+  props.vsync             = true;
   props.render_shapes_top = false;          // shapes render below GUI when false
+  props.post_process_mode = fan::graphics::post_process_mode_e::bloom;
+  // no renderer selection — Vulkan is the only backend
   engine_t engine{props};
 
   engine.set_target_fps(60)                 // 0 = unlimited (idle mode)
@@ -304,18 +306,22 @@ sprite_t / sprite sheets:
   // hold, hold_last, once. Call character2d_t::update_animations() each frame.
 
 particles:
-  fan::graphics::particle_system_t ps{max_particles};
-  ps.spawn([&]() -> shape_props_t {    // shape_fn — called each spawn
-    return { .position = ..., .size = ..., .color = ... };
-  }, [](sim_data_t& s, f32_t dt) {     // sim_fn — called each frame per particle
-    s.position.y += s.velocity.y * dt;  // sim_data_t has position, velocity, life, color
-    s.life -= dt;
-    if (s.life <= 0) s.dead = true;
+  // CPU pool: fixed slots of shape + your own sim data, free-list, no allocation after ctor
+  fan::graphics::particle_pool_t<circle_t, my_sim_t, 256> pool;   // <shape, sim_data, slots>
+  pool.spawn([&](auto& shape) { shape.set_position(p); shape.set_radius(4.f); },   // shape init
+             [&](my_sim_t& sim) { sim.velocity = v; sim.life = 1.f; });            // sim init
+  pool.update_and_cull(dt, [&](auto& particle, f32_t dt) -> bool {   // return false = recycle slot
+    /* particle.shape, plus your sim fields */
+    return true;
   });
-  ps.update(dt)                         // call each frame
-  // pre-allocated slots: particle_system_t<100> uses stack array, no heap
-  fan::graphics::trail_particle_t trail;
-  trail.update(position, dt)
+  fan::graphics::shape_pool_t<circle_t, 256> shapes;   // acquire()/release(i)/operator[] only
+  fan::graphics::emit_radial(pool, pos, count, speed_min, speed_max, [&](auto& pool, vec2 pos, vec2 vel){ ... });
+  // GPU particles (particles_t shape, json-loadable):
+  fan::graphics::gpu_particle_system_t<> gps;
+  gps.spawn([&](auto& props) { props.position = ...; });   // or gps.spawn_from_json(path, pos)
+  gps.spawn_explosion(pos, color, count, image) / gps.spawn_fire(pos, count, image)
+  gps.update(dt)                       // erases finished emitters
+  fan::graphics::trail_t trail;          // see trail_t section below
 
 move_towards:
   // signature: move_towards(target, speed, image_orientation)
@@ -501,13 +507,15 @@ physics (box2d wrapper, enable with engine.update_physics(true)):
   })
 
   // moving platforms:
-  fan::graphics::physics::elevator_t elevator
-  elevator.create_elevator_box()                  // creates the lift body
-  elevator.set_route({pos1, pos2, ...})           // waypoint path
-  elevator.set_speed(f32_t)                       // movement speed
-  elevator.update()                               // call each physics step
+  fan::graphics::physics::elevator_t elevator;
+  elevator.init(sprite, start_pos, end_pos, duration_s);  // visual + path + travel time
+  elevator.create_trigger_sensor();
+  elevator.create_elevator_box();                 // side walls
+  elevator.on_start_cb / elevator.on_end_cb       // std::function<void()>
+  elevator.update(player_body);                   // call each frame, sensor_triggerer starts it
+  elevator.destroy();
 
-fan::graphics::spatial (import fan; includes it):
+fan::spatial (import fan; includes it):
   // three structs, templated on id_t (use int for unit IDs)
   spatial::static_grid_t<id_t>     // non-moving objects (terrain, bases)
   spatial::dynamic_grid_t<id_t>    // moving objects (units, projectiles)
@@ -523,7 +531,7 @@ fan::graphics::spatial (import fan; includes it):
     id, aabb, spatial::movement_static or spatial::movement_dynamic);
 
   // remove object and clean internal tables
-  spatial::remove_and_clean(registry, static_grid, dynamic_grid, id);
+  spatial::remove_object(registry, static_grid, dynamic_grid, id);
 
   // queries
   spatial::query_radius(dynamic_grid, center, radius, [](id_t id){ ... });
@@ -534,6 +542,15 @@ fan::graphics::spatial (import fan; includes it):
   // area query (static + dynamic)
   spatial::query_area(static_grid, dynamic_grid, view_min, view_max,
     [](id_t id){ ... });
+
+  // or use the wrapper that owns all three (init/reset/upsert/remove/query_*):
+  spatial::world_t<int> world;
+  world.init(world_min, cell_size, grid_size);
+  world.upsert(id, aabb, spatial::movement_dynamic);
+  world.remove(id);
+  world.query_radius(center, r, [](int id){ ... });          // exact circle-vs-aabb test
+  world.query_point(p, [](int id){ ... });
+  auto nearest = world.query_nearest(center, r, [](int id){ return true; });  // std::optional<id_t>
  		
 pathfinding (import fan.pathfind; — included via import fan;):
   fan::pathfind::generator gen;
@@ -548,7 +565,7 @@ pathfinding (import fan.pathfind; — included via import fan;):
   // tilemap integration:
   tilemap.add_wall(cell, gen)                      // mark tilemap tile as wall
   tilemap.remove_wall(cell, gen)
-  auto path = tilemap.find_path(gen, src, dst, heuristic, allow_diagonal)
+  auto path = tilemap.find_path(src, dst, gen, heuristic, allow_diagonal)
   // heuristic: fan::pathfind::heuristic::manhattan / euclidean / octagonal
 
 unit/game patterns:
@@ -562,10 +579,11 @@ gui (fan::graphics::gui:: or via using):
   #define gui fan::graphics::gui  // common shorthand or using namespace fan::graphics; using outside library
 
   // windows:
-  gui::fullscreen_window("##id")            // RAII fullscreen window, still accepts input
+  gui::fullscreen_window("##id")            // RAII fullscreen window (returns gui::window), accepts input
   gui::centered_window("##id", size)        // RAII window centered on screen
-  gui::hud("id")                            // fullscreen overlay, ignores input — not for interactive panels
-  gui::hud_interactive("id")                // fullscreen overlay that accepts input
+  gui::hud hud("id")                        // RAII struct: fullscreen overlay, ignores input — not for interactive panels
+  gui::hud_interactive hi("id", transparency)  // RAII struct: fullscreen overlay that accepts input
+  gui::hud_interactive_custom hc("id", transparency)
   // hud() sets window_flags_no_inputs — buttons inside hud() won't fire
   // use hud_interactive() or a plain window() with no_title_bar flags for interactive overlays
   gui::begin("Title") / gui::end()
@@ -588,13 +606,11 @@ gui (fan::graphics::gui:: or via using):
   gui::col_window_bg / gui::style_var_cell_padding                               // enums snake_case
 
   // text:
-  gui::text("str") / gui::text(color, "str")
-  gui::text_sized("str", size)
-  gui::text_centered(str, color)
-  gui::text_centered_outlined(str, color)
-  gui::text_centered_outlined_big(str, font_size, color, outline_color)
-  gui::text_box_at("str", pos)
-  gui::text_unformatted(str) / gui::text_wrapped(str, color)
+  gui::text("str") / gui::text(color, "str")      // variadic, args are joined with spaces
+  gui::text(text_style_t{...}, args...) / gui::text_outlined(str_or_style, ...)
+  gui::text_wrapped(str, style) / gui::text_disabled(str)
+  gui::text_box(str, size, text_color, bg_color)
+  gui::text_box_at("str", pos, size, text_color, bg_color)
   gui::calc_text_size(str)                  // fan::vec2, useful for manual centering
 
   // font:
@@ -615,11 +631,10 @@ gui (fan::graphics::gui:: or via using):
   gui::begin_disabled() / gui::end_disabled()
 
   // game ui helpers:
-  gui::healthbar(value, max, size, fill, bg)
+  gui::healthbar(int value, int max, size, fill, bg)
   gui::healthbar_labeled(label, value, max, size, label_color, fill, bg)
     // use get_font_size() not get_text_line_height() for vertical centering
     // fonts loaded at size*2, get_text_line_height returns doubled value
-  gui::gold_text(amount, color)
   gui::disabled_button_row(labels*, enabled*, count, size, on_click)
   gui::disabled_button_row(span<const str_view_t>, span<const bool>, size, on_click)
 
@@ -632,6 +647,7 @@ gui (fan::graphics::gui:: or via using):
   gui::drag("label", &value, speed, min, max)
   gui::checkbox("label", &bool)
   gui::color_edit4("##id", &fan::color)
+  gui::combo("##id", &int_index, names, count)      // const char* const names[]
   gui::combo("##id", &int_index, count, [](int i) -> const char* { return "label"; })
   gui::selectable("label", selected, flags, size)
 
@@ -832,20 +848,20 @@ lighting:
   // auto-follows body position each frame
 
 post-processing / screen effects:
-  gloco()->enable_bloom = true
-  gloco()->set_post_process("bloom_strength", f32_t)
-  gloco()->set_post_process("bloom_threshold", f32_t)
-  gloco()->set_post_process("bloom_knee", f32_t)
-  gloco()->set_post_process("bloom_filter_radius", f32_t)
-  gloco()->set_post_process("bloom_tint", fan::vec3)
-  gloco()->set_post_process("gamma", f32_t)
-  gloco()->set_post_process("contrast", f32_t)
-  gloco()->set_post_process("exposure", f32_t)
-  // defaults: strength=0.0445, threshold=1.0, knee=0.1, radius=0.1
-  // gamma=1.0, contrast=1.0, exposure=1.0
-  // raw access:
+  // one call, every field optional:
+  gloco()->set_settings({                 // designated init: keep the declaration order
+    .clear_color = fan::colors::black,
+    .mode = fan::graphics::post_process_mode_e::bloom,
+    .bloom_strength = 0.0445f, .bloom_threshold = 1.f, .bloom_knee = 0.1f,
+    .bloom_tint = fan::vec3(1), .bloom_filter_radius = 0.1f,
+    .gamma = 1.f, .exposure = 1.f, .contrast = 1.f
+  });
+  // raw pointers (get_*_ptr): bloom_strength / threshold / knee / filter_radius /
+  //   smooth_rate / luma_scale / adaptation_blend / tint, gamma, exposure, contrast
   *gloco()->get_bloom_threshold_ptr() = 0.8f
-  *gloco()->get_bloom_filter_radius_ptr() = 0.05f
+  // blur mode: props.blur_amount / blur_filter_radius / blur_focus_* in loco_t::properties_t
+  // shadows: gloco()->shadow_add_caster(&shape) / shadow_add_light(pos, radius, color) /
+  //   shadow_set_darkness(f32_t) / shadow_clear_casters() / shadow_clear_lights()
 
 window (fan::window_t):
   window.set_size(fan::vec2i)
@@ -998,10 +1014,13 @@ networking (import fan.network;):
   fan::network::client_t client
   client.connect("127.0.0.1", port)
   client.send(data)
-  // HTTP client:
-  fan::network::client_t http
-  co_await http.get(url, [](fan::network::response_t& res) { ... })
-  http.get_sync(url)                              // blocking, use in coroutine
+  // HTTP client (namespace fan::network::http, needs libcurl build):
+  auto res = co_await fan::network::http::get(url);       // std::expected<response_t, std::string>
+  if (res) { res->... } else { res.error(); }
+  co_await fan::network::http::post(url, body_string, headers);
+  fan::network::http::client_t api{"https://host"};       // base_url + config
+  co_await api.get("/path") / api.post("/path", fan::json) / api.put(...) / api.delete_(...)
+  // server side: http::server_t with router: server.post("/pattern", handler)
   // UDP:
   fan::network::udp_send_t sender
   sender.send(ip, port, data)
@@ -1021,6 +1040,9 @@ timers:
   t.restart() / t.millis() / t.seconds() / t.duration_seconds()
   fan::time::interval_t iv{seconds};        // dt-based, use for per-frame intervals
   if (iv.tick(dt)) { /* fires every interval */ }
+  fan::time::fixed_step_t clock{0.01, 6};   // fixed timestep: step seconds, max steps per frame
+  for (int n = clock.advance(dt); n > 0; --n) { /* run one fixed step */ }
+  // if more than max_steps are owed the backlog is dropped (no spiral of death)
   // every<>() — same-line aliasing risk within same file, put calls on separate lines
 
 random:
@@ -1033,12 +1055,28 @@ random:
 math / vectors:
   fan::vec2, fan::vec3, fan::vec4           // .x .y .z .w
   fan::vec2(scalar)                         // broadcasts
-  v.normalize() / v.length() / v.dot(v2) / v.snap_to_grid(n)
-  v.min() / v.max() / v.clamp(lo, hi) / v.floor() / v.offset_z(f)
-  v.offset_x(f) / v.offset_y(f)             // returns copy with x/y offset
+  v.normalize() / v.length() / v.dot(v2) / v.cross(v2) / v.perpendicular()
+  v.grid_round(n) / v.grid_floor(n, offset)  // snap to grid (scalar or per-axis)
+  v.min() / v.max() / v.clamp(lo, hi) / v.floor() / v.ceil() / v.round() / v.abs() / v.fmod(m)
+  v.offset_x(f) / v.offset_y(f)             // returns copy with x/y offset (vec3: offset_z)
+  v.in_range(lo, hi)                        // all components lo <= v <= hi
+  v.approach(target, step)                  // move toward target, no overshoot
+  v1 >= v2 / v1 <= v2 / v1 == v2            // ALL components must satisfy (not lexicographic)
+  fan::vec2i key; std::unordered_map<fan::vec2i, T> m;   // std::hash exists for every vector type
+  // grid / direction helpers on vec2:
+  a.direction_to(b)                         // normalized (b - a)
+  v.dir_index()                             // 4-way: 0 right, 1 down, 2 left, 3 up
+  fan::vec2::dir4(i)                        // unit vector for dir index (i & 3); works for vec2i too
+  lo.iterate_to(hi, [&](int x, int y){ })   // inclusive rect walk; lo.rect(hi, fn) skips if lo > hi
+  a.is_collinear(b) / a.get_corner(b)       // axis-aligned wire routing helpers
   fan::math::pi / fan::math::two_pi / fan::math::sgn(x)
   fan::color::hsv(h, s, v) / fan::color::hsl(h, s, l)
   fan::color::from_rgb(0xRRGGBB) / fan::color::from_rgba(0xRRGGBBAA)
+  // literals (using namespace fan::color_literals;):
+  0xRRGGBB_rgb / 0xRRGGBBAA_rgba / _argb / _abgr / _bgra / 255_gray / "h,s,l"_hsl / "h,s,v"_hsv
+  constexpr fan::color c = 0x1aa2ca_rgb;     // usable in constexpr / static inline constexpr tables
+  color.get_rgba() / get_abgr() / get_argb() / get_bgra()   // pack to uint32 (channels are rounded)
+  (0x0b3a4a_rgb).get_abgr()                  // parenthesize: "0x..._rgb.get_abgr" lexes as one pp-number
   fan::colors::red / ::green / ::blue / ::white / ::black / ::transparent
   color.set_alpha(f32_t)                    // returns copy
 
@@ -1087,9 +1125,18 @@ misc:
   fan::noise_t                              // fractal noise
     .seed .frequency .gain .lacunarity .octaves
     .apply() / .generate_data(size)         // returns std::vector<uint8_t>
-  fan::graphics::folder_open_dialog_t
-    .open(initial_path, on_confirm_cb)
-    .is_finished()                          // call each frame
+  // native dialogs (import fan.file_dialog; included by import fan;):
+  fan::file_dialog::open_file("png,jpg", [](std::string path){ ... }, [](){ /* dismissed */ });
+  fan::file_dialog::open_files(filter, cb) / save_file(filter, cb) / open_folder(cb)
+  auto path = co_await fan::file_dialog::co_open_file(filter);   // std::optional<std::string>
+  co_await fan::file_dialog::co_open_files(filter) / co_open_folder()
+tiling background (checkerboard / grid texture that follows the camera):
+  fan::graphics::update_tiling_background(sprite, tile_size, render_view, origin_offset);
+  // sets position, size, tc_position, tc_size each call — call every frame.
+  // texture position is wrapped (fmod) so it stays precise far from the origin.
+  // origin_offset shifts the pattern in world units: tile_size / 2.f when cells are
+  // centered on grid points. tile_size = one tile; the texture holds 2x2 tiles (checker).
+
 interactive_camera_t:
   fan::graphics::interactive_camera_t icam
   icam.create(camera, viewport, zoom, angle)
@@ -1097,6 +1144,9 @@ interactive_camera_t:
   icam.reset_view()                               // snap to default view
   icam.set_position(pos)                          // move camera to world pos
   icam.ignore_input = true                        // disable user input control
+  auto [vmin, vmax] = icam.get_visible_bounds();  // visible world rect from window size, zoom, camera_offset
+  // cell range for culling: ((vmin / tile).floor() - 1) .. ((vmax / tile).ceil() + 1)
+  fan::graphics::world_window_t ww;               // render_view + interactive_camera_t; ww.update() each frame, pass ww as render_view*
   // usage: call icam.update() each frame before drawing
 
 tilemap_t:
@@ -1152,14 +1202,13 @@ trail_t:
 
 console commands (built-in, FAN_GUI — F3 in-game):
   set_vsync [0/1]              set_target_fps [n]
-  set_gamma [f]                set_contrast [f]
-  set_exposure [f]             set_bloom_strength [f]
   set_clear_color [{r,g,b,a}]  set_lighting_ambient [{r,g,b}]
-  show_fps [0/1]               debug_memory [0/1]
+  debug_memory [0/1]           dump_dbg  dump_times
   save_gui_values [shader]     load_gui_values [shader]   // persist/restore shader GUI values
   rectangle {x,y,z} {w,h} {r,g,b,a}   // adds static shape
   remove_shape [id]
-  echo [args]  help [command]  list  quit
+  echo [args]  print [args]  alias  clear  help [command]  list  quit
+  // gamma/bloom etc. are set via set_settings() / the settings menu, not console commands
 
 performance monitoring (FAN_GUI):
   engine.show_fps = true        // shows FPS counter top-right

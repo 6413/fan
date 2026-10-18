@@ -643,6 +643,8 @@ export namespace fan::graphics {
     fan::vec2 get_size() const;
     fan::vec4 get_ortho() const;
     fan::vec2 get_viewport_size() const;
+    // visible world rectangle {min, max} from window size, zoom and camera_offset
+    std::pair<fan::vec2, fan::vec2> get_visible_bounds() const;
 
     // camera effects
     void shake(f32_t intensity, f32_t duration);
@@ -1478,7 +1480,8 @@ export namespace fan::graphics {
 
 
 
-  void update_tiling_background(fan::graphics::shape_t& sprite, fan::vec2 tile_size, render_view_t* rv = ctx().orthographic_render_view);
+  // origin_offset shifts the pattern in world units (e.g. tile_size / 2 for cell-centered grids)
+  void update_tiling_background(fan::graphics::shape_t& sprite, fan::vec2 tile_size, render_view_t* rv = ctx().orthographic_render_view, fan::vec2 origin_offset = 0);
 } // namespace fan::graphics
 
 #endif
