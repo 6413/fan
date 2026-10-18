@@ -1060,7 +1060,7 @@ public:
 #if defined(FAN_2D)
   void debug_draw_light_buffer();
   // clears shapes after drawing, good for debug draw, not best for performance
-  std::vector<fan::graphics::shapes::shape_t> immediate_render_list;
+  std::deque<fan::graphics::shapes::shape_t> immediate_render_list;
   std::unordered_map<std::uint32_t, fan::graphics::shapes::shape_t> static_render_list;
 #endif
 

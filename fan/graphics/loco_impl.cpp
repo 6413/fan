@@ -1552,6 +1552,7 @@ void loco_t::destroy() {
   static_render_list.clear();
   immediate_render_list.clear();
   shapes.immediate_image_list.clear();
+  shapes.immediate_color_images.clear();
   shapes.immediate_shape_caches.clear();
   fan::graphics::flush_destruct_callbacks();
   {
@@ -1634,10 +1635,12 @@ void loco_t::shapes_draw() {
     auto& caches = shapes.immediate_shape_caches;
     for (auto& cache : caches) {
       int used = cache.used_this_frame;
-      // hide entries beyond this frame's count (stale from prior frames)
-      for (int i = used; i < (int)cache.shapes.size(); ++i) {
-        cache.shapes[i].set_visible(false);
+      // only entries that were drawn last frame but not this one need hiding,
+      // already hidden entries are skipped and shown again when reused
+      for (int i = used; i < cache.visible_count; ++i) {
+        cache.slots[i].shape.set_visible(false);
       }
+      cache.visible_count = used;
       cache.used_this_frame = 0;
     }
   }
@@ -1891,6 +1894,7 @@ void loco_t::process_render() {
     }
     shapes.immediate_image_list.clear();
     for (auto& cache : shapes.immediate_shape_caches) {
+      cache.visible_count = std::max(cache.visible_count, cache.used_this_frame);
       cache.used_this_frame = 0;
     }
 #if defined(FAN_GUI)

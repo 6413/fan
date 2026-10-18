@@ -306,7 +306,7 @@ void fan::vulkan::context_t::gui_close() {
   cleanup_swap_chain_dependencies();
 
 #if defined(FAN_GUI)
-  ImGui_ImplVulkanH_DestroyWindow(instance, device, &MainWindowData, &fan::vulkan::g_allocation_callbacks);
+  ImGui_ImplVulkanH_DestroyWindow(instance, device, &MainWindowData, nullptr);
   swap_chain = VK_NULL_HANDLE;
 #endif
 }
@@ -353,7 +353,7 @@ void fan::vulkan::context_t::close() {
   vkDeviceWaitIdle(device);
 
   cleanup_swap_chain();
-  vkDestroySurfaceKHR(instance, surface, &fan::vulkan::g_allocation_callbacks);
+  vkDestroySurfaceKHR(instance, surface, nullptr);
 
   destroy_shape_resources();
   destroy_vulkan_soft();
@@ -612,7 +612,7 @@ void fan::vulkan::context_t::setup_debug_messenger() {
 }
 #if defined(loco_window)
 void fan::vulkan::context_t::create_surface(GLFWwindow* window) {
-  if (glfwCreateWindowSurface(instance, window, &fan::vulkan::g_allocation_callbacks, &surface) != VK_SUCCESS) {
+  if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
     fan::throw_error("failed to create window surface!");
   }
 }

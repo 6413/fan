@@ -344,7 +344,23 @@ export namespace fan {
     template <typename T> vec2_wrap_t<T> lerp(const vec2_wrap_t<T>& dst, T t) const { return { this->x + t * (dst.x - this->x), this->y + t * (dst.y - this->y) }; }
 
     constexpr vec2_wrap_t<value_type_t> perpendicular() const { return { -this->y, this->x }; }
-    constexpr value_type_t cross(const vec2_wrap_t<value_type_t>& b) { return this->x * b.y - this->y * b.x; }
+    constexpr value_type_t cross(const vec2_wrap_t<value_type_t>& b) const { return this->x * b.y - this->y * b.x; }
+
+    // 4-way grid direction: 0 right, 1 down, 2 left, 3 up (y grows downwards)
+    constexpr int dir_index() const {
+      if (fan::math::abs(this->x) > fan::math::abs(this->y)) { return this->x > 0 ? 0 : 2; }
+      return this->y > 0 ? 1 : 3;
+    }
+    static constexpr vec2_wrap_t dir4(int index) {
+      constexpr value_type_t o = 1, z = 0;
+      switch (index & 3) {
+        case 0: return {o, z};
+        case 1: return {z, o};
+        case 2: return {-o, z};
+        default: return {z, -o};
+      }
+    }
+    constexpr vec2_wrap_t direction_to(const vec2_wrap_t& b) const { return (b - *this).normalize(); }
 
     constexpr vec2_wrap_t offset_x(value_type_t dx) const { return { this->x + dx, this->y }; }
     constexpr vec2_wrap_t offset_y(value_type_t dy) const { return { this->x, this->y + dy }; }

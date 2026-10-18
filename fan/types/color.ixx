@@ -148,7 +148,7 @@ export namespace fan {
     }
 
     static constexpr std::uint32_t to_byte(f32_t value) {
-      return static_cast<std::uint32_t>(color::clamp(value, 0.0f, 1.0f) * 255);
+      return static_cast<std::uint32_t>(color::clamp(value, 0.0f, 1.0f) * 255 + 0.5f);
     }
 
     static constexpr std::uint32_t pack_color(f32_t c1, f32_t c2, f32_t c3, f32_t c4) {

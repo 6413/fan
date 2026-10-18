@@ -1498,7 +1498,7 @@ export namespace fan::graphics {
     }line3d;
   #endif
 
-    std::vector<fan::graphics::shapes::shape_t>* immediate_render_list = nullptr;
+    std::deque<fan::graphics::shapes::shape_t>* immediate_render_list = nullptr;
     std::unordered_map<std::uint32_t, fan::graphics::shapes::shape_t>* static_render_list = nullptr;
 
     // Per-shape-type ring buffer for immediate-draw functions (sprite/circle/light/etc.).
@@ -1508,11 +1508,18 @@ export namespace fan::graphics {
     // shape type will thrash slots and lose the caching benefit — those call sites
     // need source_location-based keying instead.
     struct immediate_shape_cache_t {
-      std::vector<fan::graphics::shapes::shape_t> shapes;
+      struct slot_t {
+        fan::graphics::shapes::shape_t shape;
+        const void* render_view = nullptr;
+        std::uint64_t traits = 0;
+      };
+      std::deque<slot_t> slots;
       int used_this_frame = 0;
+      int visible_count = 0;
     };
     std::vector<immediate_shape_cache_t> immediate_shape_caches;
     std::vector<fan::graphics::image_t> immediate_image_list;
+    std::map<std::vector<std::uint32_t>, fan::graphics::image_t> immediate_color_images;
 
     // dont look here
     // -----------------------------------shape lists-----------------------------------

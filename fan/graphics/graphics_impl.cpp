@@ -487,6 +487,68 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     .shader = shader
   }) {}
 
+  static fan::graphics::shader_t get_arrow_shader() {
+    static fan::graphics::shader_t shader;
+    static bool created = false;
+    if (!created) {
+      constexpr std::string_view vertex_path = "shaders/vulkan/2D/objects/arrow.vert";
+      constexpr std::string_view fragment_path = "shaders/vulkan/2D/objects/arrow.frag";
+      shader = fan::graphics::shader_create(
+        vertex_path, fan::graphics::read_shader(vertex_path),
+        fragment_path, fan::graphics::read_shader(fragment_path)
+      );
+      created = true;
+    }
+    return shader;
+  }
+
+  struct arrow_quad_t {
+    fan::vec3 position;
+    fan::vec2 size;
+    f32_t angle;
+  };
+
+  static arrow_quad_t arrow_quad(const fan::vec3& src, const fan::vec3& dst, f32_t half_size) {
+    fan::vec2 delta(dst.x - src.x, dst.y - src.y);
+    f32_t length = (f32_t)delta.length();
+    return {
+      fan::vec3((src.x + dst.x) * 0.5f, (src.y + dst.y) * 0.5f, src.z),
+      fan::vec2(length * 0.5f + half_size, half_size),
+      length > 0.f ? (f32_t)std::atan2(delta.y, delta.x) : 0.f
+    };
+  }
+
+  static std::uint32_t arrow_flags(bool hide_start, bool hide_end) {
+    return (hide_end ? 1u : 0u) | (hide_start ? 2u : 0u);
+  }
+
+  arrow_t::arrow_t(const arrow_properties_t& p) {
+    auto quad = arrow_quad(p.src, p.dst, p.size * 0.5f);
+    *(fan::graphics::shapes::shape_t*)this = shader_shape_t(shader_shape_properties_t{
+      .render_view = p.render_view,
+      .position = quad.position,
+      .size = quad.size,
+      .color = p.color,
+      .angle = fan::vec3(0.f, 0.f, quad.angle),
+      .flags = arrow_flags(p.hide_start, p.hide_end),
+      .tc_position = fan::vec2(p.thickness, 0.f),
+      .tc_size = fan::vec2(p.spacing, 0.f),
+      .shader = get_arrow_shader(),
+      .enable_culling = p.enable_culling
+    });
+  }
+
+  void arrow_t::set_points(const fan::vec3& src, const fan::vec3& dst) {
+    auto quad = arrow_quad(src, dst, get_size().y);
+    set_size(quad.size);
+    set_position(quad.position);
+    set_angle(quad.angle);
+  }
+
+  void arrow_t::set_hidden_ends(bool hide_start, bool hide_end) {
+    set_flags(arrow_flags(hide_start, hide_end));
+  }
+
   shadow_t::shadow_t(shadow_properties_t p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
       fan_init_struct(
@@ -525,28 +587,162 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     return img;
   }
 
+  static fan::graphics::image_t immediate_color_image(std::span<const fan::color> colors) {
+    constexpr std::size_t max_cached_images = 1024;
+    auto& images = fan::graphics::get_shapes().immediate_color_images;
+    std::vector<std::uint32_t> key;
+    key.reserve(colors.size());
+    for (auto& c : colors) {
+      key.push_back(c.get_rgba());
+    }
+    if (auto it = images.find(key); it != images.end()) {
+      return it->second;
+    }
+    fan::graphics::image_t img = colors.size() == 1
+      ? fan::graphics::image_t{colors[0]}
+      : fan::graphics::image_load(colors, fan::vec2ui((int)colors.size(), 1));
+    if (images.size() < max_cached_images) {
+      images.emplace(std::move(key), img);
+      return img;
+    }
+    return track_immediate_image(img);
+  }
+
+  template<typename... Ts>
+  static std::uint64_t immediate_traits(const Ts&... fields) {
+    std::uint64_t h = 1469598103934665603ull;
+    auto mix = [&](const auto& v) {
+      using T = std::remove_cvref_t<decltype(v)>;
+      std::uint64_t bits;
+      if constexpr (std::is_floating_point_v<T>) {
+        bits = std::bit_cast<std::uint32_t>((f32_t)v);
+      }
+      else {
+        bits = (std::uint64_t)v;
+      }
+      h = (h ^ bits) * 1099511628211ull;
+    };
+    (mix(fields), ...);
+    return h;
+  }
+
+  template<std::size_t N>
+  static std::uint64_t immediate_images_traits(const std::array<fan::graphics::image_t, N>& images) {
+    std::uint64_t h = 1469598103934665603ull;
+    for (auto& image : images) {
+      h = (h ^ (std::uint64_t)image.NRI) * 1099511628211ull;
+    }
+    return h;
+  }
+
+  template<typename P>
+  static std::uint64_t immediate_traits_of(const P&) {
+    return 0;
+  }
+  static std::uint64_t immediate_traits_of(const rectangle_properties_t& p) {
+    return immediate_traits(p.blending, p.enable_culling);
+  }
+  static std::uint64_t immediate_traits_of(const circle_properties_t& p) {
+    return immediate_traits(p.blending, p.enable_culling, p.outline_width);
+  }
+  static std::uint64_t immediate_traits_of(const line_properties_t& p) {
+    return immediate_traits(p.blending, p.draw_mode, p.enable_culling, p.src.z);
+  }
+  static std::uint64_t immediate_traits_of(const unlit_sprite_properties_t& p) {
+    return immediate_traits(p.blending, p.enable_culling, immediate_images_traits(p.images));
+  }
+  static std::uint64_t immediate_traits_of(const sprite_properties_t& p) {
+    return immediate_traits(p.blending, p.enable_culling, p.texture_pack_unique_id.id, immediate_images_traits(p.images));
+  }
+
+  template<typename P>
+  static bool immediate_update(fan::graphics::shapes::shape_t&, const P&) {
+    return false;
+  }
+  static bool immediate_update(fan::graphics::shapes::shape_t& s, const rectangle_properties_t& p) {
+    s.set_position(p.position);
+    s.set_size(p.size);
+    s.set_color(p.color);
+    s.set_outline_color(p.outline_color);
+    s.set_angle(p.angle);
+    s.set_rotation_point(p.rotation_point);
+    return true;
+  }
+  static bool immediate_update(fan::graphics::shapes::shape_t& s, const circle_properties_t& p) {
+    s.set_position(p.position);
+    s.set_radius(p.radius);
+    s.set_color(p.color);
+    s.set_outline_color(p.outline_color);
+    s.set_angle(p.angle);
+    s.set_flags(p.flags);
+    return true;
+  }
+  static bool immediate_update(fan::graphics::shapes::shape_t& s, const line_properties_t& p) {
+    s.set_line(fan::vec2(p.src.x, p.src.y), p.dst);
+    s.set_color(p.color);
+    s.set_thickness(p.thickness);
+    return true;
+  }
+  static void immediate_set_image(fan::graphics::shapes::shape_t& s, const fan::graphics::image_t& image) {
+    if (s.get_image().NRI != image.NRI) {
+      s.set_image(image);
+    }
+  }
+  static bool immediate_update(fan::graphics::shapes::shape_t& s, const unlit_sprite_properties_t& p) {
+    s.set_position(p.position);
+    s.set_size(p.size);
+    s.set_angle(p.angle);
+    s.set_color(p.color);
+    s.set_rotation_point(p.rotation_point);
+    immediate_set_image(s, p.image);
+    s.set_tc_position(p.tc_position);
+    s.set_tc_size(p.tc_size);
+    return true;
+  }
+  static bool immediate_update(fan::graphics::shapes::shape_t& s, const sprite_properties_t& p) {
+    if (!p.texture_pack_unique_id.iic()) {
+      return false;
+    }
+    s.set_position(p.position);
+    s.set_size(p.size);
+    s.set_angle(p.angle);
+    s.set_color(p.color);
+    s.set_rotation_point(p.rotation_point);
+    immediate_set_image(s, p.image);
+    s.set_tc_position(p.tc_position);
+    s.set_tc_size(p.tc_size);
+    s.set_parallax_factor(p.parallax_factor);
+    s.set_flags(p.flags);
+    return true;
+  }
+
   template<typename T, typename ShapeT>
   static fan::graphics::shapes::shape_t& add_immediate_shape(const T& props, int shape_type) {
     auto& cache = fan::graphics::get_shapes().immediate_shape_caches[shape_type];
     int idx = cache.used_this_frame++;
-    if (idx < (int)cache.shapes.size()) {
-      cache.shapes[idx] = ShapeT(props);
-      return cache.shapes.back();
+    const void* render_view = (const void*)props.render_view;
+    std::uint64_t traits = immediate_traits_of(props);
+    if (idx < (int)cache.slots.size()) {
+      auto& slot = cache.slots[idx];
+      if (!slot.shape.iic() && slot.render_view == render_view && slot.traits == traits && immediate_update(slot.shape, props)) {
+        if (idx >= cache.visible_count) {
+          slot.shape.set_visible(true);
+        }
+        return slot.shape;
+      }
+      slot.shape = ShapeT(props);
+      slot.render_view = render_view;
+      slot.traits = traits;
+      return slot.shape;
     }
-    cache.shapes.emplace_back(ShapeT(props));
-    return cache.shapes.back();
+    cache.slots.push_back({ShapeT(props), render_view, traits});
+    return cache.slots.back().shape;
   }
 
   template<typename ShapeT>
   static fan::graphics::shapes::shape_t& add_immediate_shape(int shape_type, const auto& create_props_fn) {
-    auto& cache = fan::graphics::get_shapes().immediate_shape_caches[shape_type];
-    int idx = cache.used_this_frame++;
-    if (idx < (int)cache.shapes.size()) {
-      cache.shapes[idx] = ShapeT(create_props_fn());
-      return cache.shapes.back();
-    }
-    cache.shapes.emplace_back(ShapeT(create_props_fn()));
-    return cache.shapes.back();
+    auto props = create_props_fn();
+    return add_immediate_shape<decltype(props), ShapeT>(props, shape_type);
   }
 
   fan::graphics::shapes::shape_t& rectangle(const rectangle_properties_t& props) {
@@ -563,12 +759,12 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   }
 
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color) {
-    auto img = track_immediate_image(fan::graphics::image_t{single_color});
+    auto img = immediate_color_image(std::span<const fan::color>(&single_color, 1));
     return add_immediate_shape<sprite_t>(fan::graphics::shape_type_t::sprite,
       [&] { return sprite_properties_t{.position=position,.size=size,.image=img}; });
   }
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view) {
-    auto img = track_immediate_image(fan::graphics::image_load(std::span<const fan::color>(colors.begin(),colors.size()),fan::vec2ui((int)colors.size(),1)));
+    auto img = immediate_color_image(std::span<const fan::color>(colors.begin(), colors.size()));
     return add_immediate_shape<sprite_t>(fan::graphics::shape_type_t::sprite,
       [&] { return sprite_properties_t{.render_view=render_view,.position=position,.size=size,.image=img}; });
   }
@@ -591,12 +787,12 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     return add_immediate_shape<unlit_sprite_properties_t, unlit_sprite_t>(props, fan::graphics::shape_type_t::unlit_sprite);
   }
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color) {
-    auto img = track_immediate_image(fan::graphics::image_t{single_color});
+    auto img = immediate_color_image(std::span<const fan::color>(&single_color, 1));
     return add_immediate_shape<unlit_sprite_t>(fan::graphics::shape_type_t::unlit_sprite,
       [&] { return unlit_sprite_properties_t{.position=position,.size=size,.image=img}; });
   }
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view) {
-    auto img = track_immediate_image(fan::graphics::image_load(std::span<const fan::color>(colors.begin(),colors.size()),fan::vec2ui((int)colors.size(),1)));
+    auto img = immediate_color_image(std::span<const fan::color>(colors.begin(), colors.size()));
     return add_immediate_shape<unlit_sprite_t>(fan::graphics::shape_type_t::unlit_sprite,
       [&] { return unlit_sprite_properties_t{.render_view=render_view,.position=position,.size=size,.image=img}; });
   }
@@ -637,6 +833,10 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   fan::graphics::shapes::shape_t& circle(const fan::vec3& position, f32_t radius, const fan::color& color, render_view_t* render_view) {
     return add_immediate_shape<circle_t>(fan::graphics::shape_type_t::circle,
       [&] { return circle_properties_t{.render_view=render_view,.position=position,.radius=radius,.color=color}; });
+  }
+
+  fan::graphics::shapes::shape_t& arrow(const arrow_properties_t& props) {
+    return add_immediate_shape<arrow_properties_t, arrow_t>(props, fan::graphics::shape_type_t::shader_shape);
   }
 
   fan::graphics::shapes::shape_t& capsule(const capsule_properties_t& props) {
