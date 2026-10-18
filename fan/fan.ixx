@@ -115,10 +115,10 @@ export import fan.graphics.gui.inventory;
 
 export import fan.crypto;
 
-#if defined(FAN_REFLECTION)
-  export import fan.reflection;
-  export import fan.rjson;
-#endif
+//#if defined(FAN_REFLECTION)
+//  export import fan.reflection;
+//  export import fan.rjson;
+//#endif
 
 #if defined(FAN_3D)
   export import fan.graphics.fms;

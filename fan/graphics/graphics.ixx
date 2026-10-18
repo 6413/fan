@@ -422,6 +422,29 @@ export namespace fan::graphics {
     );
   };
 
+  struct arrow_properties_t {
+    render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+    fan::vec3 src = 0;
+    fan::vec3 dst = 0;
+    fan::color color = fan::colors::white;
+    f32_t size = 32.f;
+    f32_t thickness = 12.f;
+    f32_t spacing = 64.f;
+    bool hide_start = false;
+    bool hide_end = false;
+    bool enable_culling = false;
+  };
+
+  struct arrow_t : fan::graphics::shader_shape_t {
+    arrow_t() = default;
+    arrow_t(const arrow_properties_t& p);
+
+    void set_points(const fan::vec3& src, const fan::vec3& dst);
+    void set_hidden_ends(bool hide_start, bool hide_end);
+  };
+
+  fan::graphics::shapes::shape_t& arrow(const arrow_properties_t& props);
+
   struct shadow_properties_t {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(0, 0, 0);
