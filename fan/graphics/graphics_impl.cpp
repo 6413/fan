@@ -1241,6 +1241,11 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     return fan::graphics::viewport_get_size(render_view.viewport);
   }
 
+  std::pair<fan::vec2, fan::vec2> interactive_camera_t::get_visible_bounds() const {
+    fan::vec2 half = fan::vec2(fan::window::get_size()) / get_zoom() * 0.5f;
+    return {camera_offset - half, camera_offset + half};
+  }
+
   void interactive_camera_t::shake(f32_t intensity, f32_t duration) {
     fx_shake_intensity = intensity;
     fx_shake_duration = duration;
@@ -2016,16 +2021,20 @@ namespace fan::graphics {
   void update_tiling_background(
     fan::graphics::shape_t& sprite, 
     fan::vec2 tile_size, 
-    fan::graphics::render_view_t* rv) 
+    fan::graphics::render_view_t* rv,
+    fan::vec2 origin_offset)
   {
     f32_t zoom = camera_get_zoom(*rv);
     fan::vec2 c = camera_get_center(*rv);
     fan::vec2 ws = fan::window::get_size();
     fan::vec2 half_size = ws / zoom / 2.f;
+    fan::vec2 period = tile_size * 2.f;
+    // wrap so tc stays small far from the origin (float precision)
+    fan::vec2 wrapped = ((c - half_size).fmod(period) + period).fmod(period);
 
     sprite.set_position(c);
     sprite.set_size(half_size);
-    sprite.set_tc_position((c - half_size) / tile_size / 2.f);
+    sprite.set_tc_position((wrapped + origin_offset) / period);
     sprite.set_tc_size(half_size / tile_size);
   }
 
