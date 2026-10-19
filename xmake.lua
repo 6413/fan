@@ -96,8 +96,15 @@ end
 
 option("FAN_USE_STD_MODULE") set_default(false) set_showmenu(true) add_defines("FAN_USE_STD_MODULE") option_end()
 option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
+option("FAN_PREBUILT_SHADER_LIBS")
+  set_default(true)
+  set_showmenu(true)
+  set_description("Use system-installed shaderc/glslang/spirv-tools instead of building them from source")
+option_end()
 
 local static_req = {system = false, configs = {shared = false}}
+-- python is only a build-time tool for glslang/spirv-tools; use the system one instead of building from source
+add_requireconfs("**.python", {system = true, override = true})
 if has_config("FAN_FMT") then add_requires("fmt 10.2.1", static_req) end
 if has_config("FAN_2D") then
   add_defines("VK_ENABLE_BETA_EXTENSIONS")
@@ -346,12 +353,15 @@ bool SpirvTools::Validate(const uint32_t* binary, const size_t binary_size,
             package:set("kind", "binary")
         end
 
-        if package:version():ge("2022.3") then
-            package:add("deps", "glslang")
-        else
-            package:add("deps", "glslang <=1.3.211")
+        -- prebuilt shaderc comes from the system, so don't pull in its build deps
+        if not import("core.project.config").get("FAN_PREBUILT_SHADER_LIBS") then
+            if package:version():ge("2022.3") then
+                package:add("deps", "glslang")
+            else
+                package:add("deps", "glslang <=1.3.211")
+            end
+            package:add("deps", "spirv-tools", "spirv-headers")
         end
-        package:add("deps", "spirv-tools", "spirv-headers")
 
         if package:config("shared") then
             package:add("links", "shaderc_shared")
@@ -462,10 +472,15 @@ bool SpirvTools::Validate(const uint32_t* binary, const size_t binary_size,
     end)
   package_end()
 
-  add_requires("glslang 1.4.335+0", static_req)
-  add_requires("spirv-tools 1.4.335+0", static_req)
-  add_requires("spirv-headers 1.4.335+0", {system = false})
-  add_requires("shaderc", static_req)
+  if has_config("FAN_PREBUILT_SHADER_LIBS") then
+    -- glslang/spirv-tools are only build deps of shaderc, so the system shaderc is all we need
+    add_requires("shaderc", {system = true})
+  else
+    add_requires("glslang 1.4.335+0", static_req)
+    add_requires("spirv-tools 1.4.335+0", static_req)
+    add_requires("spirv-headers 1.4.335+0", {system = false})
+    add_requires("shaderc", static_req)
+  end
 end
 
 if not is_plat("wasm") then
