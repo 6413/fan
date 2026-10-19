@@ -701,16 +701,27 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   }
   static bool immediate_update(fan::graphics::shapes::shape_t& s, const sprite_properties_t& p) {
     if (!p.texture_pack_unique_id.iic()) {
-      return false;
+      auto texture_pack = fan::graphics::get_shapes().texture_pack;
+      if (!texture_pack) {
+        return false;
+      }
+      fan::graphics::texture_pack::ti_t ti;
+      if (texture_pack->qti((*texture_pack)[p.texture_pack_unique_id].name, &ti)) {
+        return false;
+      }
+      // re-points the shape at the texture pack tile (image, tc position/size)
+      s.load_tp(&ti);
+    }
+    else {
+      immediate_set_image(s, p.image);
+      s.set_tc_position(p.tc_position);
+      s.set_tc_size(p.tc_size);
     }
     s.set_position(p.position);
     s.set_size(p.size);
     s.set_angle(p.angle);
     s.set_color(p.color);
     s.set_rotation_point(p.rotation_point);
-    immediate_set_image(s, p.image);
-    s.set_tc_position(p.tc_position);
-    s.set_tc_size(p.tc_size);
     s.set_parallax_factor(p.parallax_factor);
     s.set_flags(p.flags);
     return true;
@@ -1242,8 +1253,9 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   }
 
   std::pair<fan::vec2, fan::vec2> interactive_camera_t::get_visible_bounds() const {
-    fan::vec2 half = fan::vec2(fan::window::get_size()) / get_zoom() * 0.5f;
-    return {camera_offset - half, camera_offset + half};
+    fan::vec2 half = get_viewport_size() / get_zoom() * 0.5f;
+    fan::vec2 center = get_center();
+    return {center - half, center + half};
   }
 
   void interactive_camera_t::shake(f32_t intensity, f32_t duration) {
@@ -2026,7 +2038,7 @@ namespace fan::graphics {
   {
     f32_t zoom = camera_get_zoom(*rv);
     fan::vec2 c = camera_get_center(*rv);
-    fan::vec2 ws = fan::window::get_size();
+    fan::vec2 ws = fan::graphics::viewport_get_size(rv->viewport);
     fan::vec2 half_size = ws / zoom / 2.f;
     fan::vec2 period = tile_size * 2.f;
     // wrap so tc stays small far from the origin (float precision)

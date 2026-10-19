@@ -1144,7 +1144,7 @@ interactive_camera_t:
   icam.reset_view()                               // snap to default view
   icam.set_position(pos)                          // move camera to world pos
   icam.ignore_input = true                        // disable user input control
-  auto [vmin, vmax] = icam.get_visible_bounds();  // visible world rect from window size, zoom, camera_offset
+  auto [vmin, vmax] = icam.get_visible_bounds();  // visible world rect from viewport size, zoom, camera center
   // cell range for culling: ((vmin / tile).floor() - 1) .. ((vmax / tile).ceil() + 1)
   fan::graphics::world_window_t ww;               // render_view + interactive_camera_t; ww.update() each frame, pass ww as render_view*
   // usage: call icam.update() each frame before drawing
