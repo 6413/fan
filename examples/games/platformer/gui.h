@@ -1,6 +1,3 @@
-#define gui fan::graphics::gui
-#define gameplay fan::graphics::gameplay
-
 void init_theme(){
   inventory.style.theme.panel_bg = fan::color(41 / 255.f, 50 / 255.f, 69 / 255.f, 1.f);
   inventory.style.theme.panel_border = fan::color(25 / 255.f, 25 / 255.f, 31 / 255.f, 1.f);
@@ -36,8 +33,6 @@ void init_inventory_hotbar(){
     pile->player.use_item(item);
   };
 
-  //gui::bind_inventory_equipment(inventory, equipment);
-  //gui::bind_hotbar_equipment(hotbar, equipment);
 }
 
 void open(void* sod) {
@@ -62,10 +57,6 @@ void handle_inventory_hotbar() {
   if (inventory.visible) {
     inventory.render([&]{
       fan::vec2 grid_origin = inventory.get_slot_grid_origin();
-      //static fan::vec2 offset = 0;
-      //gui::begin("AA");
-      //gui::drag("O", &offset);
-      //gui::end();
       fan::vec2 equip_pos = grid_origin - fan::vec2(0, equipment.get_slot_size().y) + fan::vec2(172, -43.f);
 
       gui::set_cursor_pos(equip_pos);
@@ -187,8 +178,4 @@ fan::graphics::image_t health_potion;
 gui::inventory_t inventory;
 gui::hotbar_t hotbar;
 
-#undef gameplay
-
 gui::gameplay::equipment_t equipment;
-
-#undef gui

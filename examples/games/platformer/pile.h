@@ -48,7 +48,6 @@ struct pile_t {
       enemy_list.update();
     }
 
-    //fan::graphics::gui::text(fan::graphics::screen_to_world(fan::window::get_mouse_position()));
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
   }
   level0_t& get_level() {
@@ -93,10 +92,7 @@ struct pile_t {
 
 pile_t::pile_t() {
   pile->engine.set_culling_enabled(false);
-  //ic.ignore_input = true;
   update_camera_zoom();
-  //engine.window.set_size(engine.window.get_current_monitor_resolution());
-  //engine.clear_color = 0;
   engine.texture_pack.open_compiled("texture_pack.ftp", fan::graphics::image_presets::pixel_art());
   renderer.open();
 

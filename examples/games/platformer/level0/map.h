@@ -1,13 +1,3 @@
-#define MEASURE_TIME 1
-
-#if MEASURE_TIME
-  #define TIMER_START(name) fan::time::timer timer_##name{true}
-  #define TIMER_PRINT(name) fan::printcl("Load:", #name ":", fan::to_string(timer_##name.millis(), 3) + "ms")
-#else
-  #define TIMER_START(name)
-  #define TIMER_PRINT(name)
-#endif
-
 #include "loader.h"
 #include "../spikes.h"
 spike_spatial_t spike_spatial;
@@ -35,8 +25,6 @@ void load_enemies() {
     b.set_parallax_factor(0.8f);
     b.set_tc_position(fan::vec2(0.5f, 0));
   }
-  //  .position = fan::vec3(10000, 6010, 0),
-//  .size = fan::vec2(9192, 10000),
 }
 
 template <typename T>
@@ -229,6 +217,8 @@ void update() {
 std::vector<fan::auto_color_transition_t> light_lights;
 fan::graphics::shape_t torch_particles;
 inline static constexpr fan::color lamp2_color = fan::color::from_rgb(0x114753) * 4.f;
+inline static constexpr f32_t light_size = 512.f;
+inline static constexpr bool measure_load_time = true;
 inline static constexpr f32_t boss_light_adjustment_y = 30.f;
 
 fan::physics::entity_t boss_sensor;
@@ -255,14 +245,6 @@ struct checkpoint_t { fan::graphics::sprite_t visual; fan::physics::entity_t ent
 std::vector<fan::graphics::sprite_t> lamp_sprites;
 std::vector<fan::graphics::light_t> lights, lights_boss, static_lights;
 std::vector<fan::auto_color_transition_t> flicker_anims;
-
-//fan::graphics::sprite_t background {{
-//  .position = fan::vec3(10000, 6010, 0),
-//  .size = fan::vec2(9192, 10000),
-//  .color = fan::color(0.6, 0.576, 1),
-//  .image = fan::graphics::image_t("images/background.webp"),
-//  .tc_size = 300.0,
-//}};
 
 std::vector<fan::graphics::shape_t> bg;
 

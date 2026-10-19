@@ -1,38 +1,31 @@
 void load_map() {
-  TIMER_START(total_load_map);
-  
-  TIMER_START(spike_spatial_clear);
+  fan::time::lap_timer_t laps("load_map", measure_load_time);
+
   spike_spatial.clear();
-  TIMER_PRINT(spike_spatial_clear);
-  
-  TIMER_START(pickupable_spatial_init);
+  laps.lap("spike_spatial_clear");
+
   pickupable_spatial.init(
     fan::vec2(0),
     pile->get_compiled(stage_name).map_size * pile->get_compiled(stage_name).tile_size * 2.f
   );
-  TIMER_PRINT(pickupable_spatial_init);
+  laps.lap("pickupable_spatial_init");
 
-  TIMER_START(torch_particles_move);
   torch_particles.set_position(fan::vec2(-0xfffff));
-  TIMER_PRINT(torch_particles_move);
+  laps.lap("torch_particles_move");
 
-  TIMER_START(engine_setup);
   fan::vec2i render_size(16, 9);
   tilemap_loader_t::properties_t p;
   p.size = render_size;
   pile->engine.set_cull_padding(100);
   p.position = pile->player.body.get_position();
-  TIMER_PRINT(engine_setup);
+  laps.lap("engine_setup");
 
-  TIMER_START(renderer_add);
   main_map_id = pile->renderer.add(&pile->get_compiled(stage_name), p);
-  TIMER_PRINT(renderer_add);
-  
-  TIMER_START(lighting_set_target);
-  pile->engine.get_lighting().set_target(pile->get_compiled(stage_name).lighting.ambient, 0.01);
-  TIMER_PRINT(lighting_set_target);
+  laps.lap("renderer_add");
 
-  TIMER_START(static_animations_setup);
+  pile->engine.get_lighting().set_target(pile->get_compiled(stage_name).lighting.ambient, 0.01);
+  laps.lap("lighting_set_target");
+
   static auto checkpoint_flag = fan::graphics::sprite_sheet_from_json({
     .path = "effects/flag.json",
     .loop = true
@@ -52,9 +45,8 @@ void load_map() {
   checkpoint_flag.set_position(fan::vec2(-0xfffff));
   axe_anim.set_position(fan::vec2(-0xfffff));
   lamp1_anim.set_position(fan::vec2(-0xfffff));
-  TIMER_PRINT(static_animations_setup);
+  laps.lap("static_animations_setup");
 
-  TIMER_START(checkpoint_system_load);
   pile->checkpoint_system.load_from_map(pile->renderer, main_map_id, [](auto& visual, auto& entity) {
     checkpoint_flag.set_position(entity.get_position());
     visual = checkpoint_flag;
@@ -62,13 +54,11 @@ void load_map() {
     visual.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
     visual.play_sprite_sheet();
   });
-  TIMER_PRINT(checkpoint_system_load);
+  laps.lap("checkpoint_system_load");
 
-  TIMER_START(reload_boss_door);
   reload_boss_door_collision();
-  TIMER_PRINT(reload_boss_door);
+  laps.lap("reload_boss_door");
 
-  TIMER_START(iterate_marks);
   pile->renderer.iterate_marks(main_map_id, [&](tilemap_loader_t::fte_t::spawn_mark_data_t& data) -> bool {
     const auto& id = data.id;
     if (id.contains("lamp1")) {
@@ -79,7 +69,7 @@ void load_map() {
       l.set_position(fan::vec3(fan::vec2(data.position) + fan::vec2(1.f, -2.f), 1));
       lights.emplace_back(fan::graphics::light_t {{
         .position = l.get_position(),
-        .size = 512
+        .size = light_size
       }});
     }
     else if (id.contains("lamp2")) {
@@ -89,14 +79,14 @@ void load_map() {
       l.set_position(data.position.offset_y(boss_light_adjustment_y));
       static_lights.emplace_back(fan::graphics::light_t {{
         .position = l.get_position(),
-        .size = 512,
+        .size = light_size,
         .color = lamp2_color
       }});
     }
     else if (id.contains("boss_lamp")) {
       lights_boss.emplace_back(fan::graphics::light_t {{
         .position = data.position,
-        .size = 512,
+        .size = light_size,
         .color = fan::colors::black,
       }});
     }
@@ -185,9 +175,8 @@ void load_map() {
     }
     return false;
   });
-  TIMER_PRINT(iterate_marks);
+  laps.lap("iterate_marks");
 
-  TIMER_START(iterate_visual);
   pile->renderer.iterate_visual(main_map_id, [&](tilemap_loader_t::tile_t& tile) -> bool {
     const std::string& id = tile.id;
 
@@ -235,45 +224,38 @@ void load_map() {
 
     return false;
   });
-  TIMER_PRINT(iterate_visual);
+  laps.lap("iterate_visual");
 
-  TIMER_START(player_respawn);
   pile->player.respawn();
-  TIMER_PRINT(player_respawn);
+  laps.lap("player_respawn");
 
-  TIMER_START(boss_room_light_setup);
   {
     auto* boss_room_light = pile->renderer.get_light_by_id(main_map_id, "boss_room_ambient_light");
     boss_room_target_color = boss_room_light->get_color();
     boss_room_light->set_color(fan::colors::black);
   }
-  TIMER_PRINT(boss_room_light_setup);
-  
-  TIMER_PRINT(total_load_map);
+  laps.lap("boss_room_light_setup");
 }
 
 void open(void* sod) {
+  fan::time::lap_timer_t laps("open", measure_load_time);
   torch_particles = fan::graphics::shape_from_json("effects/torch.json");
   bg = fan::graphics::shapes_from_json("images/background.json");
   audio_pickup_item = fan::audio::sound_t("audio/pickup.sac");
   audio_elevator_chain = fan::audio::sound_t("audio/chain.sac");
   audio_skeleton_lord = fan::audio::sound_t("audio/skeleton_lord_music.sac");
-  TIMER_START(total_open);
-  
-  TIMER_START(setup);
+  laps.lap("assets");
+
   pile->level_stage = this->stage_common.stage_id;
-  TIMER_PRINT(setup);
-  
-  TIMER_START(load_map);
+  laps.lap("setup");
+
   load_map();
-  TIMER_PRINT(load_map);
-  
-  TIMER_START(lighting);
+  laps.lap("load_map");
+
   pile->engine.get_lighting().set_target(0, 0);
   is_entering_door = false;
-  TIMER_PRINT(lighting);
+  laps.lap("lighting");
 
-  TIMER_START(physics_callback);
   physics_step_nr = fan::physics::add_physics_step_callback([this]() {
 
     std::string enter_text;
@@ -337,34 +319,26 @@ void open(void* sod) {
       interact_prompt.type = interact_type::portal;
     }
   });
-  TIMER_PRINT(physics_callback);
+  laps.lap("physics_callback");
 
-  TIMER_START(renderer_update);
   pile->renderer.update(main_map_id, pile->player.body.get_position());
-  TIMER_PRINT(renderer_update);
-  
-  TIMER_PRINT(total_open);
+  laps.lap("renderer_update");
 }
 
 void close() {
-
-  TIMER_START(total_close);
+  fan::time::lap_timer_t laps("close", measure_load_time);
   collected_pickupables.clear();
 
-  TIMER_START(enemy_clear);
   pile->enemy_list.clear();
-  TIMER_PRINT(enemy_clear);
-  fan::print("TODO"); //pile->engine.shapes.visibility.camera_states.clear();
-  
-  TIMER_START(cage_elevator);
+  laps.lap("enemy_clear");
+
   cage_elevator.destroy();
-  TIMER_PRINT(cage_elevator);
-  
-  TIMER_START(boss_door);
+  laps.lap("cage_elevator");
+
   if (boss_door_collision) {
     boss_door_collision.destroy();
   }
-  TIMER_PRINT(boss_door);
+  laps.lap("boss_door");
   if (boss_sensor) {
     boss_sensor.destroy();
   }
@@ -372,43 +346,31 @@ void close() {
     portal_sensor.destroy();
   }
   
-  TIMER_START(tile_collisions);
   for (auto& i : tile_collisions) {
     i.destroy();
   }
   tile_collisions.clear();
-  TIMER_PRINT(tile_collisions);
-  
-  TIMER_START(spike_sensors);
+  laps.lap("tile_collisions");
+
   for (auto& i : spike_sensors) {
     i.destroy();
   }
-  TIMER_PRINT(spike_sensors);
-  
-  TIMER_START(renderer_erase);
+  spike_sensors.clear();
+  laps.lap("spike_sensors");
+
   pile->renderer.erase(main_map_id);
-  TIMER_PRINT(renderer_erase);
-  
-  TIMER_START(pickupable_clear);
+  laps.lap("renderer_erase");
+
   pickupable_spatial.clear();
-  TIMER_PRINT(pickupable_clear);
-  
-  TIMER_PRINT(total_close);
+  laps.lap("pickupable_clear");
 }
 
 void reload_map() {
-  #if MEASURE_TIME
-    fan::printcl("\n");
-  #endif
-  TIMER_START(total_reload);
+  fan::time::lap_timer_t laps("reload_map", measure_load_time);
 
-  TIMER_START(erase_stage);
   pile->stage_loader.close_stage(stage_common.stage_id);
-  TIMER_PRINT(erase_stage);
+  laps.lap("close_stage");
 
-  TIMER_START(open_stage);
   pile->level_stage = pile->stage_loader.open_stage<self_t>();
-  TIMER_PRINT(open_stage);
-
-  TIMER_PRINT(total_reload);
+  laps.lap("open_stage");
 }

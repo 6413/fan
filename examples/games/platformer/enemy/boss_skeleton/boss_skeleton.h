@@ -24,7 +24,6 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
     open(&bll, nr, "boss_skeleton.json");
     set_initial_position(position);
 
-    //body.set_max_health(10.f);
     body.set_max_health(300.f);
     body.set_health(body.get_max_health());
     body.attack_state.attack_range = {450, 200};

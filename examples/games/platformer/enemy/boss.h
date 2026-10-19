@@ -71,7 +71,6 @@ struct boss_t : enemy_t<derived_t> {
       return;
     }
 
-    using namespace fan::graphics;
     gui::set_next_window_pos(0);
     gui::set_next_window_size(gui::get_window_size());
     if (auto hud = gui::hud("##boss_hud")) {
