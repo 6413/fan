@@ -23,7 +23,7 @@ struct player_t {
     auto image_star = pile->engine.image_load("images/waterdrop.webp");
     particles = fan::graphics::shape_from_json("effects/explosion.json");
     particles.set_image(image_star);
-    body = fan::graphics::physics::character2d_t::from_json({
+    body = fan::graphics::physics::from_json({
       .json_path = "player/player.json",
       .aabb_scale = aabb_scale,
       .attack_cb = [this](fan::graphics::physics::character2d_t& c) -> bool {

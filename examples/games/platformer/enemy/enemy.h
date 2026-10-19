@@ -30,7 +30,7 @@ struct enemy_t : enemy_base_t {
 
   template<typename container_t>
   void open(container_t* bll, typename container_t::nr_t nr, const std::string& path, const std::source_location& caller_path = std::source_location::current()) {
-    body = fan::graphics::physics::character2d_t::from_json({
+    body = fan::graphics::physics::from_json({
       .json_path = path,
       .aabb_scale = aabb_scale,
       .attack_cb = [bll, nr](auto& c){ 

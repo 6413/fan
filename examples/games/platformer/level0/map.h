@@ -157,7 +157,7 @@ void enter_portal() {
   );
   anim.on_end = [this] {
     pile->stage_transition.remove();
-    pile->stage_loader.erase_stage(stage_common.stage_id);
+    pile->stage_loader.close_stage(stage_common.stage_id);
     pile->level_stage.sic();
   };
   anim.start_once(

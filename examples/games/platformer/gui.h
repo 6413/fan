@@ -44,7 +44,6 @@ void open(void* sod) {
   health_empty = fan::graphics::image_t("gui/hp_empty.webp");
   health_full = fan::graphics::image_t("gui/hp_full.webp");
   health_potion = fan::graphics::image_t("gui/health_potion.webp");
-  gui::load_fonts(font_pixel, "fonts/PixelatedEleganceRegular-ovyAA.ttf");
 
   init_theme();
   init_inventory_hotbar();
@@ -144,7 +143,7 @@ void render_potions(f32_t prev_image_size) {
   gui::image(health_potion, potion_size);
   gui::same_line();
 
-  gui::push_font(gui::get_font(font_pixel, gui::get_font_size()));
+  gui::push_font(gui::get_font(gui::get_font_size()));
 
   uint32_t potion_count = count_all_items(items::id_e::health_potion);
 
@@ -184,8 +183,6 @@ void update() {
 fan::graphics::image_t health_empty;
 fan::graphics::image_t health_full;
 fan::graphics::image_t health_potion;
-
-gui::font_t* font_pixel[std::size(gui::font_sizes)]{};
 
 gui::inventory_t inventory;
 gui::hotbar_t hotbar;

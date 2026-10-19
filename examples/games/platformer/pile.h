@@ -1,17 +1,13 @@
 // All stages are included here
 struct pile_t;
 pile_t* pile = 0;
-#define stage_loader_path .
-#include <fan/graphics/gui/stage_maker/loader.h>
 
 struct pile_t {
-  lstd_defstruct(level0_t)
-    #include <fan/graphics/gui/stage_maker/preset.h>
+  struct level0_t : fan::stage_t<level0_t> {
       static constexpr auto stage_name = "level0";
       #include "level0/map.h"
     };
-  lstd_defstruct(gui_t)
-    #include <fan/graphics/gui/stage_maker/preset.h>
+  struct gui_t : fan::stage_t<gui_t> {
     static constexpr auto stage_name = "gui";
     #include "gui.h"
   };
@@ -56,16 +52,16 @@ struct pile_t {
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
   }
   level0_t& get_level() {
-    return stage_loader.get_stage_data<level0_t>(level_stage);
+    return stage_loader.get_data<level0_t>();
   }
   gui_t& get_gui() {
-    return stage_loader.get_stage_data<gui_t>(gui_stage);
+    return stage_loader.get_data<gui_t>();
   }
   fan::graphics::engine_t engine {{.window_size = {1920,1080}}};
   fan::graphics::gameplay::checkpoint_system_t checkpoint_system;
   tilemap_renderer_t renderer;
-  stage_loader_t stage_loader;
-  stage_loader_t::nr_t level_stage, gui_stage;
+  fan::stage_loader_t& stage_loader = engine.stage_loader;
+  fan::stage_loader_t::nr_t level_stage, gui_stage;
   fan::graphics::interactive_camera_t ic{
     engine.orthographic_render_view.camera,
     engine.orthographic_render_view.viewport
