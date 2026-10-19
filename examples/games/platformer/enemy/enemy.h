@@ -76,7 +76,7 @@ struct enemy_t : enemy_base_t {
       .damage = 10.f,
       .knockback_force = 600.f,
       .attack_range = {closeup_distance.x, body.attack_state.attack_range.y},
-      .cooldown_timer = fan::time::timer(0.8e9, true),
+      .cooldown_timer = fan::time::timer(0.8, true),
       .stun = false
     });
     ai_behavior.target = &pile->player.body;

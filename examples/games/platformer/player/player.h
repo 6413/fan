@@ -16,8 +16,8 @@ struct player_t {
 
   player_t() {
     player_light.set_dynamic();
-    player_light.set_color(fan::color(0.610, 0.550, 0.340, 1.0) * 5.f);
-    player_light.set_size(256);
+    player_light.set_color(fan::color(0.610, 0.550, 0.340, 1.0) * 2.f);
+    player_light.set_size(512);
     potion_particles.from_json("effects/drink_potion.json");
 
     auto image_star = pile->engine.image_load("images/waterdrop.webp");
@@ -44,7 +44,9 @@ struct player_t {
     body.set_color(fan::color::hsl(56.7f, 18.3f, -58.4f));
     //body.set_dynamic();
 
+    f32_t json_jump_height = body.get_jump_height();
     fan::graphics::physics::character_movement_preset_t::setup_default_controls(body);
+    body.set_jump_height(json_jump_height);
 
     body.movement_state.jump_state.on_jump = [&](int jump_type) {
       task_jump = jump(jump_type == 1);
@@ -69,7 +71,7 @@ struct player_t {
       .max_health = 50.f,
       .damage = 10.f,
       .knockback_force = 20.f,
-      .cooldown_timer = fan::time::timer{0.05e9, true},
+      .cooldown_timer = fan::time::timer{0.05, true},
       .on_attack_end = [this]() { combat.did_attack = false; },
     });
 
@@ -93,7 +95,7 @@ struct player_t {
       co_return;
     }
     body.set_rotation_point(-body.get_draw_offset());
-    fan::time::timer jump_timer {1.0e9f / 2.f, true};
+    fan::time::timer jump_timer {0.5, true};
     while (!jump_timer) {
       f32_t progress = jump_timer.seconds() / jump_timer.duration_seconds();
       f32_t angle = progress * fan::math::two_pi * body.get_image_sign().x;
@@ -328,7 +330,7 @@ struct player_t {
   ;
   fan::graphics::shape_t particles;
   fan::event::task_t task_particles;
-  fan::time::timer potion_consume_timer {0.1e9, true};
+  fan::time::timer potion_consume_timer {0.1, true};
   fan::graphics::effects::particle_pool_t::pool_t<4> potion_particles;
   fan::graphics::light_t player_light {{.position = 0}};
   fan::physics::step_callback_nr_t physics_step_nr;

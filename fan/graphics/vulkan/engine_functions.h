@@ -1529,6 +1529,18 @@ void shapes_draw() {
       VkBool32 blend_enable = (!pipeline.properties.color_blend_attachments.empty() &&
         pipeline.properties.color_blend_attachments[0].blendEnable) ? VK_TRUE : VK_FALSE;
       fan_vkCmdSetColorBlendEnableEXT(cmd_buffer, 0, 1, &blend_enable);
+      if (!pipeline.properties.color_blend_attachments.empty()) {
+        const auto& a = pipeline.properties.color_blend_attachments[0];
+        bool default_alpha = a.srcAlphaBlendFactor == VK_BLEND_FACTOR_SRC_ALPHA && a.dstAlphaBlendFactor == VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        VkColorBlendEquationEXT eq{};
+        eq.srcColorBlendFactor = a.srcColorBlendFactor;
+        eq.dstColorBlendFactor = a.dstColorBlendFactor;
+        eq.colorBlendOp = a.colorBlendOp;
+        eq.srcAlphaBlendFactor = default_alpha ? VK_BLEND_FACTOR_ONE : a.srcAlphaBlendFactor;
+        eq.dstAlphaBlendFactor = default_alpha ? VK_BLEND_FACTOR_ZERO : a.dstAlphaBlendFactor;
+        eq.alphaBlendOp = a.alphaBlendOp;
+        fan_vkCmdSetColorBlendEquationEXT(cmd_buffer, 0, 1, &eq);
+      }
     }
     vkCmdBindDescriptorSets(
       cmd_buffer,
