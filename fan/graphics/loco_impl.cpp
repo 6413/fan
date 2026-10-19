@@ -802,6 +802,9 @@ static void add_simple_command(
 void loco_t::generate_commands(loco_t* loco) {
 #if defined(FAN_GUI)
   loco->gui.console.open();
+  fan::time::lap_timer_t::sink = [loco](std::string_view msg) {
+    loco->gui.console.print(std::string(msg) + "\n", 0);
+  };
 
   add_simple_command(loco->gui.console, "set_vsync", "sets vsync", 1,
     [](loco_t* l, const std::string& v) { l->set_vsync(std::stoi(v)); });

@@ -87,7 +87,6 @@ struct enemy_t : enemy_base_t {
     navigation.jump_lookahead_tiles = 1.5f;
     navigation.on_check_obstacle = [bll, nr](const fan::vec2& check_pos){
       return false;
-      //return std::visit([&check_pos](auto& e) { return e.is_spike_at(check_pos); }, (*bll)[nr]);
     };
     physics_step_nr = fan::physics::add_physics_step_callback([bll, nr](){
       std::visit([](auto& node){

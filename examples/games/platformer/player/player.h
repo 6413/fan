@@ -1,5 +1,3 @@
-#define gui fan::graphics::gui
-#define gameplay fan::graphics::gameplay
 struct player_t {
   static inline constexpr fan::vec2 draw_offset {0.f, -42.5f};
   static inline constexpr f32_t aabb_scale = 0.17f;
@@ -42,7 +40,6 @@ struct player_t {
     body.set_flags(fan::graphics::sprite_flags_e::use_hsl);
 
     body.set_color(fan::color::hsl(56.7f, 18.3f, -58.4f));
-    //body.set_dynamic();
 
     f32_t json_jump_height = body.get_jump_height();
     fan::graphics::physics::character_movement_preset_t::setup_default_controls(body);
@@ -87,7 +84,6 @@ struct player_t {
   }
 
   fan::event::task_t jump(bool is_double_jump) {
-    //audio_jump.play();
     audio_attack.play();
     body.set_angle(0.f);
     sprite_shield.set_angle(0.f);
@@ -222,15 +218,6 @@ struct player_t {
     }
 
     if (blocking) {
-      fan::vec2 input_vector = fan::window::get_input_vector();
-      if (input_vector.x != 0) {
-        fan::vec2 sign = body.get_image_sign();
-        int desired_sign = fan::math::sgn(input_vector.x);
-        if (fan::math::sgn(sign.x) != desired_sign) {
-         // body.set_image_sign(fan::vec2(desired_sign, sign.y));
-        }
-      }
-
       fan::vec2 sign = body.get_image_sign();
       f32_t facing_direction = sign.x;
 
@@ -340,5 +327,3 @@ struct player_t {
   fan::vec2 checkpoint_position = 0;
   f32_t max_player_speed = 600.f;
 };
-#undef gui
-#undef gameplay

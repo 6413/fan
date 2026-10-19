@@ -110,6 +110,22 @@ export namespace fan {
       fan::time::timer t;
     };
 
+    struct lap_timer_t {
+      lap_timer_t(std::string_view name, bool enabled = true);
+      lap_timer_t(const lap_timer_t&) = delete;
+      lap_timer_t(lap_timer_t&&) = delete;
+      ~lap_timer_t();
+
+      void lap(std::string_view label);
+
+      static std::function<void(std::string_view)> sink;
+
+      std::string name;
+      bool enabled;
+      fan::time::timer total;
+      fan::time::timer section;
+    };
+
     template<FAN_UNIQUE_CALL>
     bool every(f64_t interval_ms) {
       static std::uint64_t last_time = 0;  

@@ -1,5 +1,3 @@
-#define gameplay fan::graphics::gameplay
-
 namespace items {
   struct id_e {
     uint32_t val;
@@ -47,5 +45,3 @@ namespace items {
     });
   }
 }
-
-#undef gameplay
