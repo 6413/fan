@@ -1401,6 +1401,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 
   vkQueueWaitIdle(context.vk.graphics_queue);
 
+#if defined(FAN_SHADERC)
   auto shaders_path = fan::io::file::find_relative_path("shaders").generic_string();
   if (shaders_path.empty()) {
     fan::print_error("failed to find path for 'shaders' - hot reloading is disabled for shaders");
@@ -1488,6 +1489,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
       fan::print_error("Shader reload watch failed to start:", started.error());
     }
   }
+#endif
   fan::time::print_measure("loco total took:", t_loco.millis(), "ms");
 }
 

@@ -5,10 +5,8 @@ module;
 
 #include <fan/utils/utility.h>
 
-#define USE_SHADERC
-
 #if defined(fan_platform_windows)
-  #if defined(USE_SHADERC)
+  #if defined(FAN_SHADERC)
     #pragma comment (lib, "shaderc_combined_mt.lib")
   #endif
   #define VK_USE_PLATFORM_WIN32_KHR
@@ -16,7 +14,9 @@ module;
   #define VK_USE_PLATFORM_XLIB_KHR
 #endif
 #include <vulkan/vulkan.h>
-#include <shaderc/shaderc.hpp>
+#if defined(FAN_SHADERC)
+  #include <shaderc/shaderc.hpp>
+#endif
 
 #endif
 
@@ -366,7 +366,13 @@ std::vector<std::uint32_t> fan::vulkan::shader_subsystem_t::compile_file(const s
   int kind,
   const std::string& source) 
 {
-#if defined(USE_SHADERC)
+#if defined(FAN_SHADERC)
+  static_assert(
+    fan::vulkan::shader_kind_vertex == shaderc_glsl_vertex_shader && fan::vulkan::shader_kind_fragment == shaderc_glsl_fragment_shader &&
+    fan::vulkan::shader_kind_compute == shaderc_glsl_compute_shader && fan::vulkan::shader_kind_raygen == shaderc_glsl_raygen_shader &&
+    fan::vulkan::shader_kind_anyhit == shaderc_glsl_anyhit_shader && fan::vulkan::shader_kind_closesthit == shaderc_glsl_closesthit_shader &&
+    fan::vulkan::shader_kind_miss == shaderc_glsl_miss_shader
+  );
   shaderc::Compiler compiler;
   shaderc::CompileOptions options;
 
@@ -389,14 +395,22 @@ std::vector<std::uint32_t> fan::vulkan::shader_subsystem_t::compile_file(const s
 
   return {module.cbegin(), module.cend()};
 #else
-  fan::throw_error("shaderc runtime compilation not available - build with USE_SHADERC");
+  fan::throw_error("runtime shader compilation not available - build with FAN_SHADERC (source: " + source_name + ")");
   return {};
 #endif
 }
 
 std::vector<std::uint32_t> fan::vulkan::shader_subsystem_t::load_or_compile(const std::string& source_name, int kind, const std::string& source) {
+#if !defined(FAN_SHADERC)
+  auto spv_path = source_name.empty() ? std::filesystem::path{} : fan::io::file::find_relative_path(source_name + ".spv");
+  auto spv = spv_path.empty() ? std::vector<std::uint32_t>{} : fan::io::file::read_binary<std::uint32_t>(spv_path);
+  if (spv.empty()) {
+    fan::throw_error("missing precompiled shader '" + source_name + ".spv' - string shaders and live edits need FAN_SHADERC");
+  }
+  return spv;
+#else
   if (source_name.empty()) {
-    return compile_file(source_name, (shaderc_shader_kind)kind, source);
+    return compile_file(source_name, kind, source);
   }
 
   auto read_cache = [](const std::string& path) {
@@ -436,12 +450,13 @@ std::vector<std::uint32_t> fan::vulkan::shader_subsystem_t::load_or_compile(cons
     }
   }
 
-  auto spv = compile_file(source_name, (shaderc_shader_kind)kind, source);
+  auto spv = compile_file(source_name, kind, source);
   if (!spv.empty()) {
     write_cache(cache_path, spv);
   }
   
   return spv;
+#endif
 }
 
 fan::graphics::shader_nr_t fan::vulkan::shader_subsystem_t::shader_create() {
@@ -568,7 +583,7 @@ bool fan::vulkan::shader_subsystem_t::shader_compile(fan::graphics::shader_nr_t 
     return false;
   }
 
-  auto compile_stage = [&](const std::string& path, std::string& code, std::vector<std::uint32_t>& preloaded_spv, shaderc_shader_kind kind, VkShaderStageFlagBits stage, int index) {
+  auto compile_stage = [&](const std::string& path, std::string& code, std::vector<std::uint32_t>& preloaded_spv, int kind, VkShaderStageFlagBits stage, int index) {
     if (code.empty() && !path.empty()) {
       auto resolved = fan::io::file::find_relative_path(path);
       if (!resolved.empty()) {
@@ -590,9 +605,9 @@ bool fan::vulkan::shader_subsystem_t::shader_compile(fan::graphics::shader_nr_t 
     };
   };
 
-  compile_stage(list_item.path_vertex.c_str(), list_item.svertex, list_item.spv_vertex, shaderc_glsl_vertex_shader, VK_SHADER_STAGE_VERTEX_BIT, 0);
-  compile_stage(list_item.path_fragment.c_str(), list_item.sfragment, list_item.spv_fragment, shaderc_glsl_fragment_shader, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
-  compile_stage(list_item.path_compute.c_str(), list_item.scompute, list_item.spv_compute, shaderc_glsl_compute_shader, VK_SHADER_STAGE_COMPUTE_BIT, 0);
+  compile_stage(list_item.path_vertex.c_str(), list_item.svertex, list_item.spv_vertex, shader_kind_vertex, VK_SHADER_STAGE_VERTEX_BIT, 0);
+  compile_stage(list_item.path_fragment.c_str(), list_item.sfragment, list_item.spv_fragment, shader_kind_fragment, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+  compile_stage(list_item.path_compute.c_str(), list_item.scompute, list_item.spv_compute, shader_kind_compute, VK_SHADER_STAGE_COMPUTE_BIT, 0);
 
   ++shader.compile_generation;
 

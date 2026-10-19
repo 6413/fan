@@ -22,7 +22,7 @@ declare -A FEATURE_DEFAULTS=(
   [FAN_PHYSICS_2D]=false [FAN_JSON]=false
   [FAN_3D]=false [FAN_FMT]=false
   [FAN_WAYLAND_SCREEN]=false [FAN_NETWORK]=false [FAN_AUDIO]=false
-  [FAN_VIDEO]=false [FAN_REFLECTION]=false
+  [FAN_VIDEO]=false [FAN_REFLECTION]=false [FAN_SHADERC]=true
 )
 declare -A FEATURES=()
 PRESET_USED=false
@@ -66,7 +66,11 @@ Feature toggles:
 
 Features:
   window, 2d, gui, physics-2d, json, opengl, 3d, vulkan, fmt,
-  wayland-screen, network, audio, video, reflection
+  wayland-screen, network, audio, video, reflection, shaderc
+
+  shaderc is on by default: runtime GLSL compilation (live shader editor,
+  shader hot reload, string shaders). --disable-shaderc drops it from the
+  exe; shaders/vulkan/** is precompiled to <shader>.spv with glslc at build.
 
 Legacy enable aliases:
   --audio --network --3d --video --fmt --reflection --wayland-screen --vulkan
@@ -75,6 +79,7 @@ Examples:
   ./compile_main.sh --gcc --only-network --main examples/network/network_socket.cpp
   ./compile_main.sh --core --enable-network --enable-json
   ./compile_main.sh --2d --disable-audio --release
+  ./compile_main.sh --release --disable-shaderc
   ./compile_main.sh --hot-reload
       Build engine host + Game library for hot-reload demo.
   ./compile_main.sh --shared Game
@@ -236,7 +241,7 @@ done
 
 if [[ "$PRESET_USED" == true ]]; then
   for flag in $(printf '%s\n' "${!FEATURE_DEFAULTS[@]}" | sort); do
-    val=${FEATURES[$flag]:-false}
+    val=${FEATURES[$flag]:-${FEATURE_DEFAULTS[$flag]}}
     if [[ "$val" == true ]]; then
       FEATURE_ARGS+=("--${flag}=y")
     else

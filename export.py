@@ -26,7 +26,7 @@ force = args.force
 extensions = (
     b'.webp', b'.png', b'.jpg', b'.jpeg',
     b'.json', b'.sac', b'.wav', b'.ogg', b'.mp3',
-    b'.glsl', b'.vert', b'.frag', b'.vs', b'.fs',
+    b'.glsl', b'.vert', b'.frag', b'.comp', b'.rgen', b'.rmiss', b'.rchit', b'.rahit', b'.vs', b'.fs',
     b'.ttf', b'.otf', b'.woff', b'.woff2'
 )
 
@@ -85,6 +85,9 @@ for path in found:
     if src:
         shutil.copy2(src, dst)
         print(f"copied: {path}")
+        if os.path.isfile(src + ".spv"):
+            shutil.copy2(src + ".spv", dst + ".spv")
+            print(f"copied: {path}.spv")
     else:
         print(f"MISSING: {path}")
 

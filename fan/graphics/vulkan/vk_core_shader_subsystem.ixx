@@ -28,6 +28,16 @@ import fan.graphics.common_context;
 export namespace fan::vulkan {
   struct context_t;
 
+  enum shader_kind_e : int {
+    shader_kind_vertex = 0,
+    shader_kind_fragment = 1,
+    shader_kind_compute = 2,
+    shader_kind_raygen = 14,
+    shader_kind_anyhit = 15,
+    shader_kind_closesthit = 16,
+    shader_kind_miss = 17
+  };
+
   struct shader_t {
     int projection_view[2]{ -1, -1 };
     uniform_block_t<fan::vulkan::view_projection_t, fan::vulkan::max_camera>* projection_view_block;
