@@ -65,7 +65,8 @@ local fan_features = {
   FAN_NETWORK = false,
   FAN_AUDIO = false,
   FAN_VIDEO = false,
-  FAN_REFLECTION = false
+  FAN_REFLECTION = false,
+  FAN_SHADERC = true
 }
 
 local fan_feature_names = {}
@@ -472,14 +473,16 @@ bool SpirvTools::Validate(const uint32_t* binary, const size_t binary_size,
     end)
   package_end()
 
-  if has_config("FAN_PREBUILT_SHADER_LIBS") then
-    -- glslang/spirv-tools are only build deps of shaderc, so the system shaderc is all we need
-    add_requires("shaderc", {system = true})
-  else
-    add_requires("glslang 1.4.335+0", static_req)
-    add_requires("spirv-tools 1.4.335+0", static_req)
-    add_requires("spirv-headers 1.4.335+0", {system = false})
-    add_requires("shaderc", static_req)
+  if has_config("FAN_SHADERC") then
+    if has_config("FAN_PREBUILT_SHADER_LIBS") then
+      -- glslang/spirv-tools are only build deps of shaderc, so the system shaderc is all we need
+      add_requires("shaderc", {system = true})
+    else
+      add_requires("glslang 1.4.335+0", static_req)
+      add_requires("spirv-tools 1.4.335+0", static_req)
+      add_requires("spirv-headers 1.4.335+0", {system = false})
+      add_requires("shaderc", static_req)
+    end
   end
 end
 
@@ -758,8 +761,28 @@ target("a.exe")
   if has_config("FAN_FMT") then add_packages("fmt") end
 
 if has_config("FAN_2D") then
-    add_packages("vulkan-headers", "shaderc")
+    add_packages("vulkan-headers")
+    if has_config("FAN_SHADERC") then add_packages("shaderc") end
     if is_plat("linux") then add_syslinks("vulkan") end
+  end
+
+  if has_config("FAN_2D") and not has_config("FAN_SHADERC") then
+    before_build(function (target)
+      import("lib.detect.find_tool")
+      local glslc = find_tool("glslc")
+      if not glslc then raise("FAN_SHADERC is disabled: glslc is required to precompile shaders/vulkan") end
+      for _, ext in ipairs({"vert", "frag", "comp", "rgen", "rmiss", "rchit", "rahit"}) do
+        for _, src in ipairs(os.files("shaders/vulkan/**." .. ext)) do
+          local dst = src .. ".spv"
+          if not os.isfile(dst) or os.mtime(src) > os.mtime(dst) then
+            try {
+              function () os.runv(glslc.program, {"--target-env=vulkan1.2", "-O", src, "-o", dst}) end,
+              catch { function (e) cprint("${yellow}shader precompile failed: %s${clear}\n%s", src, tostring(e)) end }
+            }
+          end
+        end
+      end
+    end)
   end
 
   for _, f in ipairs(module_files) do add_files(f) end

@@ -1345,6 +1345,7 @@ namespace fan::graphics::gui {
       *fragment = shader.sfragment;
     }
     if (begin("shader editor", 0, window_flags_no_saved_settings)) {
+#if defined(FAN_SHADERC)
       if (!*shader_compiled) {
         gui::text("Failed to compile shader", fan::colors::red);
       }
@@ -1352,6 +1353,10 @@ namespace fan::graphics::gui {
       if (gui::input_text_multiline("##Shader Code", fragment, gui::get_content_region_avail(), gui::input_text_flags_allow_tab_input)) {
         *shader_compiled = fan::graphics::shader_update_fragment(shape_type, shader.path_fragment, *fragment);
       }
+#else
+      gui::text("Live shader editing requires FAN_SHADERC", fan::colors::yellow);
+      gui::text_wrapped(*fragment);
+#endif
       end();
     }
   }

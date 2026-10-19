@@ -298,35 +298,11 @@ struct engine_demo_t {
     });
   }
 
-  inline static const char* demo_shader_shape_fragment_shader_vk = R"(#version 450
-layout(location = 0) in vec4 instance_color;
-layout(location = 1) in vec2 texture_coordinate;
-layout(location = 0) out vec4 o_attachment0;
-
-layout(push_constant) uniform constants_t {
-  uint texture_id;
-  uint camera_id;
-  uint texture_id1;
-  uint texture_id2;
-  uint texture_id3;
-} constants;
-
-layout(set = 0, binding = 2) uniform sampler2D textures[1024];
-
-void main() {
-  vec4 tex_color = texture(textures[constants.texture_id], texture_coordinate) * instance_color;
-  if (tex_color.a <= 0.25) {
-    discard;
-  }
-  float luminance = dot(tex_color.rgb, vec3(0.299, 0.587, 0.114));
-  tex_color.rgb = instance_color.rgb * luminance;
-  tex_color.a *= instance_color.a;
-  o_attachment0 = tex_color;
-})";
+  inline static constexpr const char* demo_shader_shape_fragment_path = "shaders/vulkan/examples/demo_shader_shape.frag";
 
   fan::graphics::shader_t demo_shader_shape_shader {engine.get_sprite_shader(
-    "",
-    demo_shader_shape_fragment_shader_vk
+    demo_shader_shape_fragment_path,
+    fan::graphics::read_shader(demo_shader_shape_fragment_path)
   )};
   fan::color custom_color = fan::colors::red;
   static void demo_shapes_init_shader_shape(engine_demo_t* engine_demo) {
@@ -393,49 +369,7 @@ void main() {
   // ------------------------SHAPES------------------------
 
   // ------------------------GUI------------------------
-  inline static const char* demo_shader_live_editor_shader_vk = R"(#version 450
-layout(location = 0) in vec4 instance_color;
-layout(location = 1) in vec2 texture_coordinate;
-layout(location = 0) out vec4 o_attachment0;
-
-layout(push_constant) uniform constants_t {
-  uint texture_id;
-  uint camera_id;
-  uint texture_id1;
-  uint texture_id2;
-  uint texture_id3;
-} constants;
-
-layout(set = 0, binding = 2) uniform sampler2D textures[1024];
-
-void DrawVignette(inout vec3 color, vec2 uv) {
-  float vignette = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
-  vignette = clamp(pow(16.0 * vignette, 0.3), 0.0, 1.0);
-  color *= vignette;
-}
-
-vec2 CRTCurveUV(vec2 uv) {
-  uv = uv * 2.0 - 1.0;
-  vec2 offset = abs(uv.yx) / vec2(6.0, 4.0);
-  uv = uv + uv * offset * offset;
-  uv = uv * 0.5 + 0.5;
-  return uv;
-}
-
-void DrawScanline(inout vec3 color, vec2 uv) {
-  float scanline = clamp(0.95 + 0.05 * cos(3.14 * uv.y * 240.0), 0.0, 1.0);
-  float grille = 0.85 + 0.15 * clamp(1.5 * cos(3.14 * uv.x * 640.0), 0.0, 1.0);
-  color *= scanline * grille * 1.2;
-}
-
-void main() {
-  vec2 tex = vec2(texture_coordinate.x, 1.0 - texture_coordinate.y);
-  tex = CRTCurveUV(tex * 1.05);
-  vec3 actual = texture(textures[constants.texture_id], tex).rgb;
-  o_attachment0 = vec4(actual * instance_color.rgb, instance_color.a);
-  DrawVignette(o_attachment0.rgb, tex);
-  DrawScanline(o_attachment0.rgb, tex);
-})";
+  inline static constexpr const char* demo_shader_live_editor_path = "shaders/vulkan/examples/demo_shader_live_editor.frag";
 
   struct demo_shader_live_editor_t {
     std::string shader_code;
@@ -450,8 +384,8 @@ void main() {
     engine_demo->demo_shader_live_editor_data = new demo_shader_live_editor_t();
     auto& data = *engine_demo->demo_shader_live_editor_data;
 
-    data.shader_code = demo_shader_live_editor_shader_vk;
-    data.shader = engine_demo->engine.get_sprite_shader("", data.shader_code);
+    data.shader_code = fan::graphics::read_shader(demo_shader_live_editor_path);
+    data.shader = engine_demo->engine.get_sprite_shader(demo_shader_live_editor_path, data.shader_code);
     fan::graphics::image_t image = engine_demo->engine.image_load("images/lava_seamless.webp");
 
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
@@ -468,6 +402,7 @@ void main() {
   static void demo_shader_live_editor_update(engine_demo_t* engine_demo) {
     auto& data = *engine_demo->demo_shader_live_editor_data;
 
+#if defined(FAN_SHADERC)
     if (!data.shader_compiled) {
       gui::text("Failed to compile shader", fan::colors::red);
     }
@@ -483,6 +418,10 @@ void main() {
         data.shader_compiled = false;
       }
     }
+#else
+    gui::text("Live shader editing requires FAN_SHADERC", fan::colors::yellow);
+    gui::text_wrapped(data.shader_code);
+#endif
   }
   static void demo_shader_live_editor_cleanup(engine_demo_t* engine_demo) {
     engine_demo->engine.shader_erase(engine_demo->demo_shader_live_editor_data->shader);

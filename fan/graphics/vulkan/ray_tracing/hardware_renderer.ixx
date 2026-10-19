@@ -4,7 +4,6 @@ module;
 
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
-#include <shaderc/shaderc.hpp>
 
 #endif
 
@@ -905,9 +904,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
     void create_output_image() {
       output_image = create_rt_image(output_image_valid, current_layout, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, false);
     }
-    VkShaderModule load_shader(const char* path, shaderc_shader_kind kind) {
+    VkShaderModule load_shader(const char* path, int kind) {
       std::string code = fan::graphics::read_shader(path);
-      auto spirv = ctx->shaders.compile_file(path, kind, code);
+      auto spirv = ctx->shaders.load_or_compile(path, kind, code);
       return ctx->shaders.create_shader_module(spirv);
     }
     void create_pipeline() {
@@ -951,10 +950,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
         .pSetLayouts = &descriptor_layout
       };
       fan::vulkan::validate(vkCreatePipelineLayout(ctx->device, &pipeline_layout_info, nullptr, &pipeline_layout));
-      VkShaderModule rgen = load_shader("shaders/vulkan/ray_tracing/raygen.rgen", shaderc_glsl_raygen_shader);
-      VkShaderModule miss = load_shader("shaders/vulkan/ray_tracing/miss.rmiss", shaderc_glsl_miss_shader);
-      VkShaderModule chit = load_shader("shaders/vulkan/ray_tracing/closesthit.rchit", shaderc_glsl_closesthit_shader);
-      VkShaderModule shadow = load_shader("shaders/vulkan/ray_tracing/shadow.rmiss", shaderc_glsl_miss_shader);
+      VkShaderModule rgen = load_shader("shaders/vulkan/ray_tracing/raygen.rgen", fan::vulkan::shader_kind_raygen);
+      VkShaderModule miss = load_shader("shaders/vulkan/ray_tracing/miss.rmiss", fan::vulkan::shader_kind_miss);
+      VkShaderModule chit = load_shader("shaders/vulkan/ray_tracing/closesthit.rchit", fan::vulkan::shader_kind_closesthit);
+      VkShaderModule shadow = load_shader("shaders/vulkan/ray_tracing/shadow.rmiss", fan::vulkan::shader_kind_miss);
       VkPipelineShaderStageCreateInfo stages[] = {
         { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_RAYGEN_BIT_KHR, rgen, "main", nullptr },
         { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_MISS_BIT_KHR, miss, "main", nullptr },
@@ -3643,7 +3642,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       VkPushConstantRange pcr {.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT, .offset = 0, .size = push_constant_size};
       VkPipelineLayoutCreateInfo pl_info {.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, .setLayoutCount = 1, .pSetLayouts = &descriptor_layout_out, .pushConstantRangeCount = push_constant_size ? 1u : 0u, .pPushConstantRanges = push_constant_size ? &pcr : nullptr};
       fan::vulkan::validate(vkCreatePipelineLayout(ctx->device, &pl_info, nullptr, &pipeline_layout_out));
-      VkShaderModule comp = load_shader(shader_path, shaderc_glsl_compute_shader);
+      VkShaderModule comp = load_shader(shader_path, fan::vulkan::shader_kind_compute);
       VkPipelineShaderStageCreateInfo stage {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, .stage = VK_SHADER_STAGE_COMPUTE_BIT, .module = comp, .pName = "main"};
       VkComputePipelineCreateInfo pi {.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO, .stage = stage, .layout = pipeline_layout_out};
       fan::vulkan::validate(vkCreateComputePipelines(ctx->device, ctx->pipeline_cache, 1, &pi, nullptr, &pipeline_out));

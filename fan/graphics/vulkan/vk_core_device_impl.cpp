@@ -17,7 +17,6 @@ module;
 #include <vulkan/vulkan.h>
 #define VMA_ASSERT_LEAK(expr) ((void)0)
 #include <vk_mem_alloc.h>
-#include <shaderc/shaderc.hpp>
 #if defined(fan_platform_windows)
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -1271,7 +1270,7 @@ void fan::vulkan::compute_pipeline_t::open(fan::vulkan::context_t& context, cons
   fan::vulkan::validate(vkCreateDescriptorSetLayout(context.device, &descriptor_info, nullptr, &descriptor_layout));
 
   auto shader_code = fan::graphics::read_shader(path);
-  auto spirv = context.shaders.compile_file(path, shaderc_compute_shader, shader_code);
+  auto spirv = context.shaders.load_or_compile(path, fan::vulkan::shader_kind_compute, shader_code);
   VkShaderModule shader_module = context.shaders.create_shader_module(spirv);
 
   VkPushConstantRange push_range{};
