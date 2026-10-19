@@ -278,6 +278,10 @@ namespace fan::io::file {
 			}
 		}
 
+		for (fs::path p = src_dir; p.has_parent_path() && p.parent_path() != p; p = p.parent_path()) {
+			if (auto r = try_all(p.parent_path(), std::string(file_path)); !r.empty()) return r;
+		}
+
 		{
 			fs::path name_only = fs::path(file_path).filename();
 			if (auto r = try_all(src_dir, name_only); !r.empty()) return r;
