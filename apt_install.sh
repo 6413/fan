@@ -20,6 +20,7 @@ packages=(
 	libuv1-dev
 	ninja-build
 	libshaderc-dev
+	glslc
 )
 
 for package in "${packages[@]}"; do
