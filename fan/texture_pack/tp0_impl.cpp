@@ -445,23 +445,31 @@ namespace fan::graphics {
 
   void texture_pack_t::open_compiled(const std::string& filename, fan::graphics::image_load_properties_t lp, const std::source_location& callers_path) {
     auto* s = static_cast<tp_runtime_state_t*>(internal_state);
+
+    std::error_code ec;
+    std::filesystem::path resolved;
+    if (std::filesystem::path(filename).is_absolute() && std::filesystem::exists(filename, ec)) {
+      resolved = filename;
+    }
+    else {
+      resolved = fan::io::file::find_relative_path(filename, callers_path);
+      if (resolved.empty()) {
+        resolved = fan::io::file::find_relative_path(std::filesystem::path(filename).filename().string(), callers_path);
+      }
+    }
+
+    std::string in;
+    if (resolved.empty() || fan::io::file::read(resolved, &in) || in.empty()) {
+      fan::write_error_to_disk("failed to open texture pack:" + filename);
+      return;
+    }
+    file_path = std::filesystem::absolute(resolved).generic_string();
+
     s->texture_major_list.clear();
     s->image_list.clear();
     s->unique_map.Clear();
     s->name_to_unique.clear();
     s->hash_to_unique.clear();
-
-    std::filesystem::path resolved;
-    if (std::filesystem::path(filename).is_absolute()) {
-      resolved = filename;
-    }
-    else {
-      resolved = fan::io::file::find_relative_path(filename, callers_path);
-    }
-    file_path = std::filesystem::absolute(resolved).generic_string();
-
-    std::string in;
-    fan::io::file::read(resolved, &in);
 
     std::size_t offset = 0;
     std::size_t pack_list_size = fan::string_read_data<std::size_t>(in, offset);
