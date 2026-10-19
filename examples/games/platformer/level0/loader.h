@@ -398,7 +398,7 @@ void reload_map() {
   TIMER_START(total_reload);
 
   TIMER_START(erase_stage);
-  pile->stage_loader.erase_stage(stage_common.stage_id);
+  pile->stage_loader.close_stage(stage_common.stage_id);
   TIMER_PRINT(erase_stage);
 
   TIMER_START(open_stage);

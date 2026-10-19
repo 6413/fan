@@ -1,5 +1,4 @@
 #include <fan/utils/utility.h>
-#include <fan/types/dme.h>
 
 #include <cmath>
 #include <cstring>
@@ -57,7 +56,7 @@ int main(){
 
   register_inputs();
 
-  pile->engine.get_settings_menu()->keybind_menu.refresh_input_actions();
+  ((fan::graphics::gui::settings_menu_t*)pile->engine.get_settings_menu())->keybind_menu.refresh_input_actions();
 
   pile->engine.get_console().commands.add("set_checkpoint", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     if (args.size() != 1) {
