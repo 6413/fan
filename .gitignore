@@ -71,3 +71,4 @@ programs/
 imgui.ini
 *.bin
 *.spv
+fan_log.txt
