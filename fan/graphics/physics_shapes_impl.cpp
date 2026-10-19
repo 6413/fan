@@ -1589,7 +1589,13 @@ namespace fan::graphics::physics {
       .animation_id = attack.id,
       .fps = attack.fps,
       .trigger_type = fan::graphics::sprite_sheet_controller_t::animation_state_t::one_shot,
-      .condition = cond
+      .condition = cond,
+      .on_end = [](fan::graphics::shape_t& s) {
+        auto* c = static_cast<character2d_t*>(&s);
+        if (c->attack_state.is_attacking) {
+          c->attack_state.end_attack();
+        }
+      }
     });
     set_sprite_sheet_loop(attack.id, false);
 
