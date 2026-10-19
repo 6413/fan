@@ -1556,9 +1556,15 @@ void loco_t::destroy() {
 #if defined(FAN_2D)
   static_render_list.clear();
   immediate_render_list.clear();
-  shapes.immediate_image_list.clear();
-  shapes.immediate_color_images.clear();
   shapes.immediate_shape_caches.clear();
+  for (auto& img : shapes.immediate_image_list) {
+    image_unload(img);
+  }
+  shapes.immediate_image_list.clear();
+  for (auto& it : shapes.immediate_color_images) {
+    image_unload(it.second);
+  }
+  shapes.immediate_color_images.clear();
   fan::graphics::flush_destruct_callbacks();
   {
     fan::graphics::shapes::shape_ids_t::nrtra_t nrtra;
