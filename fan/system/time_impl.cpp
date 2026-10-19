@@ -74,6 +74,36 @@ namespace fan {
     scope_timer_print::~scope_timer_print() {
       std::printf("elapsed: %.6fms\n", t.millis());
     }
+
+    std::function<void(std::string_view)> lap_timer_t::sink;
+
+    static void lap_timer_emit(const std::string& msg) {
+      if (lap_timer_t::sink) {
+        lap_timer_t::sink(msg);
+      }
+      else {
+        std::printf("%s\n", msg.c_str());
+      }
+    }
+
+    lap_timer_t::lap_timer_t(std::string_view name, bool enabled) : name(name), enabled(enabled && is_measuring()) {
+      total.start();
+      section.start();
+    }
+
+    void lap_timer_t::lap(std::string_view label) {
+      if (!enabled) {
+        return;
+      }
+      lap_timer_emit(std::format("{}: {}: {:.3f}ms", name, label, section.millis()));
+      section.restart();
+    }
+
+    lap_timer_t::~lap_timer_t() {
+      if (enabled) {
+        lap_timer_emit(std::format("{}: total: {:.3f}ms", name, total.millis()));
+      }
+    }
   }
   namespace time {
     void timer::start() {
