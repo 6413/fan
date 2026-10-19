@@ -4309,6 +4309,9 @@ namespace fan::graphics {
 
             state.is_playing = false;
             prev_animation_id = {};
+            if (state.on_end) {
+              state.on_end(shape);
+            }
           }
           return;
         }

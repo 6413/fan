@@ -1702,6 +1702,7 @@ export namespace fan::graphics {
       int frames_played = 0;
       f32_t start_time = 0;
       bool is_playing = false;
+      std::function<void(fan::graphics::shapes::shape_t&)> on_end;
     };
     struct directional_config_t {
       std::string idle = "idle";

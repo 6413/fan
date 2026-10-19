@@ -1528,6 +1528,18 @@ void fan::vulkan::context_t::bind_draw(
   vkCmdSetDepthCompareOp(cmd, pipeline.properties.depth_test_compare_op);
   if (!pipeline.properties.color_blend_attachments.empty()) {
     fan_vkCmdSetColorBlendEnableEXT(cmd, 0, (std::uint32_t)pipeline.properties.color_blend_attachments.size(), &pipeline.properties.color_blend_attachments[0].blendEnable);
+    {
+      const auto& a = pipeline.properties.color_blend_attachments[0];
+      bool default_alpha = a.srcAlphaBlendFactor == VK_BLEND_FACTOR_SRC_ALPHA && a.dstAlphaBlendFactor == VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+      VkColorBlendEquationEXT eq{};
+      eq.srcColorBlendFactor = a.srcColorBlendFactor;
+      eq.dstColorBlendFactor = a.dstColorBlendFactor;
+      eq.colorBlendOp = a.colorBlendOp;
+      eq.srcAlphaBlendFactor = default_alpha ? VK_BLEND_FACTOR_ONE : a.srcAlphaBlendFactor;
+      eq.dstAlphaBlendFactor = default_alpha ? VK_BLEND_FACTOR_ZERO : a.dstAlphaBlendFactor;
+      eq.alphaBlendOp = a.alphaBlendOp;
+      fan_vkCmdSetColorBlendEquationEXT(cmd, 0, 1, &eq);
+    }
     fan_vkCmdSetColorWriteMaskEXT(cmd, 0, (std::uint32_t)pipeline.properties.color_blend_attachments.size(), &pipeline.properties.color_blend_attachments[0].colorWriteMask);
   }
 
