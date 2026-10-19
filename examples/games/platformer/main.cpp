@@ -1,30 +1,7 @@
 #include <fan/utils/utility.h>
-
-#include <cmath>
-#include <cstring>
-#include <memory>
-#include <unordered_map>
-#include <vector>
-#include <coroutine>
-#include <array>
-#include <unordered_set>
-#include <algorithm>
-#include <vector>
-#include <fstream>
-#include <source_location>
-#include <variant>
-#include <string_view>
-#include <sstream>
-
-#include <fan/utils/utility.h>
-
-#include <source_location>
-#include <set>
-#include <stacktrace>
-#include <map>
 #include <box2d/box2d.h>
-#include <iostream>
 
+import std;
 import fan;
 
 using namespace fan::graphics;
@@ -47,8 +24,6 @@ void register_inputs() {
   pile->engine.get_input_action().insert_or_assign({fan::key_e, fan::gamepad_y}, actions::interact);
   pile->engine.get_input_action().insert_or_assign({fan::key_tab}, actions::toggle_inventory);
 }
-
-using namespace fan::graphics;
 
 int main(){
   pile = (pile_t*)std::malloc(sizeof(pile_t));

@@ -253,6 +253,11 @@ void load_map() {
 }
 
 void open(void* sod) {
+  torch_particles = fan::graphics::shape_from_json("effects/torch.json");
+  bg = fan::graphics::shapes_from_json("images/background.json");
+  audio_pickup_item = fan::audio::sound_t("audio/pickup.sac");
+  audio_elevator_chain = fan::audio::sound_t("audio/chain.sac");
+  audio_skeleton_lord = fan::audio::sound_t("audio/skeleton_lord_music.sac");
   TIMER_START(total_open);
   
   TIMER_START(setup);

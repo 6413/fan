@@ -227,7 +227,7 @@ void update() {
 }
 
 std::vector<fan::auto_color_transition_t> light_lights;
-fan::graphics::shape_t torch_particles = fan::graphics::shape_from_json("effects/torch.json");
+fan::graphics::shape_t torch_particles;
 inline static constexpr fan::color lamp2_color = fan::color::from_rgb(0x114753) * 4.f;
 inline static constexpr f32_t boss_light_adjustment_y = 30.f;
 
@@ -264,12 +264,12 @@ std::vector<fan::auto_color_transition_t> flicker_anims;
 //  .tc_size = 300.0,
 //}};
 
-std::vector<fan::graphics::shape_t> bg = fan::graphics::shapes_from_json("images/background.json");
+std::vector<fan::graphics::shape_t> bg;
 
 fan::audio::sound_t
-  audio_pickup_item{"audio/pickup.sac"},
-  audio_elevator_chain{"audio/chain.sac"},
-  audio_skeleton_lord{"audio/skeleton_lord_music.sac"}
+  audio_pickup_item,
+  audio_elevator_chain,
+  audio_skeleton_lord
 ;
 
 fan::graphics::physics::elevator_t cage_elevator;
