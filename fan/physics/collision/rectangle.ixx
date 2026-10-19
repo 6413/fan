@@ -9,6 +9,7 @@ import fan.physics.collision.triangle;
 import fan.types.vector;
 import fan.types.matrix;
 import fan.math;
+import fan.math.intersection;
 
 export namespace fan_2d {
 
@@ -48,19 +49,7 @@ export namespace fan_2d {
 
 
       constexpr bool point_inside_rotated(const fan::vec2& point, const fan::vec2& position, const fan::vec2& size, const fan::vec3& angle, const fan::vec2& rotation_point) {
-        // TODO BROKEN
-        return 0;
-        /*fan::mat4 m = fan::mat4(1);
-        fan::mat4 t1 = fan::mat4(1).translate(-position - fan::vec3(rotation_point, 0));
-        fan::mat4 t2 = fan::mat4(1).translate(position + fan::vec3(rotation_point, 0));
-        fan::mat4 r = fan::mat4(1).rotate(-angle);
-        m = t2 * r * t1;
-        fan::vec4 rotated_point = m.inverse() * fan::vec4(fan::vec3(point), 1);
-
-        return rotated_point.x >= position.x - size.x &&
-          rotated_point.x <= position.x + size.x &&
-          rotated_point.y >= position.y - size.y &&
-          rotated_point.y <= position.y + size.y;*/
+        return fan::math::d2::point_inside_rotated(point, position, size, angle, rotation_point);
       }
 
 			struct sides_e {

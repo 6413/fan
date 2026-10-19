@@ -35,8 +35,14 @@ export namespace fan::math::d2 {
     return overlap_x && overlap_y;
   }
   constexpr bool point_inside_rotated(const fan::vec2& point, const fan::vec2& position, const fan::vec2& size, const fan::vec3& angle, const fan::vec2& rotation_point) {
-    // TODO BROKEN
-    return 0;
+    // Inverse of the shape vertex transform:
+    //   world = position + rotate_around(local * size, rotation_point, angle.z)
+    fan::vec2 p = point - position - rotation_point;
+    f32_t c = std::cos(angle.z);
+    f32_t s = std::sin(angle.z);
+    p = fan::vec2(p.x * c + p.y * s, -p.x * s + p.y * c);
+    p += rotation_point;
+    return fm::abs(p.x) <= size.x && fm::abs(p.y) <= size.y;
   }
   enum struct quadrant_e : std::uint8_t {
     top_left = 0,

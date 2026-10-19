@@ -643,7 +643,7 @@ export namespace fan::graphics {
     fan::vec2 get_size() const;
     fan::vec4 get_ortho() const;
     fan::vec2 get_viewport_size() const;
-    // visible world rectangle {min, max} from window size, zoom and camera_offset
+    // visible world rectangle {min, max} from viewport size, zoom and camera center
     std::pair<fan::vec2, fan::vec2> get_visible_bounds() const;
 
     // camera effects
