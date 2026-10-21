@@ -59,6 +59,13 @@ Presets:
       Build headless + window + OpenGL.
   --2d
       Build window + 2D + GUI + physics 2D.
+  --game
+      Build --2d + audio.
+  --all2d
+      Build --game + network + fmt + reflection (no 3D).
+  --all
+      Build --all2d + 3D (skips video and wayland-screen; enable
+      those explicitly with --enable-video / --enable-wayland-screen).
 
 Feature toggles:
   --enable-<feature>
@@ -123,6 +130,9 @@ apply_preset_headless() { enable_features FAN_JSON; }
 apply_preset_network()  { enable_features FAN_JSON FAN_NETWORK; }
 apply_preset_window()   { apply_preset_headless; enable_features FAN_WINDOW; }
 apply_preset_2d()       { apply_preset_window;  enable_features FAN_2D FAN_GUI FAN_PHYSICS_2D; }
+apply_preset_game()     { apply_preset_2d;      enable_features FAN_AUDIO; }
+apply_preset_all2d()    { apply_preset_game;    enable_features FAN_NETWORK FAN_FMT FAN_REFLECTION; }
+apply_preset_all()      { apply_preset_all2d;   enable_features FAN_3D; }
 while [[ $# -gt 0 ]]; do
   case $1 in
     --help|-h)
@@ -217,6 +227,9 @@ while [[ $# -gt 0 ]]; do
       ;;
     --window)      PRESET_USED=true; apply_preset_window;   shift ;;
     --2d)          PRESET_USED=true; apply_preset_2d;       shift ;;
+    --game)        PRESET_USED=true; apply_preset_game;     shift ;;
+    --all2d)       PRESET_USED=true; apply_preset_all2d;    shift ;;
+    --all)         PRESET_USED=true; apply_preset_all;      shift ;;
     --enable-*)
       set_feature_from_arg "$1" true
       shift

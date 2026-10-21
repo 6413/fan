@@ -19,7 +19,7 @@ struct pile_t {
   #include "enemy/boss_skeleton/boss_skeleton.h"
   pile_t();
   bool pause = false;
-  auto& get_compiled(const std::string& name) {
+  tilemap_renderer_t::compiled_map_t& get_compiled(const std::string& name) {
     return *this->renderer.get_compiled(name);
   }
   void update_camera_zoom() {
