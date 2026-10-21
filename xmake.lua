@@ -772,14 +772,19 @@ if has_config("FAN_2D") then
       local glslc = find_tool("glslc")
       if not glslc then raise("FAN_SHADERC is disabled: glslc is required to precompile shaders/vulkan") end
       local failures = {}
+      local compiled, up_to_date = 0, 0
+      cprint("${cyan}[shaders]${clear} started building shaders (shaders/vulkan)")
       for _, ext in ipairs({"vert", "frag", "comp", "rgen", "rmiss", "rchit", "rahit"}) do
         for _, src in ipairs(os.files("shaders/vulkan/**." .. ext)) do
           local dst = src .. ".spv"
           if not os.isfile(dst) or os.mtime(src) > os.mtime(dst) then
+            compiled = compiled + 1
             try {
               function () os.runv(glslc.program, {"--target-env=vulkan1.2", "-O", src, "-o", dst}) end,
               catch { function (e) table.insert(failures, {src, tostring(e)}) end }
             }
+          else
+            up_to_date = up_to_date + 1
           end
         end
       end
@@ -789,6 +794,7 @@ if has_config("FAN_2D") then
         end
         raise("shader precompilation failed for " .. #failures .. " file(s)")
       end
+      cprint("${green}[shaders]${clear} finished building shaders: %d compiled, %d up to date", compiled, up_to_date)
     end)
   end
 
