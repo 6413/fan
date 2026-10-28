@@ -244,6 +244,11 @@ static void set_image(fan::graphics::shapes::shape_t* shape, fan::graphics::imag
         update_shape(shape, [](auto, auto) {});
       }
     }
+  } else if (sti == fan::graphics::shapes::shape_type_t::universal_image_renderer) {
+    if (!shape->get_visual_id().iic()) {
+      auto& ri = *(fan::graphics::shapes::universal_image_renderer_t::ri_t*)shape->GetData(fan::graphics::g_shapes->shaper);
+      ri.image = image;
+    }
   } else {
     update_shape(shape, [&](auto sti2, auto key_pack) {
       set_image_impl(sti2, key_pack, image);
