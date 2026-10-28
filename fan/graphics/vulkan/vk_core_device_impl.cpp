@@ -1690,6 +1690,14 @@ VkResult fan::vulkan::context_t::end_render(fan::window_t* window) {
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = swapChains;
   presentInfo.pImageIndices = &image_index;
+
+  // Wayland forbids giving a surface the window role after a buffer was committed
+  // to it, so there the window can't stay hidden until the first frame is presented
+  if (!window_shown && window->is_wayland()) {
+    window_shown = true;
+    window->show();
+  }
+
   auto result = vkQueuePresentKHR(present_queue, &presentInfo);
 
   if (!window_shown) {

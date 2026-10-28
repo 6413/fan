@@ -1,6 +1,6 @@
 module;
 
-#if defined(FAN_GUI)
+#if defined(FAN_GUI) && defined(FAN_PHYSICS_2D)
 
 #include <fan/utils/utility.h>
 
@@ -8,7 +8,7 @@ module;
 
 export module fan.graphics.editor;
 
-#if defined(FAN_GUI)
+#if defined(FAN_GUI) && defined(FAN_PHYSICS_2D)
 
 import std;
 

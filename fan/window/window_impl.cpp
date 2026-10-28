@@ -966,6 +966,14 @@ namespace fan {
     glfwShowWindow(*this);
   }
 
+  bool window_t::is_wayland() const {
+  #if GLFW_VERSION_MAJOR > 3 || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 4)
+    return glfwGetPlatform() == GLFW_PLATFORM_WAYLAND;
+  #else
+    return false;
+  #endif
+  }
+
 #if defined(fan_platform_windows)
   //---------------------------Windows specific code---------------------------
 
