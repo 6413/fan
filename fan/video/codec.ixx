@@ -24,6 +24,7 @@ import std;
 
 #if defined(FAN_2D)
 import fan.print.error;
+import fan.types;
 import fan.types.vector;
 import fan.graphics.common_context;
 import fan.graphics;

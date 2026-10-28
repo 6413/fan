@@ -21,6 +21,8 @@ import std;
 import fan.graphics.video.codec;
 
 #if defined(FAN_2D)
+import fan.types;
+import fan.types.vector;
 import fan.graphics.common_context;
 import fan.graphics.shapes;
 
