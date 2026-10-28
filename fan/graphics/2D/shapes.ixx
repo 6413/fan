@@ -1275,6 +1275,8 @@ export namespace fan::graphics {
       struct ri_t {
         std::array<fan::graphics::image_t, 3> images_rest;
         std::uint8_t format = fan::graphics::image_format_e::undefined;
+        // primary plane; texture shapes no longer carry their image in the shaper key
+        fan::graphics::image_t image;
       };
 
       struct properties_t {

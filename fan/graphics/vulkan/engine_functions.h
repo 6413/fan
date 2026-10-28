@@ -1857,6 +1857,7 @@ void shapes_draw() {
         if (shape_type == fan::graphics::shapes::shape_type_t::universal_image_renderer) {
           auto* pri = (fan::graphics::shapes::universal_image_renderer_t::ri_t*)BlockTraverse.GetData(shaper);
           for (std::uint32_t i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
+            pc.texture_id = texture_id(pri[i].image);
             pc.texture_id1 = texture_id(pri[i].images_rest[0]);
             pc.texture_id2 = texture_id(pri[i].images_rest[1]);
             pc.texture_id3 = texture_id(pri[i].images_rest[2]);

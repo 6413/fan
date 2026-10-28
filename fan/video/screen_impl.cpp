@@ -4,6 +4,9 @@ module;
 
 #include <cstring>
 #include <libavformat/avformat.h>
+extern "C" {
+#include <libavutil/pixdesc.h>
+}
 
 #if defined(FAN_2D)
 #include <fan/utils/utility.h>
@@ -152,7 +155,9 @@ fan::graphics::screen_decode_t::decode_data_t fan::graphics::screen_decode_t::de
 
   }
 
-  auto results = decoder_.decode_packet(static_cast<const std::uint8_t*>(data), length, name);
+  // keep the decoder's native planes (yuv420p / nv12); the default converts to rgba,
+  // which the switch below doesn't accept
+  auto results = decoder_.decode_packet(static_cast<const std::uint8_t*>(data), length, name, false);
 
   if (results.empty()) {
     ret.type = 252;
@@ -176,7 +181,18 @@ fan::graphics::screen_decode_t::decode_data_t fan::graphics::screen_decode_t::de
 
   case AV_PIX_FMT_NV12: ret.pixel_format = fan::graphics::image_format_e::nv12; break;
   case AV_PIX_FMT_BGRA: ret.pixel_format = fan::graphics::image_format_e::bgra; break;
-  default: ret.type = 249; return ret;
+  // full-range ("JPEG") 4:2:0 has the same plane layout as yuv420p
+  case AV_PIX_FMT_YUVJ420P: ret.pixel_format = fan::graphics::image_format_e::yuv420p; break;
+  default: {
+    static std::vector<int> reported_formats;
+    if (std::find(reported_formats.begin(), reported_formats.end(), (int)frame.pixel_format) == reported_formats.end()) {
+      reported_formats.push_back((int)frame.pixel_format);
+      const char* format_name = av_get_pix_fmt_name(static_cast<AVPixelFormat>(frame.pixel_format));
+      fan::print_impl(std::string("decoder output pixel format not supported: ") + (format_name ? format_name : "unknown"));
+    }
+    ret.type = 249;
+    return ret;
+  }
 
   }
 
