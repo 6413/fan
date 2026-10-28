@@ -845,6 +845,7 @@ if has_config("FAN_2D") then
     if has_config("FAN_GUI") then add_packages("freetype", "lunasvg") end
     if has_config("FAN_PHYSICS_2D") then add_packages("box2d") end
     if has_config("FAN_3D") then add_links("assimp") end
+    if has_config("FAN_VIDEO") then add_links("avformat", "avcodec", "swscale", "avutil", "xcb", "xcb-shm", "X11") end
     if has_config("FAN_2D") then add_packages("vulkansdk") end
     if has_config("FAN_WAYLAND_SCREEN") then add_links("wayland-client", "pipewire-0.3", "dbus-1", "avcodec", "avutil", "swscale") end
   elseif is_plat("windows") then

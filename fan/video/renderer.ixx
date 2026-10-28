@@ -15,9 +15,12 @@ export module fan.graphics.video.renderer;
 #if defined (FAN_WINDOW) && defined(FAN_VIDEO)
 
 import std;
+import fan.types;
+import fan.types.vector;
 import fan.time;
 import fan.formatter;
 import fan.graphics;
+import fan.graphics.common_context;
 import fan.graphics.video.codec;
 import fan.graphics.gui.base;
 
