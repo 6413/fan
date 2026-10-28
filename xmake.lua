@@ -616,7 +616,7 @@ local feature_modules = {
   },
   FAN_3D = { "fan/graphics/3D/objects/fms.ixx", "fan/graphics/voxel.ixx" },
   FAN_VIDEO = { "fan/video/codec.ixx", "fan/video/screen.ixx", "fan/video/renderer.ixx", "fan/video/video.ixx" },
-  FAN_WAYLAND_SCREEN = { "fan/video/screen_codec.ixx" }
+  FAN_WAYLAND_SCREEN = {}
 }
 
 local feature_names = {}
@@ -847,7 +847,12 @@ if has_config("FAN_2D") then
     if has_config("FAN_3D") then add_links("assimp") end
     if has_config("FAN_VIDEO") then add_links("avformat", "avcodec", "swscale", "avutil", "xcb", "xcb-shm", "X11") end
     if has_config("FAN_2D") then add_packages("vulkansdk") end
-    if has_config("FAN_WAYLAND_SCREEN") then add_links("wayland-client", "pipewire-0.3", "dbus-1", "avcodec", "avutil", "swscale") end
+    if has_config("FAN_WAYLAND_SCREEN") then
+      -- WITCH MD/SCR captures through the xdg-desktop-portal ScreenCast + PipeWire instead of X11
+      add_defines("__HAVE_WAYLAND")
+      add_files("fan/video/wlr-screencopy-unstable-v1-protocol.c", "fan/video/xdg-output-unstable-v1-client-protocol.c")
+      add_links("wayland-client", "pipewire-0.3", "dbus-1", "avcodec", "avutil", "swscale")
+    end
   elseif is_plat("windows") then
     add_linkdirs("lib/GLFW", "lib/GLEW", "lib/libuv", "lib/libwebp", "lib/opus", "lib/openssl")
     add_links("glfw3_mt", "glew32s", "uv_a", "libwebp", "opus", "libssl", "libcrypto")
@@ -886,6 +891,13 @@ if has_config("FAN_2D") then
               if l:startswith("-l") then target:add("links", l:sub(3)) end
             end
           end
+        end
+      end
+      if has_config("FAN_WAYLAND_SCREEN") then
+        if not find_tool("pkg-config") then raise("FAN_WAYLAND_SCREEN needs pkg-config for dbus-1 and libpipewire-0.3") end
+        local cflags = os.iorunv("pkg-config", {"--cflags", "dbus-1", "libpipewire-0.3"})
+        for _, f in ipairs(cflags:split("%s+")) do
+          if f:startswith("-I") then target:add("sysincludedirs", f:sub(3)) end
         end
       end
       if find_tool("mold") then target:add("ldflags", "-fuse-ld=mold", {force = true})

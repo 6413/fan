@@ -475,6 +475,7 @@ export namespace fan::graphics::gui {
   );
 
   void init_fonts();
+  // merges fonts/seguiemj into the gui fonts; call before the engine creates its gui
   void load_emojis();
 
   void shutdown_graphics_context(VkDevice device);
