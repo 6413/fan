@@ -1294,6 +1294,7 @@ namespace fan::graphics{
       shapes::universal_image_renderer_t::ri_t ri;
       std::copy(&properties.images[1], &properties.images[0] + properties.images.size(), ri.images_rest.data());
       ri.format = properties.format;
+      ri.image = properties.images[0];
 
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::universal_image_renderer, vi, ri,
@@ -2235,6 +2236,7 @@ namespace fan::graphics{
         std::copy_n(props.images.begin() + 1, image_count_new - 1, ri.images_rest.begin());
       }
       ri.format = format;
+      ri.image = props.images[0];
     }
 
     props.format = format;
@@ -2269,6 +2271,7 @@ namespace fan::graphics{
         ri.images_rest[i - 1] = images[i];
       }
       ri.format = format;
+      ri.image = props.images[0];
     }
 
     props.format = format;
