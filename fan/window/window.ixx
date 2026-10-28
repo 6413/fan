@@ -387,6 +387,7 @@ export namespace fan {
     void set_error_callback(GLFWerrorfun callback);
 
     void show();
+    bool is_wayland() const;
 
 #if defined(fan_platform_windows)
     //---------------------------Windows specific code---------------------------

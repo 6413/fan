@@ -1,12 +1,12 @@
 module;
 
-#if defined (FAN_2D)
+#if defined (FAN_2D) && defined(FAN_PHYSICS_2D)
 
 #endif
 
 export module fan.graphics.scene;
 
-#if defined (FAN_2D)
+#if defined (FAN_2D) && defined(FAN_PHYSICS_2D)
 
 import std;
 import fan.types.color;
