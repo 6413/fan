@@ -1911,6 +1911,29 @@ namespace fan::graphics::gui {
     return fan::vec2(columns * cell + (columns - 1) * space.x, rows * cell + (rows - 1) * space.y);
   }
 
+  // set by load_emojis(); load_font_family() then merges the emoji font into every font
+  static bool emojis_enabled = false;
+
+  static void merge_emoji_font(f32_t font_size) {
+    // imgui 1.91 rasterizes every glyph of every size up front, so keep the set small:
+    // all emoji blocks at all sizes overflow the font atlas
+    static constexpr ImWchar emoji_ranges[] = {
+      0x2600, 0x27BF,   // misc symbols, dingbats
+      0x2B00, 0x2BFF,   // arrows, stars
+      0x1F600, 0x1F64F, // emoticons
+      0,
+    };
+    static constexpr const char* emoji_font_path = "fonts/seguiemj/seguiemj.ttf";
+    if (!std::filesystem::exists(emoji_font_path)) {
+      return;
+    }
+    ImFontConfig cfg;
+    cfg.MergeMode = true;
+    cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+    cfg.GlyphMinAdvanceX = font_size;
+    get_io().Fonts->AddFontFromFileTTF(emoji_font_path, font_size, &cfg, emoji_ranges);
+  }
+
   void load_font_family(void (*custom_font_cb)(f32_t) = [](f32_t) {}) {
     auto& io = get_io();
     io.Fonts->Clear();
@@ -1931,6 +1954,11 @@ namespace fan::graphics::gui {
       for (int t = 0; t < font::count; ++t) {
         if (paths[t] && paths[t][0] != '\0') {
           fonts[t][i] = io.Fonts->AddFontFromFileTTF(paths[t], font_size, &cfg);
+          // merge mode targets the most recently added font; regular text only, and only up
+          // to size 36 to keep the atlas small
+          if (emojis_enabled && t == font::regular && font_sizes[i] <= 36) {
+            merge_emoji_font(font_size);
+          }
         }
       }
       custom_font_cb(font_size);
@@ -1942,6 +1970,13 @@ namespace fan::graphics::gui {
 
   void init_fonts() {
     load_font_family();
+  }
+
+  void load_emojis() {
+    // fonts are built once when the engine starts its gui (see init_fonts); swapping the
+    // atlas later would also need the vulkan font texture recreated, so only take effect
+    // for the next font load
+    emojis_enabled = true;
   }
 
   void shutdown_graphics_context(VkDevice device) {
