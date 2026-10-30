@@ -39,6 +39,15 @@ export namespace fan::network::crypto {
     (void)loaded;
   #endif
   }
+  const EVP_CIPHER* chacha20_poly1305() {
+  #if OPENSSL_VERSION_MAJOR >= 3
+    // an explicit fetch skips the provider lookup that EVP_chacha20_poly1305() costs on every init
+    static const EVP_CIPHER* cipher = (ensure_providers(), EVP_CIPHER_fetch(nullptr, "ChaCha20-Poly1305", nullptr));
+    return cipher;
+  #else
+    return EVP_chacha20_poly1305();
+  #endif
+  }
   bool x25519_public(const x25519_key_t& priv, x25519_key_t& pub) {
     ensure_providers();
     EVP_PKEY* k = EVP_PKEY_new_raw_private_key(EVP_PKEY_X25519, nullptr, priv.data(), priv.size());
@@ -119,16 +128,27 @@ export namespace fan::network::crypto {
     ensure_providers();
     std::uint8_t nonce[12] = {};
     std::memcpy(nonce + 4, &counter, 8);
-    EVP_CIPHER_CTX* c = EVP_CIPHER_CTX_new();
+    // one context per thread, this runs for every packet
+    struct cipher_ctx_t {
+      ~cipher_ctx_t() {
+        EVP_CIPHER_CTX_free(c);
+      }
+      EVP_CIPHER_CTX* c = EVP_CIPHER_CTX_new();
+      bool cipher_set = false;
+    };
+    thread_local cipher_ctx_t ctx;
+    EVP_CIPHER_CTX* c = ctx.c;
+    if (c && !ctx.cipher_set) {
+      ctx.cipher_set = EVP_CipherInit_ex(c, chacha20_poly1305(), nullptr, nullptr, nullptr, enc) == 1;
+    }
     int n = 0;
-    bool ok = c
-      && EVP_CipherInit_ex(c, EVP_chacha20_poly1305(), nullptr, key.data(), nonce, enc) == 1
+    bool ok = c && ctx.cipher_set
+      && EVP_CipherInit_ex(c, nullptr, nullptr, key.data(), nonce, enc) == 1
       && (enc || EVP_CIPHER_CTX_ctrl(c, EVP_CTRL_AEAD_SET_TAG, tag_size, tag) == 1)
       && EVP_CipherUpdate(c, nullptr, &n, aad, aad_size) == 1
       && (size == 0 || EVP_CipherUpdate(c, data, &n, data, size) == 1)
       && EVP_CipherFinal_ex(c, data + size, &n) == 1
       && (!enc || EVP_CIPHER_CTX_ctrl(c, EVP_CTRL_AEAD_GET_TAG, tag_size, tag) == 1);
-    EVP_CIPHER_CTX_free(c);
     return ok;
   }
   std::string to_hex(const std::uint8_t* data, std::size_t size) {
