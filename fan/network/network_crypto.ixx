@@ -1,6 +1,7 @@
 module;
 
 #include <openssl/crypto.h>
+#include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 #include <openssl/rand.h>
@@ -123,20 +124,49 @@ export namespace fan::network::crypto {
     }
     return r;
   }
-  bool load_or_create_key(const std::string& path, x25519_key_t& priv, x25519_key_t& pub) {
-    std::ifstream in(path, std::ios::binary);
-    if (in.read((char*)priv.data(), priv.size())) {
-      return x25519_public(priv, pub);
+  std::string openssl_error() {
+    char buf[256];
+    unsigned long e = ERR_get_error();
+    if (!e) {
+      return "no openssl error queued";
     }
-    in.close();
-    if (!x25519_keygen(priv, pub)) {
+    ERR_error_string_n(e, buf, sizeof(buf));
+    ERR_clear_error();
+    return buf;
+  }
+  bool load_or_create_key(const std::string& path, x25519_key_t& priv, x25519_key_t& pub, std::string* error = nullptr) {
+    auto fail = [&](std::string msg) {
+      if (error) {
+        std::error_code ec;
+        *error = msg + " (" + std::filesystem::absolute(path, ec).string() + ")";
+      }
       return false;
+    };
+    std::error_code ec;
+    if (std::filesystem::exists(path, ec)) {
+      std::ifstream in(path, std::ios::binary);
+      if (!in.read((char*)priv.data(), priv.size())) {
+        return fail("key file is shorter than 32 bytes, delete it to generate a new one");
+      }
+      return x25519_public(priv, pub) || fail("x25519 public key derivation failed: " + openssl_error());
+    }
+    if (RAND_bytes(priv.data(), priv.size()) != 1) {
+      return fail("RAND_bytes failed: " + openssl_error());
+    }
+    if (!x25519_public(priv, pub)) {
+      return fail("x25519 key creation failed: " + openssl_error());
     }
     std::ofstream out(path, std::ios::binary | std::ios::trunc);
-    std::error_code ec;
-    std::filesystem::permissions(path, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write, ec);
+    if (!out) {
+      return fail("cannot create key file: " + std::generic_category().message(errno));
+    }
     out.write((const char*)priv.data(), priv.size());
-    return bool(out);
+    out.close();
+    if (!out) {
+      return fail("cannot write key file");
+    }
+    std::filesystem::permissions(path, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write, ec);
+    return true;
   }
   pin_result_e check_pinned_key(const std::string& path, const std::string& host, const x25519_key_t& key) {
     std::string hex = to_hex(key.data(), key.size());
