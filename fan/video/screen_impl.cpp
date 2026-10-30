@@ -160,6 +160,11 @@ fan::graphics::screen_decode_t::decode_data_t fan::graphics::screen_decode_t::de
   auto results = decoder_.decode_packet(static_cast<const std::uint8_t*>(data), length, name, false);
 
   if (results.empty()) {
+    // hw decoders can't always recover from a resolution change, reopen on next packet
+    if (decoder_.decode_failures_ >= 5) {
+      std::lock_guard<std::mutex> lock(mutex);
+      update_flags |= codec_update_e::codec;
+    }
     ret.type = 252;
     return ret;
 
