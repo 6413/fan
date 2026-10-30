@@ -66,7 +66,6 @@ export import fan.texture_pack.tp0;
 #if defined(FAN_NETWORK)
   export import fan.network;
   export import fan.network.socket;
-  export import fan.network.crypto;
 #endif
 
 export import fan.event.types;
@@ -118,6 +117,7 @@ export import fan.graphics.gui.inventory;
 #endif
 
 export import fan.crypto;
+export import fan.network.crypto;
 
 //#if defined(FAN_REFLECTION)
 //  export import fan.reflection;

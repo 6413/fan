@@ -570,7 +570,7 @@ local module_files = {
   "fan/types/flat_hash_map.ixx", "fan/types/bitset.ixx", "fan/memory/memory.ixx",
   "fan/math/math.ixx", "fan/math/intersection.ixx", "fan/system/time.ixx", "fan/utils/mpl.ixx",
   "fan/utils/utility.ixx", "fan/debug/formatter.ixx", "fan/debug/print_error.ixx", "fan/debug/print.ixx",
-  "fan/utils/random.ixx", "fan/debug/log_dispatcher.ixx", "fan/utils/crypto.ixx", "fan/system/process.ixx",
+  "fan/utils/random.ixx", "fan/debug/log_dispatcher.ixx", "fan/utils/crypto.ixx", "fan/network/network_crypto.ixx", "fan/system/process.ixx",
   "fan/system/dynamic_library.ixx", "fan/system/hot_reload.ixx",
   "fan/io/io_types.ixx", "fan/io/directory.ixx", "fan/io/file.ixx", "fan/io/io_prompt.ixx",
   "fan/event/event_types.ixx", "fan/event/event.ixx", "fan/event/uv_raw.ixx", "fan/utils/compression.ixx"
@@ -596,7 +596,7 @@ local feature_modules = {
   },
   FAN_JSON = { "fan/types/json.ixx" },
   FAN_FMT = { "fan/utils/fmt.ixx" },
-  FAN_NETWORK = { "fan/network/network.ixx", "fan/network/network_socket.ixx", "fan/network/network_crypto.ixx", "fan/graphics/2D/graphics_network.ixx" },
+  FAN_NETWORK = { "fan/network/network.ixx", "fan/network/network_socket.ixx", "fan/graphics/2D/graphics_network.ixx" },
   FAN_AUDIO = { "fan/audio/audio.ixx" },
   FAN_PHYSICS_2D = { "fan/physics/b2_integration.ixx", "fan/physics/physics_common_context.ixx", "fan/graphics/physics_shapes.ixx", "fan/physics/vehicle_controller.ixx" },
   FAN_GUI = {
@@ -833,7 +833,7 @@ if has_config("FAN_2D") then
   add_linkdirs("third_party/fan/lib")
 
   if is_plat("linux") then
-    add_links("stdc++exp")
+    add_links("stdc++exp", "crypto")
     if has_config("static_runtime") then add_ldflags("-static-libstdc++", "-static-libgcc", {force = true}) end
     add_packages("libuv")
     if has_config("FAN_WINDOW") then
@@ -841,7 +841,7 @@ if has_config("FAN_2D") then
     end
 
     if has_config("FAN_AUDIO") then add_links("opus", "pulse-simple", "pulse") end
-    if has_config("FAN_NETWORK") then add_links("ssl", "crypto", "curl") end
+    if has_config("FAN_NETWORK") then add_links("ssl", "curl") end
     if has_config("FAN_GUI") then add_packages("freetype", "lunasvg") end
     if has_config("FAN_PHYSICS_2D") then add_packages("box2d") end
     if has_config("FAN_3D") then add_links("assimp") end
