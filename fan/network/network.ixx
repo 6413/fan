@@ -28,6 +28,7 @@ import fan.print.error;
 import fan.types.json;
 import fan.memory;
 import fan.event;
+import fan.network.crypto;
 
 export namespace fan {
   namespace network {
@@ -120,12 +121,13 @@ export namespace fan {
     struct raw_writer_t {
       struct writer_data_t;
       std::unique_ptr<writer_data_t> data;
+      std::shared_ptr<crypto::secure_stream_t> secure;
 
       raw_writer_t(const tcp_t& tcp);
       raw_writer_t(raw_writer_t&&) noexcept;
       raw_writer_t& operator=(raw_writer_t&&) noexcept;
 
-      int write(const buffer_t& some_data);
+      int write(buffer_t some_data);
       bool await_ready() const noexcept;
       void await_suspend(std::coroutine_handle<> h) noexcept;
       int await_resume() noexcept;
@@ -180,6 +182,8 @@ export namespace fan {
       bool reading_header{ true };
       bool is_raw_read{ false };
       bool is_fixed_size_read{ false };
+      std::shared_ptr<crypto::secure_stream_t> secure;
+      std::vector<char> plain;
 
       static constexpr std::size_t header_size = sizeof(std::uint64_t);
       static constexpr std::size_t default_buffer_size = 64 * 1024;
@@ -191,6 +195,7 @@ export namespace fan {
       void setup_fixed_size_read(ssize_t len);
       void setup_raw_read();
       void setup_header_read();
+      void decrypt_buffered();
       void stop();
       int start() noexcept;
       bool await_ready() const;
@@ -298,6 +303,7 @@ export namespace fan {
       using listen_cb_t = std::function<fan::event::task_t(tcp_t&)>;
 
       std::shared_ptr<uv_tcp_t> socket;
+      std::shared_ptr<crypto::secure_stream_t> secure = std::make_shared<crypto::secure_stream_t>();
 
       operator tcp_id_t () const { return nr; }
 
@@ -312,6 +318,8 @@ export namespace fan {
       tcp_t(tcp_t&&) = default;
       tcp_t& operator=(tcp_t&&) = delete;
 
+      void reset();
+      void enable_secure(const crypto::x25519_key_t& send_key, const crypto::x25519_key_t& recv_key);
       fan::event::error_code_t accept(tcp_t& client) noexcept;
       fan::event::error_code_t bind(const std::string& ip, int port) noexcept;
       fan::event::task_t listen(const listen_address_t& address, listen_cb_t lambda, bool bind = false);
@@ -357,6 +365,11 @@ export namespace fan {
       raw_writer_t write_raw(const buffer_t& data) const {
         raw_writer_t w{ *this };
         w.write(data);
+        return w;
+      }
+      raw_writer_t write_raw(buffer_t&& data) const {
+        raw_writer_t w{ *this };
+        w.write(std::move(data));
         return w;
       }
       raw_writer_t write_raw(const std::string& data) const {
@@ -410,6 +423,8 @@ export namespace fan {
       udp_datagram_t() : status(0) {}
       udp_datagram_t(const buffer_t& msg, const socket_address_t& addr, ssize_t stat = 0)
         : data(msg), sender(addr), status(stat) {}
+      udp_datagram_t(buffer_t&& msg, const socket_address_t& addr, ssize_t stat = 0)
+        : data(std::move(msg)), sender(addr), status(stat) {}
 
       operator bool() const { return status >= 0; }
       operator std::string() const { return std::string(data.begin(), data.end()); }
@@ -469,19 +484,12 @@ export namespace fan {
     };
 
     struct udp_recvfrom_t {
-      std::shared_ptr<uv_udp_t> socket;
-      std::coroutine_handle<> co_handle;
-      udp_datagram_t datagram;
-      bool ready{ false };
-      bool receiving{ false };
-      bool filter_sender{ false };
-      socket_address_t expected_sender;
-
       udp_recvfrom_t(const udp_t& udp);
 
       void set_expected_sender(const socket_address_t& sender);
       void set_expected_sender(const std::string& ip, int port);
       bool matches_expected_sender(const socket_address_t& actual_sender) const;
+      bool matches_expected_sender(const struct sockaddr* sa) const;
 
       udp_recvfrom_t(const udp_recvfrom_t&) = delete;
       udp_recvfrom_t(udp_recvfrom_t&& r) noexcept;
@@ -489,10 +497,20 @@ export namespace fan {
       int start();
       void stop();
 
-      bool await_ready() const { return ready; }
+      bool await_ready() const { return !queue.empty(); }
       void await_suspend(std::coroutine_handle<> h);
       udp_datagram_t await_resume();
       ~udp_recvfrom_t();
+
+      static constexpr std::size_t max_datagram_size = 65536;
+      static constexpr std::size_t max_queue_size = 4096;
+      std::shared_ptr<uv_udp_t> socket;
+      std::coroutine_handle<> co_handle;
+      std::deque<udp_datagram_t> queue;
+      buffer_t recv_buffer;
+      bool receiving{ false };
+      bool filter_sender{ false };
+      socket_address_t expected_sender;
     };
 
     struct udp_t {
@@ -586,30 +604,40 @@ export namespace fan {
       send_keepalive_callback_t send_callback;
       timeout_callback_t timeout_callback;
       bool should_stop = false;
+      bool activity = false;
+      bool in_callback = false;
 
       fan::event::task_t timer_coroutine() {
         while (!should_stop && config.is_running) {
           co_await fan::co_sleep(config.timer_steps[config.current_step] * 1000);
+          if (should_stop || !config.is_running) {
+            break;
+          }
+          if (activity) {
+            activity = false;
+            config.current_step = 0;
+            continue;
+          }
           if (send_callback) {
             try {
               co_await send_callback(connection);
             }
-            catch (const std::exception& e) {
-              fan::throw_error("Keep alive send failed: ", e.what());
-            }
+            catch (...) {}
           }
-
           if (config.current_step == config.timer_step_limit - 1) {
+            config.is_running = false;
             if (timeout_callback) {
+              in_callback = true;
               timeout_callback();
+              in_callback = false;
+            }
+            if (config.is_running) {
+              continue;
             }
             break;
           }
-          else {
-            config.current_step++;
-          }
+          ++config.current_step;
         }
-        co_return;
       }
 
     public:
@@ -630,7 +658,10 @@ export namespace fan {
         config.current_step = 0;
         config.is_running = true;
         should_stop = false;
-        timer_task = timer_coroutine();
+        activity = false;
+        if (!in_callback) {
+          timer_task = timer_coroutine();
+        }
       }
 
       void stop() {
@@ -639,11 +670,8 @@ export namespace fan {
       }
 
       void reset() {
-        if (config.is_running) {
-          stop();
-          start();
-        }
-        else {
+        activity = true;
+        if (!config.is_running) {
           start();
         }
       }
@@ -672,21 +700,20 @@ export namespace fan {
         co_return;
       }
 
-      void on_timeout() {
-        fan::throw_error("TCP keep alive timeout");
-      }
+      std::function<void()> timeout_cb;
 
     public:
-      explicit tcp_keep_alive_t(tcp_t& tcp_conn, auto send_keep_alive_cb)
-        : tcp_connection(tcp_conn) {
+      explicit tcp_keep_alive_t(tcp_t& tcp_conn, auto send_keep_alive_cb, std::function<void()> on_timeout = {})
+        : tcp_connection(tcp_conn), timeout_cb(std::move(on_timeout)) {
         timer = std::make_unique<keep_alive_timer_t<tcp_t>>(
           tcp_connection,
           [this, send_keep_alive_cb](tcp_t& tcp) -> fan::event::task_t {
             co_await send_keep_alive_cb(tcp);
           },
-          [this]() { on_timeout(); }
+          [this]() { if (timeout_cb) { timeout_cb(); } }
         );
       }
+      void set_timeout_callback(std::function<void()> cb) { timeout_cb = std::move(cb); }
       void start() { timer->start(); }
       void stop() { timer->stop(); }
       void reset() { timer->reset(); }
@@ -709,13 +736,12 @@ export namespace fan {
         co_return;
       }
 
-      void on_timeout() {
-        fan::throw_error("UDP keep alive timeout");
-      }
+      std::function<void()> timeout_cb;
 
     public:
       udp_keep_alive_t(udp_t& udp_conn) : udp_connection(udp_conn) {}
 
+      void set_timeout_callback(std::function<void()> cb) { timeout_cb = std::move(cb); }
       void set_server(const socket_address_t& server_addr, auto send_keep_alive_cb) {
         if (timer) {
           timer->stop();
@@ -728,7 +754,7 @@ export namespace fan {
           [this, send_keep_alive_cb](udp_t& udp) -> fan::event::task_t {
             co_await send_keep_alive_cb(udp);
           },
-          [this]() { on_timeout(); }
+          [this]() { if (timeout_cb) { timeout_cb(); } }
         );
         timer->start();
       }
