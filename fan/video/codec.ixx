@@ -343,6 +343,7 @@ export namespace fan {
 
       std::string codec_name_;
       bool using_hardware_ = false;
+      std::uint32_t decode_failures_ = 0;
       enum AVPixelFormat hw_pixel_format_ = AV_PIX_FMT_NONE;
 
       AVBufferRef* hw_device_ctx_ = nullptr;
@@ -525,6 +526,7 @@ export namespace fan {
 
         initialized_ = false;
         using_hardware_ = false;
+        decode_failures_ = 0;
         codec_ = nullptr;
 
         hw_type_ = AV_HWDEVICE_TYPE_NONE;

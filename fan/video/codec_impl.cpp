@@ -428,13 +428,19 @@ namespace fan {
 
       int ret = avcodec_send_packet(codec_ctx_, packet_);
       if (ret < 0 && ret != AVERROR(EAGAIN)) {
+        ++decode_failures_;
         return results;
       }
 
       while (true) {
         AVFrame* target_frame = using_hardware_ ? hw_frame_ : frame_;
         ret = avcodec_receive_frame(codec_ctx_, target_frame);
-        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF || ret < 0) break;
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) break;
+        if (ret < 0) {
+          ++decode_failures_;
+          break;
+        }
+        decode_failures_ = 0;
 
         decode_result_t result;
         result.success = true;
