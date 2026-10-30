@@ -596,7 +596,7 @@ local feature_modules = {
   },
   FAN_JSON = { "fan/types/json.ixx" },
   FAN_FMT = { "fan/utils/fmt.ixx" },
-  FAN_NETWORK = { "fan/network/network.ixx", "fan/network/network_socket.ixx", "fan/graphics/2D/graphics_network.ixx" },
+  FAN_NETWORK = { "fan/network/network.ixx", "fan/network/network_socket.ixx", "fan/network/network_crypto.ixx", "fan/graphics/2D/graphics_network.ixx" },
   FAN_AUDIO = { "fan/audio/audio.ixx" },
   FAN_PHYSICS_2D = { "fan/physics/b2_integration.ixx", "fan/physics/physics_common_context.ixx", "fan/graphics/physics_shapes.ixx", "fan/physics/vehicle_controller.ixx" },
   FAN_GUI = {
