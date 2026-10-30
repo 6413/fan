@@ -223,7 +223,7 @@ namespace fan {
     raw_writer_t& raw_writer_t::operator=(raw_writer_t&&) noexcept = default;
 
     raw_writer_t::raw_writer_t(const tcp_t& tcp) :
-      data(new writer_data_t{ std::reinterpret_pointer_cast<uv_stream_t>(tcp.socket) }) {
+      data(new writer_data_t{ std::reinterpret_pointer_cast<uv_stream_t>(tcp.socket) }), secure(tcp.secure) {
       data->write_handle.data = data.get();
     }
 
@@ -234,12 +234,15 @@ namespace fan {
       return data->status;
     }
 
-    int raw_writer_t::write(const buffer_t& some_data) {
+    int raw_writer_t::write(buffer_t some_data) {
       if (!uv_is_writable(data->stream.get())) { 
         fan::throw_error("tcp write failed: socket not writable (not connected)");
       }
+      if (secure && secure->ready) {
+        some_data = secure->seal(some_data.data(), some_data.size());
+      }
 
-      data->to_write = some_data;
+      data->to_write = std::move(some_data);
       data->status = 1;
       uv_buf_t buf = uv_buf_init(data->to_write.data(), data->to_write.size());
       int r = uv_write(&data->write_handle, data->stream.get(), &buf, 1,
@@ -313,7 +316,7 @@ namespace fan {
 
     reader_t::reader_t(const tcp_t& tcp)
       : stream{ std::reinterpret_pointer_cast<uv_stream_t>(tcp.socket) },
-      temp_buf(default_buffer_size) {
+      temp_buf(default_buffer_size), secure(tcp.secure) {
       stream->data = this;
     }
 
@@ -327,8 +330,28 @@ namespace fan {
       bytes_read{ r.bytes_read },
       reading_header{ r.reading_header },
       is_raw_read{ r.is_raw_read },
-      is_fixed_size_read{ r.is_fixed_size_read } {
+      is_fixed_size_read{ r.is_fixed_size_read },
+      secure{ std::move(r.secure) },
+      plain{ std::move(r.plain) } {
       stream->data = this;
+    }
+
+    void reader_t::decrypt_buffered() {
+      std::size_t n = accumulated_buf.size();
+      if (!n) {
+        return;
+      }
+      std::vector<char> raw(n);
+      accumulated_buf.peek(raw.data(), n);
+      accumulated_buf.consume(n);
+      plain.clear();
+      if (!secure->open(raw.data(), n, plain)) {
+        nread = UV_EPROTO;
+        return;
+      }
+      if (!plain.empty()) {
+        accumulated_buf.push_back(plain.data(), plain.size());
+      }
     }
 
     void reader_t::setup_fixed_size_read(ssize_t len) {
@@ -368,10 +391,22 @@ namespace fan {
         [](uv_stream_t* req, ssize_t nread, const uv_buf_t* buf) {
           auto self = static_cast<reader_t*>(req->data);
           self->nread = nread;
-          if (nread > 0) {
+          if (nread > 0 && self->secure && self->secure->ready) {
+            self->plain.clear();
+            if (!self->secure->open(self->temp_buf.data(), nread, self->plain)) {
+              self->nread = nread = UV_EPROTO;
+            }
+            else if (self->plain.empty()) {
+              self->nread = nread = 0;
+            }
+            else {
+              self->accumulated_buf.push_back(self->plain.data(), self->plain.size());
+            }
+          }
+          else if (nread > 0) {
             self->accumulated_buf.push_back(self->temp_buf.data(), nread);
           }
-          [[likely]] if (self->co_handle && nread != 0) {
+          [[likely]] if (self->co_handle && (nread < 0 || self->await_ready())) {
             self->co_handle();
           }
         }
@@ -399,9 +434,7 @@ namespace fan {
     message_t reader_t::await_resume() {
       if (nread < 0) {
         co_handle = nullptr;
-        auto error_status = nread;
-        nread = 0;
-        return { .status = error_status, .done = true };
+        return { .status = nread, .done = true };
       }
 
       co_handle = nullptr;
@@ -478,7 +511,7 @@ namespace fan {
         reinterpret_cast<const char*>(&data_size) + sizeof(std::uint64_t)
       );
       message_data.insert(message_data.end(), user_data.begin(), user_data.end());
-      return raw_writer.write(message_data);
+      return raw_writer.write(std::move(message_data));
     }
 
     client_handler_t::nr_t client_handler_t::add_client() {
@@ -508,6 +541,20 @@ namespace fan {
       client_handler_t::nr_t nr_val = get_client_handler().client_list.NewNodeLast();
       get_client_handler().client_list[nr_val] = this;
       get_client_handler().client_list[nr_val]->nr = nr_val;
+      uv_tcp_init((uv_loop_t*)fan::event::get_loop(), socket.get());
+    }
+
+    void tcp_t::enable_secure(const crypto::x25519_key_t& send_key, const crypto::x25519_key_t& recv_key) {
+      secure->set(send_key, recv_key);
+      if (reader) {
+        reader->decrypt_buffered();
+      }
+    }
+
+    void tcp_t::reset() {
+      reader.reset();
+      secure = std::make_shared<crypto::secure_stream_t>();
+      socket = std::shared_ptr<uv_tcp_t>(new uv_tcp_t, tcp_deleter_t{});
       uv_tcp_init((uv_loop_t*)fan::event::get_loop(), socket.get());
     }
 
@@ -731,11 +778,14 @@ namespace fan {
       return uv_udp_recv_start(socket.get(),
         [](uv_handle_t* handle, std::size_t suggested_size, uv_buf_t* buf) {
           auto self = static_cast<udp_recv_t*>(handle->data);
-          self->datagram.data.resize(2000);
-          *buf = uv_buf_init(self->datagram.data.data(), 2000);
+          self->datagram.data.resize(udp_recvfrom_t::max_datagram_size);
+          *buf = uv_buf_init(self->datagram.data.data(), self->datagram.data.size());
         },
         [](uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf, const struct sockaddr* addr, unsigned flags) {
           auto self = static_cast<udp_recv_t*>(handle->data);
+          if (nread >= 0 && (!addr || (flags & UV_UDP_PARTIAL))) {
+            return;
+          }
           self->datagram.status = nread;
           self->ready = true;
           if (nread > 0 && addr) {
@@ -763,16 +813,18 @@ namespace fan {
       stop();
     }
 
-    udp_recvfrom_t::udp_recvfrom_t(const udp_t& udp) : socket(udp.socket) {
+    udp_recvfrom_t::udp_recvfrom_t(const udp_t& udp) : socket(udp.socket), recv_buffer(max_datagram_size) {
       socket->data = this;
     }
 
     udp_recvfrom_t::udp_recvfrom_t(udp_recvfrom_t&& r) noexcept :
       socket{ std::move(r.socket) },
       co_handle{ std::move(r.co_handle) },
-      datagram{ std::move(r.datagram) },
-      ready{ r.ready },
-      receiving{ r.receiving } {
+      queue{ std::move(r.queue) },
+      recv_buffer{ std::move(r.recv_buffer) },
+      receiving{ std::exchange(r.receiving, false) },
+      filter_sender{ r.filter_sender },
+      expected_sender{ r.expected_sender } {
       if (socket) {
         socket->data = this;
       }
@@ -789,9 +841,23 @@ namespace fan {
     }
 
     bool udp_recvfrom_t::matches_expected_sender(const socket_address_t& actual_sender) const {
-      if (!filter_sender) return true;
-      return (expected_sender.get_ip() == actual_sender.get_ip() &&
-        expected_sender.get_port() == actual_sender.get_port());
+      return matches_expected_sender(actual_sender.sockaddr_ptr());
+    }
+
+    bool udp_recvfrom_t::matches_expected_sender(const struct sockaddr* sa) const {
+      if (!filter_sender) {
+        return true;
+      }
+      auto& e = expected_sender.addr;
+      if (sa->sa_family != e.generic.sa_family) {
+        return false;
+      }
+      if (sa->sa_family == AF_INET) {
+        auto a = reinterpret_cast<const sockaddr_in*>(sa);
+        return a->sin_port == e.ipv4.sin_port && a->sin_addr.s_addr == e.ipv4.sin_addr.s_addr;
+      }
+      auto a = reinterpret_cast<const sockaddr_in6*>(sa);
+      return a->sin6_port == e.ipv6.sin6_port && std::memcmp(&a->sin6_addr, &e.ipv6.sin6_addr, sizeof(a->sin6_addr)) == 0;
     }
 
     int udp_recvfrom_t::start() {
@@ -802,27 +868,21 @@ namespace fan {
       return uv_udp_recv_start(socket.get(),
         [](uv_handle_t* handle, std::size_t suggested_size, uv_buf_t* buf) {
           auto self = static_cast<udp_recvfrom_t*>(handle->data);
-          self->datagram.data.resize(2000);
-          *buf = uv_buf_init(self->datagram.data.data(), 2000);
+          *buf = uv_buf_init(self->recv_buffer.data(), self->recv_buffer.size());
         },
         [](uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf, const struct sockaddr* addr, unsigned flags) {
           auto self = static_cast<udp_recvfrom_t*>(handle->data);
-          if (nread > 0 && addr) {
-            socket_address_t sender_addr(addr);
-            if (self->filter_sender && !self->matches_expected_sender(sender_addr)) {
+          if (nread >= 0) {
+            if (nread == 0 || !addr || (flags & UV_UDP_PARTIAL) || self->queue.size() >= max_queue_size || !self->matches_expected_sender(addr)) {
               return;
             }
-            self->datagram.status = nread;
-            self->datagram.data.resize(nread);
-            self->datagram.sender = sender_addr;
+            self->queue.emplace_back(buffer_t(buf->base, buf->base + nread), socket_address_t(addr), nread);
           }
           else {
-            self->datagram.status = nread;
-            self->datagram.data.clear();
+            self->queue.emplace_back(buffer_t{}, socket_address_t{}, nread);
           }
-          self->ready = true;
-          if (self->co_handle) {
-            self->co_handle();
+          if (auto h = std::exchange(self->co_handle, nullptr)) {
+            h();
           }
         }
       );
@@ -843,9 +903,10 @@ namespace fan {
     }
 
     udp_datagram_t udp_recvfrom_t::await_resume() {
-      ready = false;
       co_handle = nullptr;
-      return std::move(datagram);
+      udp_datagram_t datagram = std::move(queue.front());
+      queue.pop_front();
+      return datagram;
     }
 
     udp_recvfrom_t::~udp_recvfrom_t() {
@@ -884,8 +945,12 @@ namespace fan {
         }
       }
 
+      udp_recvfrom_t receiver{ *this };
+      if (!bind_) {
+        receiver.set_expected_sender(ip, port);
+      }
       while (true) {
-        auto datagram = co_await recvfrom(ip, port);
+        auto datagram = co_await receiver;
         if (datagram.is_error()) {
           if (datagram.status == UV_EOF) {
             break;
