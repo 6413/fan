@@ -5,6 +5,9 @@ module;
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 #include <openssl/rand.h>
+#if OPENSSL_VERSION_MAJOR >= 3
+  #include <openssl/provider.h>
+#endif
 
 export module fan.network.crypto;
 
@@ -30,10 +33,20 @@ export namespace fan::network::crypto {
     io_error
   };
 
+  void ensure_providers() {
+  #if OPENSSL_VERSION_MAJOR >= 3
+    static bool loaded = OSSL_PROVIDER_try_load(nullptr, "default", 1) != nullptr;
+    (void)loaded;
+  #endif
+  }
   bool x25519_public(const x25519_key_t& priv, x25519_key_t& pub) {
+    ensure_providers();
     EVP_PKEY* k = EVP_PKEY_new_raw_private_key(EVP_PKEY_X25519, nullptr, priv.data(), priv.size());
     std::size_t n = pub.size();
-    bool ok = k && EVP_PKEY_get_raw_public_key(k, pub.data(), &n) == 1 && n == pub.size();
+    if (!k) {
+      return false;
+    }
+    bool ok = EVP_PKEY_get_raw_public_key(k, pub.data(), &n) == 1 && n == pub.size();
     EVP_PKEY_free(k);
     return ok;
   }
@@ -41,6 +54,7 @@ export namespace fan::network::crypto {
     return RAND_bytes(priv.data(), priv.size()) == 1 && x25519_public(priv, pub);
   }
   bool x25519(const x25519_key_t& priv, const x25519_key_t& peer, std::uint8_t* out) {
+    ensure_providers();
     EVP_PKEY* k = EVP_PKEY_new_raw_private_key(EVP_PKEY_X25519, nullptr, priv.data(), priv.size());
     EVP_PKEY* p = EVP_PKEY_new_raw_public_key(EVP_PKEY_X25519, nullptr, peer.data(), peer.size());
     EVP_PKEY_CTX* c = k ? EVP_PKEY_CTX_new(k, nullptr) : nullptr;
@@ -55,6 +69,7 @@ export namespace fan::network::crypto {
     return ok;
   }
   bool hkdf(const std::uint8_t* ikm, std::size_t ikm_size, const std::uint8_t* salt, std::size_t salt_size, std::string_view info, std::uint8_t* out, std::size_t out_size) {
+    ensure_providers();
     EVP_PKEY_CTX* c = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr);
     bool ok = c
       && EVP_PKEY_derive_init(c) == 1
@@ -101,6 +116,7 @@ export namespace fan::network::crypto {
     OPENSSL_cleanse(p, size);
   }
   bool aead(bool enc, const x25519_key_t& key, std::uint64_t counter, const std::uint8_t* aad, std::size_t aad_size, std::uint8_t* data, std::size_t size, std::uint8_t* tag) {
+    ensure_providers();
     std::uint8_t nonce[12] = {};
     std::memcpy(nonce + 4, &counter, 8);
     EVP_CIPHER_CTX* c = EVP_CIPHER_CTX_new();
@@ -150,11 +166,12 @@ export namespace fan::network::crypto {
       }
       return x25519_public(priv, pub) || fail("x25519 public key derivation failed: " + openssl_error());
     }
+    ensure_providers();
     if (RAND_bytes(priv.data(), priv.size()) != 1) {
       return fail("RAND_bytes failed: " + openssl_error());
     }
     if (!x25519_public(priv, pub)) {
-      return fail("x25519 key creation failed: " + openssl_error());
+      return fail("x25519 key creation failed: " + openssl_error() + ", OpenSSL " + OpenSSL_version(OPENSSL_VERSION) + ", OPENSSL_CONF=" + (std::getenv("OPENSSL_CONF") ? std::getenv("OPENSSL_CONF") : "unset"));
     }
     std::ofstream out(path, std::ios::binary | std::ios::trunc);
     if (!out) {
