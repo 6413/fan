@@ -13,6 +13,11 @@ layout(push_constant) uniform constants_t {
 
 layout(set = 0, binding = 2) uniform sampler2D textures[1024];
 
+// video is display encoded, the scene is linear and the swapchain encodes it again
+vec3 srgb_to_linear(vec3 c) {
+  return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c));
+}
+
 void main() {
   float y = texture(textures[constants.texture_id], texture_coordinate).r;
   float u = texture(textures[constants.texture_id1], texture_coordinate).r;
@@ -27,5 +32,5 @@ void main() {
   rgb.g = y - 0.391773 * u - 0.81290 * v;
   rgb.b = y + 2.017 * u;
 
-  o_attachment0 = vec4(clamp(rgb, 0.0, 1.0), 1.0);
+  o_attachment0 = vec4(srgb_to_linear(clamp(rgb, 0.0, 1.0)), 1.0);
 }
