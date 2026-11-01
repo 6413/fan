@@ -17,7 +17,9 @@ extern "C" {
 #define NOMINMAX
 #endif
 #include <d3d11.h>
+#include <d3dcompiler.h>
 #include <wrl/client.h>
+#pragma comment(lib, "d3dcompiler.lib")
 extern "C" {
 #include <libavutil/hwcontext.h>
 #include <libavutil/hwcontext_d3d11va.h>
@@ -48,6 +50,55 @@ namespace fan {
 #if defined(_WIN32)
     using Microsoft::WRL::ComPtr;
 
+    static constexpr const char* fullscreen_vs = R"(
+      struct output_t {
+        float4 position : SV_Position;
+        float2 uv : TEXCOORD0;
+      };
+      output_t main(uint id : SV_VertexID) {
+        output_t output;
+        output.uv = float2((id << 1) & 2, id & 2);
+        output.position = float4(output.uv * float2(2, -2) + float2(-1, 1), 0, 1);
+        return output;
+      }
+    )";
+
+    // bt.601 limited range, the inverse of nv12.frag. the d3d11 video processor is
+    // avoided on purpose, driver video settings change its output
+    static constexpr const char* luma_ps = R"(
+      Texture2D image : register(t0);
+      SamplerState image_sampler : register(s0);
+      float main(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target {
+        float3 rgb = image.Sample(image_sampler, uv).rgb;
+        return dot(rgb, float3(0.2568, 0.5041, 0.0979)) + 0.0625;
+      }
+    )";
+
+    static constexpr const char* chroma_ps = R"(
+      Texture2D image : register(t0);
+      SamplerState image_sampler : register(s0);
+      float2 main(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target {
+        float3 rgb = image.Sample(image_sampler, uv).rgb;
+        return float2(
+          dot(rgb, float3(-0.1482, -0.2910, 0.4392)),
+          dot(rgb, float3(0.4392, -0.3678, -0.0714))
+        ) + 0.5;
+      }
+    )";
+
+    static ComPtr<ID3DBlob> compile_shader(std::string_view source, const char* target) {
+      ComPtr<ID3DBlob> code;
+      ComPtr<ID3DBlob> errors;
+      if (FAILED(D3DCompile(source.data(), source.size(), nullptr, nullptr, nullptr, "main", target,
+        D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &code, &errors))) {
+        if (errors) {
+          fan::print_impl(static_cast<const char*>(errors->GetBufferPointer()));
+        }
+        return nullptr;
+      }
+      return code;
+    }
+
     // turns the bgra desktop texture into the encoder's nv12 surface on the gpu,
     // nothing of the frame reaches system memory
     struct libav_encoder_t::gpu_state_t {
@@ -56,17 +107,23 @@ namespace fan {
         av_buffer_unref(&device);
       }
 
+      struct surface_views_t {
+        ComPtr<ID3D11RenderTargetView> luma;
+        ComPtr<ID3D11RenderTargetView> chroma;
+      };
+
       AVBufferRef* device = nullptr;
       AVBufferRef* frames = nullptr;
-      ComPtr<ID3D11VideoDevice> video_device;
-      ComPtr<ID3D11VideoContext> video_context;
-      ComPtr<ID3D11VideoProcessorEnumerator> enumerator;
-      ComPtr<ID3D11VideoProcessor> processor;
-      ID3D11Texture2D* input_texture = nullptr;
-      ComPtr<ID3D11VideoProcessorInputView> input;
-      // by surface and slice, the pool can hand out separate textures that are all slice 0
-      std::map<std::pair<ID3D11Texture2D*, std::intptr_t>, ComPtr<ID3D11VideoProcessorOutputView>> outputs;
+      ComPtr<ID3D11Device> d3d_device;
       ComPtr<ID3D11DeviceContext> context;
+      ComPtr<ID3D11VertexShader> vertex_shader;
+      ComPtr<ID3D11PixelShader> luma_shader;
+      ComPtr<ID3D11PixelShader> chroma_shader;
+      ComPtr<ID3D11SamplerState> sampler;
+      ID3D11Texture2D* input_texture = nullptr;
+      ComPtr<ID3D11ShaderResourceView> input;
+      // by surface and slice, the pool can hand out separate textures that are all slice 0
+      std::map<std::pair<ID3D11Texture2D*, std::intptr_t>, surface_views_t> outputs;
       ComPtr<ID3D11Query> blit_done;
     };
 
@@ -100,32 +157,28 @@ namespace fan {
       static_cast<AVD3D11VAFramesContext*>(frames_ctx->hwctx)->BindFlags = D3D11_BIND_RENDER_TARGET;
       if (av_hwframe_ctx_init(gpu->frames) < 0) return false;
 
-      if (FAILED(gpu_device_->QueryInterface(IID_PPV_ARGS(&gpu->video_device)))) return false;
-      if (FAILED(device_ctx->device_context->QueryInterface(IID_PPV_ARGS(&gpu->video_context)))) return false;
-
+      gpu->d3d_device = gpu_device_;
       gpu->context = device_ctx->device_context;
       D3D11_QUERY_DESC query_desc {};
       query_desc.Query = D3D11_QUERY_EVENT;
       if (FAILED(gpu_device_->CreateQuery(&query_desc, &gpu->blit_done))) return false;
 
-      D3D11_VIDEO_PROCESSOR_CONTENT_DESC content {};
-      content.InputFrameFormat = D3D11_VIDEO_FRAME_FORMAT_PROGRESSIVE;
-      content.InputWidth = (UINT)encoder->screencap_res.x;
-      content.InputHeight = (UINT)encoder->screencap_res.y;
-      content.OutputWidth = config.width;
-      content.OutputHeight = config.height;
-      content.Usage = D3D11_VIDEO_USAGE_OPTIMAL_SPEED;
-      if (FAILED(gpu->video_device->CreateVideoProcessorEnumerator(&content, &gpu->enumerator))) return false;
-      if (FAILED(gpu->video_device->CreateVideoProcessor(gpu->enumerator.Get(), 0, &gpu->processor))) return false;
+      auto vertex_code = compile_shader(fullscreen_vs, "vs_5_0");
+      auto luma_code = compile_shader(luma_ps, "ps_5_0");
+      auto chroma_code = compile_shader(chroma_ps, "ps_5_0");
+      if (!vertex_code || !luma_code || !chroma_code) return false;
 
-      // bt.601 limited range, what nv12.frag decodes and what swscale produces
-      D3D11_VIDEO_PROCESSOR_COLOR_SPACE input_space {};
-      D3D11_VIDEO_PROCESSOR_COLOR_SPACE output_space {};
-      output_space.Nominal_Range = D3D11_VIDEO_PROCESSOR_NOMINAL_RANGE_16_235;
-      gpu->video_context->VideoProcessorSetStreamColorSpace(gpu->processor.Get(), 0, &input_space);
-      gpu->video_context->VideoProcessorSetOutputColorSpace(gpu->processor.Get(), &output_space);
-      gpu->video_context->VideoProcessorSetStreamFrameFormat(gpu->processor.Get(), 0, D3D11_VIDEO_FRAME_FORMAT_PROGRESSIVE);
-      gpu->video_context->VideoProcessorSetStreamAutoProcessingMode(gpu->processor.Get(), 0, FALSE);
+      if (FAILED(gpu_device_->CreateVertexShader(vertex_code->GetBufferPointer(), vertex_code->GetBufferSize(), nullptr, &gpu->vertex_shader))) return false;
+      if (FAILED(gpu_device_->CreatePixelShader(luma_code->GetBufferPointer(), luma_code->GetBufferSize(), nullptr, &gpu->luma_shader))) return false;
+      if (FAILED(gpu_device_->CreatePixelShader(chroma_code->GetBufferPointer(), chroma_code->GetBufferSize(), nullptr, &gpu->chroma_shader))) return false;
+
+      D3D11_SAMPLER_DESC sampler_desc {};
+      sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+      sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+      sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+      sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+      sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
+      if (FAILED(gpu_device_->CreateSamplerState(&sampler_desc, &gpu->sampler))) return false;
 
       encoder->gpu = gpu.release();
       return true;
@@ -135,10 +188,8 @@ namespace fan {
       auto* gpu = encoder->gpu;
 
       if (gpu->input_texture != texture) {
-        D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC desc {};
-        desc.ViewDimension = D3D11_VPIV_DIMENSION_TEXTURE2D;
         gpu->input.Reset();
-        if (FAILED(gpu->video_device->CreateVideoProcessorInputView(texture, gpu->enumerator.Get(), &desc, &gpu->input))) {
+        if (FAILED(gpu->d3d_device->CreateShaderResourceView(texture, nullptr, &gpu->input))) {
           gpu->input_texture = nullptr;
           return false;
         }
@@ -148,33 +199,55 @@ namespace fan {
       auto* surface = reinterpret_cast<ID3D11Texture2D*>(frame->data[0]);
       auto slice = reinterpret_cast<std::intptr_t>(frame->data[1]);
 
-      auto& output = gpu->outputs[{surface, slice}];
-      if (!output) {
+      auto& views = gpu->outputs[{surface, slice}];
+      if (!views.luma) {
         D3D11_TEXTURE2D_DESC surface_desc;
         surface->GetDesc(&surface_desc);
 
-        D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC desc {};
+        D3D11_RENDER_TARGET_VIEW_DESC desc {};
         if (surface_desc.ArraySize > 1) {
-          desc.ViewDimension = D3D11_VPOV_DIMENSION_TEXTURE2DARRAY;
+          desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
           desc.Texture2DArray.FirstArraySlice = (UINT)slice;
           desc.Texture2DArray.ArraySize = 1;
         }
         else {
-          desc.ViewDimension = D3D11_VPOV_DIMENSION_TEXTURE2D;
+          desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
         }
-        if (FAILED(gpu->video_device->CreateVideoProcessorOutputView(surface, gpu->enumerator.Get(), &desc, &output))) {
+        desc.Format = DXGI_FORMAT_R8_UNORM;
+        if (FAILED(gpu->d3d_device->CreateRenderTargetView(surface, &desc, &views.luma))) {
+          return false;
+        }
+        desc.Format = DXGI_FORMAT_R8G8_UNORM;
+        if (FAILED(gpu->d3d_device->CreateRenderTargetView(surface, &desc, &views.chroma))) {
+          views.luma.Reset();
           return false;
         }
       }
 
-      D3D11_VIDEO_PROCESSOR_STREAM stream {};
-      stream.Enable = TRUE;
-      stream.pInputSurface = gpu->input.Get();
-      if (FAILED(gpu->video_context->VideoProcessorBlt(gpu->processor.Get(), output.Get(), 0, 1, &stream))) {
-        return false;
-      }
+      auto* context = gpu->context.Get();
+      context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+      context->IASetInputLayout(nullptr);
+      context->VSSetShader(gpu->vertex_shader.Get(), nullptr, 0);
+      context->PSSetShaderResources(0, 1, gpu->input.GetAddressOf());
+      context->PSSetSamplers(0, 1, gpu->sampler.GetAddressOf());
 
-      // the blit is only queued and nvenc doesn't wait for d3d11
+      auto draw_plane = [&](ID3D11RenderTargetView* target, ID3D11PixelShader* shader, int width, int height) {
+        D3D11_VIEWPORT viewport {0.f, 0.f, (float)width, (float)height, 0.f, 1.f};
+        context->OMSetRenderTargets(1, &target, nullptr);
+        context->RSSetViewports(1, &viewport);
+        context->PSSetShader(shader, nullptr, 0);
+        context->Draw(3, 0);
+      };
+      draw_plane(views.luma.Get(), gpu->luma_shader.Get(), frame->width, frame->height);
+      draw_plane(views.chroma.Get(), gpu->chroma_shader.Get(), (frame->width + 1) / 2, (frame->height + 1) / 2);
+
+      // the capture copies into the input and nvenc reads the surface next
+      ID3D11RenderTargetView* no_target = nullptr;
+      ID3D11ShaderResourceView* no_input = nullptr;
+      context->OMSetRenderTargets(1, &no_target, nullptr);
+      context->PSSetShaderResources(0, 1, &no_input);
+
+      // the draws are only queued and nvenc doesn't wait for d3d11
       gpu->context->End(gpu->blit_done.Get());
       gpu->context->Flush();
       auto give_up = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
