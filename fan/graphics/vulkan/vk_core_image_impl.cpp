@@ -70,6 +70,16 @@ static void copy_pixels(const std::uint8_t*& src, std::uint8_t*& dst, std::uint6
   }
 }
 
+// reloads don't wait for their copy, the image's next reload waits instead. by then the
+// copy is a frame old, so a video stream doesn't stall the render thread on every plane
+static void wait_for_image_upload(fan::vulkan::context_t& ctx, fan::vulkan::context_t::image_t& image) {
+  if (image.upload_pending) {
+    fan::vulkan::validate(vkWaitForFences(ctx.device, 1, &image.upload_fence, VK_TRUE, UINT64_MAX));
+    fan::vulkan::validate(vkResetFences(ctx.device, 1, &image.upload_fence));
+    image.upload_pending = false;
+  }
+}
+
 static void schedule_ring_advance(fan::vulkan::context_t& ctx, const fan::vulkan::staging_ring_buffer_t::allocation_t& alloc, fan::vulkan::staging_ring_buffer_t* ring, VkDeviceSize captured_head, VmaAllocator vma_allocator) {
   ctx.get_current_deletion_queue().push_function([=]() {
     if (alloc.is_spilled) {
@@ -363,6 +373,12 @@ void fan::vulkan::context_t::image_erase(fan::graphics::image_nr_t nr, int recyc
       }
       image_cache.erase(it);
     }
+  }
+
+  wait_for_image_upload(*this, img);
+  if (img.upload_fence != VK_NULL_HANDLE) {
+    vkDestroyFence(device, img.upload_fence, nullptr);
+    img.upload_fence = VK_NULL_HANDLE;
   }
 
   VkDevice dev = device;
@@ -782,6 +798,9 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
   fan::vulkan::context_t::image_t& image = image_get(nr);
   auto& image_data = __fan_internal_image_list[nr];
 
+  // the staging buffer below is in use until the previous copy finishes
+  wait_for_image_upload(*this, image);
+
   auto new_settings = fan::graphics::format_converter::image_vulkan_to_global(p);
   bool image_was_null = image.image_index == VK_NULL_HANDLE;
   bool recreate_image = image.image_index != VK_NULL_HANDLE && (
@@ -867,7 +886,13 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
 
   vmaUnmapMemory(allocator, image.staging_allocation);
 
-  VkCommandBuffer cmd = begin_single_time_commands();
+  if (image.upload_fence == VK_NULL_HANDLE) {
+    VkFenceCreateInfo fence_info {};
+    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fan::vulkan::validate(vkCreateFence(device, &fence_info, nullptr, &image.upload_fence));
+  }
+
+  VkCommandBuffer cmd = begin_async_transfer_commands();
   transition_image_layout_cmd(
     cmd,
     image.image_index,
@@ -877,7 +902,8 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
   );
   copy_buffer_to_image_cmd(cmd, image.staging_buffer, image.image_index, p.format, image_info.size);
   transition_image_layout_cmd(cmd, image.image_index, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-  end_single_time_commands(cmd);
+  end_async_transfer_commands(cmd, image.upload_fence);
+  image.upload_pending = true;
 }
 void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info) {
   image_reload(nr, image_info, fan::vulkan::context_t::image_load_properties_t());

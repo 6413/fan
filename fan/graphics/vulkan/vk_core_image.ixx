@@ -86,6 +86,8 @@ export namespace fan::vulkan {
     VkBuffer staging_buffer = VK_NULL_HANDLE;
     VmaAllocation staging_allocation = VK_NULL_HANDLE;
     VkDeviceSize staging_size = 0;
+    VkFence upload_fence = VK_NULL_HANDLE;
+    bool upload_pending = false;
     void* data = nullptr;
   #if defined(FAN_GUI)
     VkDescriptorSet gui_descriptor_set = VK_NULL_HANDLE;
