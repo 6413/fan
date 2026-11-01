@@ -12,6 +12,10 @@ extern "C" {
 #include <libavutil/log.h>
 #include <libswscale/swscale.h>
 }
+#if defined(_WIN32)
+struct ID3D11Device;
+struct ID3D11Texture2D;
+#endif
 #endif
 
 #endif
@@ -120,6 +124,8 @@ export namespace fan {
     }
 
     struct libav_encoder_t {
+      struct gpu_state_t;
+
       struct encoder_state_t {
         const AVCodec* codec = nullptr;
 
@@ -137,6 +143,7 @@ export namespace fan {
         AVHWDeviceType hw_type = AV_HWDEVICE_TYPE_NONE;
         fan::vec2 screencap_res;
         codec_config_t config;
+        gpu_state_t* gpu = nullptr;
       };
 
       std::atomic<encoder_state_t*> active_encoder_ {nullptr};
@@ -152,6 +159,25 @@ export namespace fan {
       std::atomic<bool> needs_codec_reinit_ {false};
       codec_config_t pending_config_;
 
+    #if defined(_WIN32)
+      // set to the capture's device to encode its textures directly, null means the cpu path
+      ID3D11Device* gpu_device_ = nullptr;
+
+      bool open_gpu_state(encoder_state_t* encoder, const codec_config_t& config);
+      static bool convert_texture(encoder_state_t* encoder, ID3D11Texture2D* texture, AVFrame* frame);
+      void fall_back_to_cpu();
+    #endif
+      static void destroy_gpu_state(encoder_state_t* encoder);
+
+      bool uses_gpu_frames() {
+      #if defined(_WIN32)
+        encoder_state_t* encoder = active_encoder_.load();
+        return gpu_device_ && encoder && encoder->gpu;
+      #else
+        return false;
+      #endif
+      }
+
       static thread_local std::chrono::steady_clock::time_point last_cleanup_time_;
 
       static std::unordered_map<codec_config_t::codec_type_e, std::vector<std::string>> get_codec_names() {
@@ -163,20 +189,26 @@ export namespace fan {
 
       }
 
+      // keyframes are the most expensive frames to send, viewers ask for one when they need it
+      static int gop_size_for(const codec_config_t& config) {
+        return std::max(config.gop_size, config.frame_rate * 2);
+      }
+
+      static SwsContext* create_sws_context(encoder_state_t* encoder, const codec_config_t& config, codec_config_t::scaling_quality_e quality);
+      static bool convert_frame(encoder_state_t* encoder, std::uint8_t* bgra_data, int stride);
+
       bool update_scaling_quality(codec_config_t::scaling_quality_e new_quality) {
         encoder_state_t* encoder = active_encoder_.load();
+
+        // the video processor has one quality
+        if (encoder && encoder->gpu) return true;
 
         if (!encoder || !encoder->sws_ctx) return false;
 
         sws_freeContext(encoder->sws_ctx);
         encoder->sws_ctx = nullptr;
 
-        encoder->sws_ctx = sws_getContext(
-          encoder->screencap_res.x, encoder->screencap_res.y, AV_PIX_FMT_BGRA,
-          encoder->config.width, encoder->config.height, encoder->codec_ctx->pix_fmt,
-          fan::graphics::get_sws_flags(new_quality),
-          nullptr, nullptr, nullptr
-        );
+        encoder->sws_ctx = create_sws_context(encoder, encoder->config, new_quality);
 
         if (!encoder->sws_ctx) return false;
 
@@ -219,8 +251,11 @@ export namespace fan {
       }
 
       bool find_and_init_codec(encoder_state_t* encoder, const codec_config_t& config);
+      bool open_codec(encoder_state_t* encoder, const codec_config_t& config, const std::string& name, bool use_gpu);
+      void apply_pending_reinit();
 
       void cleanup_encoder_state(encoder_state_t* encoder) {
+        destroy_gpu_state(encoder);
         if (encoder->sws_ctx) {
           sws_freeContext(encoder->sws_ctx);
 
@@ -298,6 +333,10 @@ export namespace fan {
       };
 
       std::vector<encode_result_t> encode_frame(std::uint8_t* bgra_data, int stride, std::int64_t pts, bool force_keyframe = false);
+      bool submit_frame(encoder_state_t* encoder, AVFrame* frame, std::int64_t pts, bool force_keyframe, std::vector<encode_result_t>& results);
+    #if defined(_WIN32)
+      std::vector<encode_result_t> encode_texture(ID3D11Texture2D* texture, std::int64_t pts, bool force_keyframe);
+    #endif
 
       bool update_config(const codec_config_t& new_config, std::uint8_t update_flags);
 
@@ -344,6 +383,8 @@ export namespace fan {
       std::string codec_name_;
       bool using_hardware_ = false;
       std::uint32_t decode_failures_ = 0;
+      // plane buffers given back by the caller, reused so frames don't reallocate
+      std::vector<std::vector<std::uint8_t>> spare_planes_;
       enum AVPixelFormat hw_pixel_format_ = AV_PIX_FMT_NONE;
 
       AVBufferRef* hw_device_ctx_ = nullptr;
@@ -436,6 +477,9 @@ export namespace fan {
 
         codec_ctx_ = avcodec_alloc_context3(codec_);
         if (!codec_ctx_) return false;
+
+        // a few threads keep software decoding at the stream's frame rate, all of them would take cores from a game
+        codec_ctx_->thread_count = std::clamp((int)std::thread::hardware_concurrency() / 4, 1, 4);
 
         if (avcodec_open2(codec_ctx_, codec_, nullptr) == 0) {
           codec_name_ = it->second;

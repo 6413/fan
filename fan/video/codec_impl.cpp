@@ -12,6 +12,17 @@ extern "C" {
 #include <libavutil/log.h>
 #include <libswscale/swscale.h>
 }
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <d3d11.h>
+#include <wrl/client.h>
+extern "C" {
+#include <libavutil/hwcontext.h>
+#include <libavutil/hwcontext_d3d11va.h>
+}
+#endif
 #endif
 
 #endif
@@ -34,112 +45,266 @@ import fan.event;
 namespace fan {
   namespace graphics {
 
+#if defined(_WIN32)
+    using Microsoft::WRL::ComPtr;
+
+    // turns the bgra desktop texture into the encoder's nv12 surface on the gpu,
+    // nothing of the frame reaches system memory
+    struct libav_encoder_t::gpu_state_t {
+      ~gpu_state_t() {
+        av_buffer_unref(&frames);
+        av_buffer_unref(&device);
+      }
+
+      AVBufferRef* device = nullptr;
+      AVBufferRef* frames = nullptr;
+      ComPtr<ID3D11VideoDevice> video_device;
+      ComPtr<ID3D11VideoContext> video_context;
+      ComPtr<ID3D11VideoProcessorEnumerator> enumerator;
+      ComPtr<ID3D11VideoProcessor> processor;
+      ID3D11Texture2D* input_texture = nullptr;
+      ComPtr<ID3D11VideoProcessorInputView> input;
+      std::vector<ComPtr<ID3D11VideoProcessorOutputView>> outputs;
+    };
+
+    void libav_encoder_t::destroy_gpu_state(encoder_state_t* encoder) {
+      delete encoder->gpu;
+      encoder->gpu = nullptr;
+    }
+
+    bool libav_encoder_t::open_gpu_state(encoder_state_t* encoder, const codec_config_t& config) {
+      // the encoder can hold a few frames, a full pool only skips a frame
+      constexpr int pool_size = 12;
+
+      auto gpu = std::make_unique<gpu_state_t>();
+      gpu->device = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
+      if (!gpu->device) return false;
+
+      auto* device_ctx = static_cast<AVD3D11VADeviceContext*>(reinterpret_cast<AVHWDeviceContext*>(gpu->device->data)->hwctx);
+      gpu_device_->AddRef();
+      device_ctx->device = gpu_device_;
+      if (av_hwdevice_ctx_init(gpu->device) < 0) return false;
+
+      gpu->frames = av_hwframe_ctx_alloc(gpu->device);
+      if (!gpu->frames) return false;
+
+      auto* frames_ctx = reinterpret_cast<AVHWFramesContext*>(gpu->frames->data);
+      frames_ctx->format = AV_PIX_FMT_D3D11;
+      frames_ctx->sw_format = AV_PIX_FMT_NV12;
+      frames_ctx->width = config.width;
+      frames_ctx->height = config.height;
+      frames_ctx->initial_pool_size = pool_size;
+      static_cast<AVD3D11VAFramesContext*>(frames_ctx->hwctx)->BindFlags = D3D11_BIND_RENDER_TARGET;
+      if (av_hwframe_ctx_init(gpu->frames) < 0) return false;
+
+      if (FAILED(gpu_device_->QueryInterface(IID_PPV_ARGS(&gpu->video_device)))) return false;
+      if (FAILED(device_ctx->device_context->QueryInterface(IID_PPV_ARGS(&gpu->video_context)))) return false;
+
+      D3D11_VIDEO_PROCESSOR_CONTENT_DESC content {};
+      content.InputFrameFormat = D3D11_VIDEO_FRAME_FORMAT_PROGRESSIVE;
+      content.InputWidth = (UINT)encoder->screencap_res.x;
+      content.InputHeight = (UINT)encoder->screencap_res.y;
+      content.OutputWidth = config.width;
+      content.OutputHeight = config.height;
+      content.Usage = D3D11_VIDEO_USAGE_OPTIMAL_SPEED;
+      if (FAILED(gpu->video_device->CreateVideoProcessorEnumerator(&content, &gpu->enumerator))) return false;
+      if (FAILED(gpu->video_device->CreateVideoProcessor(gpu->enumerator.Get(), 0, &gpu->processor))) return false;
+
+      // bt.601 limited range, what nv12.frag decodes and what swscale produces
+      D3D11_VIDEO_PROCESSOR_COLOR_SPACE input_space {};
+      D3D11_VIDEO_PROCESSOR_COLOR_SPACE output_space {};
+      output_space.Nominal_Range = D3D11_VIDEO_PROCESSOR_NOMINAL_RANGE_16_235;
+      gpu->video_context->VideoProcessorSetStreamColorSpace(gpu->processor.Get(), 0, &input_space);
+      gpu->video_context->VideoProcessorSetOutputColorSpace(gpu->processor.Get(), &output_space);
+      gpu->video_context->VideoProcessorSetStreamFrameFormat(gpu->processor.Get(), 0, D3D11_VIDEO_FRAME_FORMAT_PROGRESSIVE);
+      gpu->video_context->VideoProcessorSetStreamAutoProcessingMode(gpu->processor.Get(), 0, FALSE);
+
+      gpu->outputs.resize(pool_size);
+      encoder->gpu = gpu.release();
+      return true;
+    }
+
+    bool libav_encoder_t::convert_texture(encoder_state_t* encoder, ID3D11Texture2D* texture, AVFrame* frame) {
+      auto* gpu = encoder->gpu;
+
+      if (gpu->input_texture != texture) {
+        D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC desc {};
+        desc.ViewDimension = D3D11_VPIV_DIMENSION_TEXTURE2D;
+        gpu->input.Reset();
+        if (FAILED(gpu->video_device->CreateVideoProcessorInputView(texture, gpu->enumerator.Get(), &desc, &gpu->input))) {
+          gpu->input_texture = nullptr;
+          return false;
+        }
+        gpu->input_texture = texture;
+      }
+
+      auto slice = reinterpret_cast<std::intptr_t>(frame->data[1]);
+      if (slice < 0 || slice >= (std::intptr_t)gpu->outputs.size()) return false;
+
+      auto& output = gpu->outputs[slice];
+      if (!output) {
+        D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC desc {};
+        desc.ViewDimension = D3D11_VPOV_DIMENSION_TEXTURE2DARRAY;
+        desc.Texture2DArray.FirstArraySlice = (UINT)slice;
+        desc.Texture2DArray.ArraySize = 1;
+        auto* surface = reinterpret_cast<ID3D11Texture2D*>(frame->data[0]);
+        if (FAILED(gpu->video_device->CreateVideoProcessorOutputView(surface, gpu->enumerator.Get(), &desc, &output))) {
+          return false;
+        }
+      }
+
+      D3D11_VIDEO_PROCESSOR_STREAM stream {};
+      stream.Enable = TRUE;
+      stream.pInputSurface = gpu->input.Get();
+      return SUCCEEDED(gpu->video_context->VideoProcessorBlt(gpu->processor.Get(), output.Get(), 0, 1, &stream));
+    }
+
+    void libav_encoder_t::fall_back_to_cpu() {
+      fan::print_impl("gpu encoding failed, using the cpu path");
+      gpu_device_ = nullptr;
+      if (!needs_codec_reinit_.load()) {
+        pending_config_ = config_;
+        needs_codec_reinit_.store(true);
+      }
+    }
+
+    std::vector<libav_encoder_t::encode_result_t> libav_encoder_t::encode_texture(ID3D11Texture2D* texture, std::int64_t pts, bool force_keyframe) {
+      std::vector<encode_result_t> results;
+
+      apply_pending_reinit();
+
+      encoder_state_t* encoder = active_encoder_.load();
+      if (!encoder || !encoder->initialized || !encoder->gpu || !texture) return results;
+
+      AVFrame* frame = av_frame_alloc();
+      if (!frame) return results;
+
+      if (av_hwframe_get_buffer(encoder->gpu->frames, frame, 0) >= 0) {
+        if (!convert_texture(encoder, texture, frame) || !submit_frame(encoder, frame, pts, force_keyframe, results)) {
+          fall_back_to_cpu();
+        }
+      }
+      av_frame_free(&frame);
+      return results;
+    }
+#else
+    void libav_encoder_t::destroy_gpu_state(encoder_state_t* encoder) {}
+#endif
+
     bool libav_encoder_t::find_and_init_codec(encoder_state_t* encoder, const codec_config_t& config) {
       auto codec_names = get_codec_names();
 
-      auto& names = codec_names[config.codec];
-
-      for (const auto& name : names) {
+      for (const auto& name : codec_names[config.codec]) {
         encoder->codec = avcodec_find_encoder_by_name(name.c_str());
 
         if (!encoder->codec) continue;
 
         encoder->codec_name = name;
-        encoder->codec_ctx = avcodec_alloc_context3(encoder->codec);
-        if (!encoder->codec_ctx) continue;
 
-        encoder->codec_ctx->width = config.width;
-        encoder->codec_ctx->height = config.height;
-
-        encoder->codec_ctx->time_base = {1, config.frame_rate};
-        encoder->codec_ctx->framerate = {config.frame_rate, 1};
-        encoder->codec_ctx->gop_size = config.frame_rate >= 144 ?
-
-          config.frame_rate / 3 :
-          config.frame_rate >= 120 ?
-
-          config.frame_rate / 2 : config.gop_size;
-        encoder->codec_ctx->max_b_frames = config.frame_rate >= 60 ? 0 : 1;
-        encoder->codec_ctx->pix_fmt = choose_encoder_pixel_format(name);
-
-        if (encoder->hw_device_ctx && name.find("nvenc") != std::string::npos) {
-          encoder->codec_ctx->hw_device_ctx = av_buffer_ref(encoder->hw_device_ctx);
-
-        }
-
-        if (name.find("nvenc") != std::string::npos) {
-          encoder->codec_ctx->bit_rate = config.bitrate;
-
-          encoder->codec_ctx->rc_buffer_size = config.bitrate / 4;
-          encoder->codec_ctx->rc_max_rate = config.bitrate;
-          encoder->codec_ctx->rc_min_rate = config.bitrate;
-
-          av_opt_set(encoder->codec_ctx->priv_data, "preset", "p1", 0);
-          av_opt_set(encoder->codec_ctx->priv_data, "tune", "ll", 0);
-
-          av_opt_set_int(encoder->codec_ctx->priv_data, "delay", 2, 0);
-          av_opt_set_int(encoder->codec_ctx->priv_data, "async_depth", 8, 0);
-          av_opt_set_int(encoder->codec_ctx->priv_data, "zerolatency", 0, 0);
-
-          av_opt_set_int(encoder->codec_ctx->priv_data, "surfaces", config.frame_rate >= 144 ? 48 : config.frame_rate >= 120 ? 40 : 32, 0);
-          av_opt_set_int(encoder->codec_ctx->priv_data, "bf", 0, 0);
-
-          av_opt_set(encoder->codec_ctx->priv_data, "spatial_aq", "0", 0);
-          av_opt_set(encoder->codec_ctx->priv_data, "temporal_aq", "0", 0);
-          av_opt_set_int(encoder->codec_ctx->priv_data, "lookahead_depth", 0, 0);
-          av_opt_set_int(encoder->codec_ctx->priv_data, "rc_lookahead", 0, 0);
-          av_opt_set(encoder->codec_ctx->priv_data, "gpu", 0, 0);
-
-          av_opt_set_int(encoder->codec_ctx->priv_data, "strict_gop", 1, 0);
-          av_opt_set_int(encoder->codec_ctx->priv_data, "forced-idr", 0, 0);
-          av_opt_set_int(encoder->codec_ctx->priv_data, "no-scenecut", 1, 0);
-
-          switch (config.rate_control) {
-          case codec_config_t::CBR: av_opt_set(encoder->codec_ctx->priv_data, "rc", "cbr", 0);
-
-            break;
-          case codec_config_t::VBR: av_opt_set(encoder->codec_ctx->priv_data, "rc", "vbr", 0); break;
-          case codec_config_t::CRF:
-            av_opt_set(encoder->codec_ctx->priv_data, "rc", "constqp", 0);
-
-            av_opt_set_int(encoder->codec_ctx->priv_data, "qp", config.crf_value, 0);
-            break;
-          }
-        }
-        else if (name.find("amf") != std::string::npos) {
-          encoder->codec_ctx->bit_rate = config.bitrate;
-
-          av_opt_set(encoder->codec_ctx->priv_data, "quality", "speed", 0);
-          av_opt_set(encoder->codec_ctx->priv_data, "rc", "vbr_latency", 0);
-          av_opt_set_int(encoder->codec_ctx->priv_data, "preanalysis", 0, 0);
-
-        }
-        else if (name.find("vaapi") != std::string::npos) {
-          encoder->codec_ctx->bit_rate = config.bitrate;
-
-          av_opt_set(encoder->codec_ctx->priv_data, "low_power", "1", 0);
-        }
-        else if (name == "libx264" || name == "libx265") {
-          encoder->codec_ctx->bit_rate = config.bitrate;
-
-          av_opt_set(encoder->codec_ctx->priv_data, "preset", "ultrafast", 0);
-          av_opt_set(encoder->codec_ctx->priv_data, "tune", "zerolatency", 0);
-        }
-        else {
-          encoder->codec_ctx->bit_rate = config.bitrate;
-
-        }
-
-        if (avcodec_open2(encoder->codec_ctx, encoder->codec, nullptr) == 0) {
+      #if defined(_WIN32)
+        if (gpu_device_ && name.find("nvenc") != std::string::npos && open_codec(encoder, config, name, true)) {
           return true;
-
+        }
+      #endif
+        if (open_codec(encoder, config, name, false)) {
+          return true;
         }
 
-        avcodec_free_context(&encoder->codec_ctx);
         encoder->codec = nullptr;
+      }
+
+      return false;
+
+    }
+
+    bool libav_encoder_t::open_codec(encoder_state_t* encoder, const codec_config_t& config, const std::string& name, bool use_gpu) {
+      encoder->codec_ctx = avcodec_alloc_context3(encoder->codec);
+      if (!encoder->codec_ctx) return false;
+
+      encoder->codec_ctx->width = config.width;
+      encoder->codec_ctx->height = config.height;
+
+      encoder->codec_ctx->time_base = {1, config.frame_rate};
+      encoder->codec_ctx->framerate = {config.frame_rate, 1};
+      encoder->codec_ctx->gop_size = gop_size_for(config);
+      encoder->codec_ctx->max_b_frames = config.frame_rate >= 60 ? 0 : 1;
+      encoder->codec_ctx->bit_rate = config.bitrate;
+      encoder->codec_ctx->pix_fmt = choose_encoder_pixel_format(name);
+
+    #if defined(_WIN32)
+      if (use_gpu) {
+        if (!open_gpu_state(encoder, config)) {
+          avcodec_free_context(&encoder->codec_ctx);
+          destroy_gpu_state(encoder);
+          return false;
+        }
+        encoder->codec_ctx->pix_fmt = AV_PIX_FMT_D3D11;
+        encoder->codec_ctx->hw_frames_ctx = av_buffer_ref(encoder->gpu->frames);
+      }
+    #endif
+
+      if (!use_gpu && encoder->hw_device_ctx && name.find("nvenc") != std::string::npos) {
+        encoder->codec_ctx->hw_device_ctx = av_buffer_ref(encoder->hw_device_ctx);
 
       }
 
+      void* options = encoder->codec_ctx->priv_data;
+
+      if (name.find("nvenc") != std::string::npos) {
+        encoder->codec_ctx->rc_buffer_size = config.bitrate / 4;
+        encoder->codec_ctx->rc_max_rate = config.bitrate;
+        encoder->codec_ctx->rc_min_rate = config.bitrate;
+
+        av_opt_set(options, "preset", "p1", 0);
+        av_opt_set(options, "tune", "ll", 0);
+
+        av_opt_set_int(options, "delay", 2, 0);
+        av_opt_set_int(options, "async_depth", 8, 0);
+        av_opt_set_int(options, "zerolatency", 0, 0);
+
+        av_opt_set_int(options, "surfaces", config.frame_rate >= 144 ? 48 : config.frame_rate >= 120 ? 40 : 32, 0);
+        av_opt_set_int(options, "bf", 0, 0);
+
+        av_opt_set(options, "spatial_aq", "0", 0);
+        av_opt_set(options, "temporal_aq", "0", 0);
+        av_opt_set_int(options, "lookahead_depth", 0, 0);
+        av_opt_set_int(options, "rc_lookahead", 0, 0);
+        av_opt_set(options, "gpu", 0, 0);
+
+        av_opt_set_int(options, "strict_gop", 1, 0);
+        // without this a requested keyframe is an intra frame that a viewer can't start from
+        av_opt_set_int(options, "forced-idr", 1, 0);
+        av_opt_set_int(options, "no-scenecut", 1, 0);
+
+        switch (config.rate_control) {
+        case codec_config_t::CBR: av_opt_set(options, "rc", "cbr", 0); break;
+        case codec_config_t::VBR: av_opt_set(options, "rc", "vbr", 0); break;
+        case codec_config_t::CRF:
+          av_opt_set(options, "rc", "constqp", 0);
+          av_opt_set_int(options, "qp", config.crf_value, 0);
+          break;
+        }
+      }
+      else if (name.find("amf") != std::string::npos) {
+        av_opt_set(options, "quality", "speed", 0);
+        av_opt_set(options, "rc", "vbr_latency", 0);
+        av_opt_set_int(options, "preanalysis", 0, 0);
+      }
+      else if (name.find("vaapi") != std::string::npos) {
+        av_opt_set(options, "low_power", "1", 0);
+      }
+      else if (name == "libx264" || name == "libx265") {
+        av_opt_set(options, "preset", "ultrafast", 0);
+        av_opt_set(options, "tune", "zerolatency", 0);
+      }
+
+      if (avcodec_open2(encoder->codec_ctx, encoder->codec, nullptr) == 0) {
+        return true;
+
+      }
+
+      avcodec_free_context(&encoder->codec_ctx);
+      destroy_gpu_state(encoder);
       return false;
 
     }
@@ -154,10 +319,20 @@ namespace fan {
 
       if (!find_and_init_codec(encoder, config)) return false;
 
-      encoder->frame = av_frame_alloc();
       encoder->packet = av_packet_alloc();
+      if (!encoder->packet) {
+        cleanup_encoder_state(encoder);
+        return false;
 
-      if (!encoder->frame || !encoder->packet) {
+      }
+
+      if (encoder->gpu) {
+        encoder->initialized = true;
+        return true;
+      }
+
+      encoder->frame = av_frame_alloc();
+      if (!encoder->frame) {
         cleanup_encoder_state(encoder);
         return false;
 
@@ -173,12 +348,7 @@ namespace fan {
 
       }
 
-      encoder->sws_ctx = sws_getContext(
-        encoder->screencap_res.x, encoder->screencap_res.y, AV_PIX_FMT_BGRA,
-        config.width, config.height, encoder->codec_ctx->pix_fmt,
-        fan::graphics::get_sws_flags(config.scaling_quality),
-        nullptr, nullptr, nullptr
-      );
+      encoder->sws_ctx = create_sws_context(encoder, config, config.scaling_quality);
 
       if (!encoder->sws_ctx) {
         cleanup_encoder_state(encoder);
@@ -191,42 +361,97 @@ namespace fan {
 
     }
 
-    std::vector<libav_encoder_t::encode_result_t> libav_encoder_t::encode_frame(std::uint8_t* bgra_data, int stride, std::int64_t pts, bool force_keyframe) {
-      std::vector<encode_result_t> results;
+    SwsContext* libav_encoder_t::create_sws_context(encoder_state_t* encoder, const codec_config_t& config, codec_config_t::scaling_quality_e quality) {
+      SwsContext* ctx = sws_alloc_context();
+      if (!ctx) return nullptr;
 
-      if (needs_codec_reinit_.load()) {
-        encoder_state_t* new_encoder = (active_encoder_.load() == &encoder_a_) ?
+      // a few threads make conversion several times faster, all of them would take cores from a game
+      int threads = std::clamp((int)std::thread::hardware_concurrency() / 4, 1, 4);
 
-          &encoder_b_ : &encoder_a_;
-        if (init_encoder_state(new_encoder, pending_config_, screencap_res_)) {
-          encoder_state_t* old = active_encoder_.exchange(new_encoder);
+      av_opt_set_int(ctx, "srcw", encoder->screencap_res.x, 0);
+      av_opt_set_int(ctx, "srch", encoder->screencap_res.y, 0);
+      av_opt_set_pixel_fmt(ctx, "src_format", AV_PIX_FMT_BGRA, 0);
+      av_opt_set_int(ctx, "dstw", config.width, 0);
+      av_opt_set_int(ctx, "dsth", config.height, 0);
+      av_opt_set_pixel_fmt(ctx, "dst_format", encoder->codec_ctx->pix_fmt, 0);
+      av_opt_set_int(ctx, "sws_flags", fan::graphics::get_sws_flags(quality), 0);
+      av_opt_set_int(ctx, "threads", threads, 0);
 
-          pending_cleanup_.store(old);
-          needs_codec_reinit_.store(false);
-          codec_name_ = new_encoder->codec_name;
-        }
+      if (sws_init_context(ctx, nullptr, nullptr) < 0) {
+        sws_freeContext(ctx);
+        return nullptr;
       }
+      return ctx;
+    }
 
-      encoder_state_t* encoder = active_encoder_.load();
+    bool libav_encoder_t::convert_frame(encoder_state_t* encoder, std::uint8_t* bgra_data, int stride) {
+      int height = encoder->screencap_res.y;
 
-      if (!encoder || !encoder->initialized || !bgra_data || stride <= 0) return results;
+      // only sws_scale_frame runs threaded. it refs the source, a frame without a
+      // buffer would be copied first, so the capture gets wrapped without copying
+      AVBufferRef* buffer = av_buffer_create(bgra_data, stride * height, [](void*, std::uint8_t*) {}, nullptr, AV_BUFFER_FLAG_READONLY);
+      AVFrame* src = buffer ? av_frame_alloc() : nullptr;
+      int result = -1;
+      if (src) {
+        src->format = AV_PIX_FMT_BGRA;
+        src->width = encoder->screencap_res.x;
+        src->height = height;
+        src->data[0] = bgra_data;
+        src->linesize[0] = stride;
+        src->buf[0] = buffer;
+        buffer = nullptr;
+        result = sws_scale_frame(encoder->sws_ctx, encoder->frame, src);
+        av_frame_free(&src);
+      }
+      av_buffer_unref(&buffer);
+      if (result >= 0) {
+        return true;
+      }
 
       const std::uint8_t* src_data[4] = {bgra_data, nullptr, nullptr, nullptr};
       int src_linesize[4] = {stride, 0, 0, 0};
+      return sws_scale(encoder->sws_ctx, src_data, src_linesize, 0, height,
+        encoder->frame->data, encoder->frame->linesize) == encoder->config.height;
+    }
 
-      if (sws_scale(encoder->sws_ctx, src_data, src_linesize, 0, encoder->screencap_res.y,
-        encoder->frame->data, encoder->frame->linesize) != encoder->config.height) {
-        return results;
+    void libav_encoder_t::apply_pending_reinit() {
+      if (!needs_codec_reinit_.load()) return;
 
+      encoder_state_t* new_encoder = (active_encoder_.load() == &encoder_a_) ?
+
+        &encoder_b_ : &encoder_a_;
+      if (init_encoder_state(new_encoder, pending_config_, screencap_res_)) {
+        encoder_state_t* old = active_encoder_.exchange(new_encoder);
+
+        pending_cleanup_.store(old);
+        needs_codec_reinit_.store(false);
+        codec_name_ = new_encoder->codec_name;
       }
+    }
 
-      encoder->frame->pts = pts;
-      encoder->frame->pict_type = force_keyframe ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_NONE;
+    std::vector<libav_encoder_t::encode_result_t> libav_encoder_t::encode_frame(std::uint8_t* bgra_data, int stride, std::int64_t pts, bool force_keyframe) {
+      std::vector<encode_result_t> results;
 
-      if (avcodec_send_frame(encoder->codec_ctx, encoder->frame) < 0) return results;
+      apply_pending_reinit();
 
-      int ret;
-      while ((ret = avcodec_receive_packet(encoder->codec_ctx, encoder->packet)) >= 0) {
+      encoder_state_t* encoder = active_encoder_.load();
+
+      if (!encoder || !encoder->initialized || !encoder->frame || !bgra_data || stride <= 0) return results;
+
+      if (convert_frame(encoder, bgra_data, stride)) {
+        submit_frame(encoder, encoder->frame, pts, force_keyframe, results);
+      }
+      return results;
+
+    }
+
+    bool libav_encoder_t::submit_frame(encoder_state_t* encoder, AVFrame* frame, std::int64_t pts, bool force_keyframe, std::vector<encode_result_t>& results) {
+      frame->pts = pts;
+      frame->pict_type = force_keyframe ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_NONE;
+
+      if (avcodec_send_frame(encoder->codec_ctx, frame) < 0) return false;
+
+      while (avcodec_receive_packet(encoder->codec_ctx, encoder->packet) >= 0) {
         encode_result_t result;
 
         result.data.resize(encoder->packet->size);
@@ -241,7 +466,7 @@ namespace fan {
       }
 
       maybe_cleanup_old_encoder();
-      return results;
+      return true;
 
     }
 
@@ -275,7 +500,7 @@ namespace fan {
         encoder->codec_ctx->time_base = {1, encoder->config.frame_rate};
 
         encoder->codec_ctx->framerate = {encoder->config.frame_rate, 1};
-        encoder->codec_ctx->gop_size = encoder->config.frame_rate >= 120 ? encoder->config.frame_rate / 2 : encoder->config.gop_size;
+        encoder->codec_ctx->gop_size = gop_size_for(encoder->config);
 
         encoder->codec_ctx->max_b_frames = encoder->config.frame_rate >= 60 ? 0 : 1;
       }
@@ -331,6 +556,8 @@ namespace fan {
 
           codec_ctx_->has_b_frames = 0;
           codec_ctx_->delay = 1;
+          // otherwise cuvid holds back 4 decoded frames
+          codec_ctx_->flags |= AV_CODEC_FLAG_LOW_DELAY;
         }
         else if (decoder_name.find("qsv") != std::string::npos) {
           av_opt_set_int(codec_ctx_->priv_data, "async_depth", 1, 0);
@@ -492,6 +719,7 @@ namespace fan {
           result.pixel_format = static_cast<AVPixelFormat>(target_frame->format);
           int num_planes = av_pix_fmt_count_planes(static_cast<AVPixelFormat>(target_frame->format));
           if (num_planes > 0) {
+            result.plane_data = std::move(spare_planes_);
             result.plane_data.resize(num_planes);
             result.linesize.resize(num_planes);
             for (int i = 0; i < num_planes; i++) {

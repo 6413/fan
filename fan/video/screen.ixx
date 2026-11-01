@@ -35,6 +35,43 @@ export namespace fan {
 
     struct screen_encode_t;
 
+  #if defined(_WIN32)
+    // desktop duplication that waits for the screen to change and keeps frames on the gpu.
+    // a frame only reaches system memory when the encoder can't take the texture
+    struct desktop_capture_t {
+      ~desktop_capture_t() { close(); }
+
+      bool open();
+      void close();
+      // true when texture holds a new frame, false after timeout_ms without one
+      bool acquire(std::uint32_t timeout_ms);
+      // the last acquired frame in system memory, one frame late so the copy never stalls on the gpu
+      std::uint8_t* map_for_cpu(bool new_frame);
+
+      MD_SCR_Geometry_t Geometry{};
+      ID3D11Device* device = nullptr;
+      ID3D11DeviceContext* context = nullptr;
+      IDXGIOutput1* output = nullptr;
+      IDXGIOutputDuplication* duplication = nullptr;
+      ID3D11Texture2D* texture = nullptr;
+      ID3D11Texture2D* staging[2] = {nullptr, nullptr};
+      std::uint32_t staging_index = 0;
+      bool staging_ready = false;
+      std::uint8_t* mapped = nullptr;
+      std::uint32_t mapped_index = 0;
+      bool has_frame = false;
+      std::chrono::steady_clock::time_point next_reopen;
+
+    private:
+      bool create_textures(std::uint32_t width, std::uint32_t height);
+      void release_textures();
+      void release_duplication();
+    };
+    using screen_capture_t = desktop_capture_t;
+  #else
+    using screen_capture_t = MD_SCR_t;
+  #endif
+
     struct resolution_manager_t {
       struct detected_info_t {
         std::uint32_t screen_width, screen_height;
@@ -95,12 +132,21 @@ export namespace fan {
       bool ensure_mdscr_initialized() {
         if (mdscr_initialized_) return true;
 
+      #if defined(_WIN32)
+        if (!mdscr.open()) {
+          fan::print_impl("failed to open screen");
+
+          return false;
+        }
+        encoder_.gpu_device_ = mdscr.device;
+      #else
         std::memset(&mdscr, 0, sizeof(mdscr));
         if (int ret = MD_SCR_open(&mdscr); ret != 0) {
           fan::print_impl("failed to open screen:" + std::to_string(ret));
 
           return false;
         }
+      #endif
 
         resolution_manager.detect_and_set_optimal(*this);
 
@@ -150,9 +196,17 @@ export namespace fan {
       bool screen_read() {
         if (!ensure_mdscr_initialized()) return false;
 
+      #if defined(_WIN32)
+        return read_desktop();
+      #else
         screen_buffer = MD_SCR_read(&mdscr);
         return screen_buffer != nullptr;
+      #endif
       }
+
+    #if defined(_WIN32)
+      bool read_desktop();
+    #endif
 
       void reset_to_auto_resolution() {
         user_set_resolution = false;
@@ -186,8 +240,11 @@ export namespace fan {
       resolution_manager_t resolution_manager;
 
       libav_encoder_t encoder_;
-      MD_SCR_t mdscr;
+      screen_capture_t mdscr;
       std::uint8_t* screen_buffer = nullptr;
+      // time spent copying the last frame, not waiting for it
+      std::uint64_t capture_time_ns = 0;
+      std::chrono::steady_clock::time_point last_read;
 
       std::vector<encode_data_t> encoded_packets_;
       encode_data_t current_packet_;
@@ -250,6 +307,11 @@ export namespace fan {
       };
 
       decode_data_t decode(void* data, std::uintptr_t length, fan::graphics::shape_t& universal_image_renderer);
+
+      // gives a frame's buffers back to the decoder, call from the thread that decodes
+      void recycle(decode_data_t& frame) {
+        decoder_.spare_planes_.assign(std::make_move_iterator(frame.data.begin()), std::make_move_iterator(frame.data.end()));
+      }
 
       std::string name = "auto-detect";
       std::uintptr_t new_codec = 0;
