@@ -1143,7 +1143,7 @@ VkCommandBuffer fan::vulkan::context_t::begin_async_transfer_commands() {
   return cmd;
 }
 
-void fan::vulkan::context_t::end_async_transfer_commands(VkCommandBuffer command_buffer) {
+void fan::vulkan::context_t::end_async_transfer_commands(VkCommandBuffer command_buffer, VkFence fence) {
   fan::vulkan::validate(vkEndCommandBuffer(command_buffer));
 
   VkSubmitInfo submitInfo {};
@@ -1151,7 +1151,7 @@ void fan::vulkan::context_t::end_async_transfer_commands(VkCommandBuffer command
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &command_buffer;
 
-  fan::vulkan::validate(vkQueueSubmit(graphics_queue, 1, &submitInfo, VK_NULL_HANDLE));
+  fan::vulkan::validate(vkQueueSubmit(graphics_queue, 1, &submitInfo, fence));
 
   VkDevice device_handle = device;
   VkCommandPool pool_handle = command_pool;

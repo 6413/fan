@@ -949,6 +949,14 @@ namespace fan {
       if (!bind_) {
         receiver.set_expected_sender(ip, port);
       }
+      // the socket only exists once receiving starts. the os default drops
+      // packets when a large frame arrives in one burst
+      if (receiver.start() == 0) {
+        int size = 8 << 20;
+        uv_recv_buffer_size(reinterpret_cast<uv_handle_t*>(socket.get()), &size);
+        size = 8 << 20;
+        uv_send_buffer_size(reinterpret_cast<uv_handle_t*>(socket.get()), &size);
+      }
       while (true) {
         auto datagram = co_await receiver;
         if (datagram.is_error()) {

@@ -38,7 +38,7 @@ std::vector<shape_shader_pipeline_t> shape_shader_pipelines;
 struct deferred_shape_pipeline_destroy_t {
   VkShaderEXT shaders[2] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
   VkPipelineLayout layout = VK_NULL_HANDLE;
-  VkDescriptorSet descriptor_sets[2] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+  std::array<VkDescriptorSet, fan::vulkan::max_frames_in_flight> descriptor_sets{};
   std::uint32_t frames_left = 0;
 };
 
@@ -162,15 +162,14 @@ void defer_close_shape_pipeline(fan::vulkan::context_t::pipeline_t& pipeline) {
     return;
   }
 
-  VkDescriptorSet desc_sets[2] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+  std::array<VkDescriptorSet, fan::vulkan::max_frames_in_flight> desc_sets{};
   if (pipeline.shader_descriptor_sets) {
-    desc_sets[0] = pipeline.shader_descriptor_sets[0];
-    desc_sets[1] = pipeline.shader_descriptor_sets[1];
+    std::copy_n(pipeline.shader_descriptor_sets, desc_sets.size(), desc_sets.begin());
   }
   deferred_shape_pipeline_destroys.push_back({
     .shaders = { pipeline.m_shaders[0], pipeline.m_shaders[1] },
     .layout = pipeline.m_layout,
-    .descriptor_sets = { desc_sets[0], desc_sets[1] },
+    .descriptor_sets = desc_sets,
     .frames_left = fan::vulkan::max_frames_in_flight
   });
 
@@ -193,8 +192,8 @@ void flush_deferred_shape_pipeline_destroys(bool force = false) {
       vkFreeDescriptorSets(
         loco.context.vk.device,
         loco.context.vk.descriptor_pool.m_descriptor_pool,
-        2,
-        it->descriptor_sets
+        (std::uint32_t)it->descriptor_sets.size(),
+        it->descriptor_sets.data()
       );
     }
     it = deferred_shape_pipeline_destroys.erase(it);

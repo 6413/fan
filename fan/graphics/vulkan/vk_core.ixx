@@ -405,7 +405,7 @@ export namespace fan {
       void end_single_time_commands(VkCommandBuffer command_buffer);
 
       VkCommandBuffer begin_async_transfer_commands();
-      void end_async_transfer_commands(VkCommandBuffer command_buffer);
+      void end_async_transfer_commands(VkCommandBuffer command_buffer, VkFence fence = VK_NULL_HANDLE);
       void copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size);
       void copy_buffer_cmd(VkCommandBuffer cmd, VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize src_offset, VkDeviceSize dst_offset, VkDeviceSize size);
       void fill_buffer_cmd(VkCommandBuffer cmd, buffer_t& buffer, VkDeviceSize offset, VkDeviceSize size, std::uint32_t data);
