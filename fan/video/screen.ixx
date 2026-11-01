@@ -49,6 +49,8 @@ export namespace fan {
       std::uint8_t* map_for_cpu(bool new_frame);
 
       MD_SCR_Geometry_t Geometry{};
+      // where the captured monitor sits on the virtual desktop
+      fan::vec2i desktop_origin = 0;
       ID3D11Device* device = nullptr;
       ID3D11DeviceContext* context = nullptr;
       IDXGIOutput1* output = nullptr;
