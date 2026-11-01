@@ -64,7 +64,10 @@ namespace fan {
       ComPtr<ID3D11VideoProcessor> processor;
       ID3D11Texture2D* input_texture = nullptr;
       ComPtr<ID3D11VideoProcessorInputView> input;
-      std::vector<ComPtr<ID3D11VideoProcessorOutputView>> outputs;
+      // by surface and slice, the pool can hand out separate textures that are all slice 0
+      std::map<std::pair<ID3D11Texture2D*, std::intptr_t>, ComPtr<ID3D11VideoProcessorOutputView>> outputs;
+      ComPtr<ID3D11DeviceContext> context;
+      ComPtr<ID3D11Query> blit_done;
     };
 
     void libav_encoder_t::destroy_gpu_state(encoder_state_t* encoder) {
@@ -100,6 +103,11 @@ namespace fan {
       if (FAILED(gpu_device_->QueryInterface(IID_PPV_ARGS(&gpu->video_device)))) return false;
       if (FAILED(device_ctx->device_context->QueryInterface(IID_PPV_ARGS(&gpu->video_context)))) return false;
 
+      gpu->context = device_ctx->device_context;
+      D3D11_QUERY_DESC query_desc {};
+      query_desc.Query = D3D11_QUERY_EVENT;
+      if (FAILED(gpu_device_->CreateQuery(&query_desc, &gpu->blit_done))) return false;
+
       D3D11_VIDEO_PROCESSOR_CONTENT_DESC content {};
       content.InputFrameFormat = D3D11_VIDEO_FRAME_FORMAT_PROGRESSIVE;
       content.InputWidth = (UINT)encoder->screencap_res.x;
@@ -119,7 +127,6 @@ namespace fan {
       gpu->video_context->VideoProcessorSetStreamFrameFormat(gpu->processor.Get(), 0, D3D11_VIDEO_FRAME_FORMAT_PROGRESSIVE);
       gpu->video_context->VideoProcessorSetStreamAutoProcessingMode(gpu->processor.Get(), 0, FALSE);
 
-      gpu->outputs.resize(pool_size);
       encoder->gpu = gpu.release();
       return true;
     }
@@ -138,16 +145,23 @@ namespace fan {
         gpu->input_texture = texture;
       }
 
+      auto* surface = reinterpret_cast<ID3D11Texture2D*>(frame->data[0]);
       auto slice = reinterpret_cast<std::intptr_t>(frame->data[1]);
-      if (slice < 0 || slice >= (std::intptr_t)gpu->outputs.size()) return false;
 
-      auto& output = gpu->outputs[slice];
+      auto& output = gpu->outputs[{surface, slice}];
       if (!output) {
+        D3D11_TEXTURE2D_DESC surface_desc;
+        surface->GetDesc(&surface_desc);
+
         D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC desc {};
-        desc.ViewDimension = D3D11_VPOV_DIMENSION_TEXTURE2DARRAY;
-        desc.Texture2DArray.FirstArraySlice = (UINT)slice;
-        desc.Texture2DArray.ArraySize = 1;
-        auto* surface = reinterpret_cast<ID3D11Texture2D*>(frame->data[0]);
+        if (surface_desc.ArraySize > 1) {
+          desc.ViewDimension = D3D11_VPOV_DIMENSION_TEXTURE2DARRAY;
+          desc.Texture2DArray.FirstArraySlice = (UINT)slice;
+          desc.Texture2DArray.ArraySize = 1;
+        }
+        else {
+          desc.ViewDimension = D3D11_VPOV_DIMENSION_TEXTURE2D;
+        }
         if (FAILED(gpu->video_device->CreateVideoProcessorOutputView(surface, gpu->enumerator.Get(), &desc, &output))) {
           return false;
         }
@@ -156,7 +170,19 @@ namespace fan {
       D3D11_VIDEO_PROCESSOR_STREAM stream {};
       stream.Enable = TRUE;
       stream.pInputSurface = gpu->input.Get();
-      return SUCCEEDED(gpu->video_context->VideoProcessorBlt(gpu->processor.Get(), output.Get(), 0, 1, &stream));
+      if (FAILED(gpu->video_context->VideoProcessorBlt(gpu->processor.Get(), output.Get(), 0, 1, &stream))) {
+        return false;
+      }
+
+      // the blit is only queued and nvenc doesn't wait for d3d11
+      gpu->context->End(gpu->blit_done.Get());
+      gpu->context->Flush();
+      auto give_up = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+      while (gpu->context->GetData(gpu->blit_done.Get(), nullptr, 0, 0) == S_FALSE &&
+        std::chrono::steady_clock::now() < give_up) {
+        std::this_thread::yield();
+      }
+      return true;
     }
 
     void libav_encoder_t::fall_back_to_cpu() {
