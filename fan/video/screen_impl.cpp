@@ -109,6 +109,7 @@ bool fan::graphics::desktop_capture_t::open() {
   if (!ok) return false;
 
   auto& rect = output_desc.DesktopCoordinates;
+  desktop_origin = fan::vec2i(rect.left, rect.top);
   if (!create_textures(rect.right - rect.left, rect.bottom - rect.top)) return false;
 
   if (output->DuplicateOutput(device, &duplication) != S_OK) {
