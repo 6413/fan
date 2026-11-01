@@ -313,6 +313,7 @@ export namespace fan {
         decoder_.spare_planes_.assign(std::make_move_iterator(frame.data.begin()), std::make_move_iterator(frame.data.end()));
       }
 
+      std::vector<std::uint8_t> last_sequence_header;
       std::string name = "auto-detect";
       std::uintptr_t new_codec = 0;
       std::uint8_t update_flags = 0;
