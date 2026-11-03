@@ -12,6 +12,9 @@ extern "C" {
 #include <fan/utils/utility.h>
 #include <WITCH/WITCH.h>
 #include <WITCH/PR/PR.h>
+#if defined(_WIN32)
+  #include <WITCH/MD/SCR/SCR.h>
+#endif
 #endif
 
 #endif
