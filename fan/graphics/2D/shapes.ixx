@@ -1735,8 +1735,9 @@ export namespace fan::graphics {
     void use_preset_2d();
 
     void load_animations(
-      fan::graphics::shapes::shape_t& body, 
-      const std::string& base_path, 
+      fan::graphics::shapes::shape_t& body,
+      const std::string& base_path,
+      const std::string& extension = ".png",
       const std::source_location& callers_path = std::source_location::current()
     );
 

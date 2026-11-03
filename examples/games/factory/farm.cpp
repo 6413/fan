@@ -6,7 +6,7 @@ using namespace fan::graphics;
 struct resources_t {
   f64_t gold_per_tick = 5.0;
   f64_t gold = 100.0;
-  // image_t tree("examples/games/forest game/tree1.png");
+  // image_t tree("examples/games/forest game/tree1.webp");
 }resources;
 
 struct building_t : sprite_t {
@@ -98,7 +98,7 @@ struct farm_manager_t {
   }
 
   void spawn_trees() {
-    auto path = fan::io::file::find_relative_path("examples/games/forest game/tree1.png");
+    auto path = fan::io::file::find_relative_path("examples/games/forest game/tree1.webp");
     if (!std::filesystem::exists(path)) return;
     auto tree_tex = fan::graphics::image_load(path.string());
 
@@ -224,7 +224,7 @@ struct farm_manager_t {
         f32_t cy = (panel_height / 2.f) - gui::get_text_line_height() / 2.f + 0.5;
 
         gui::set_cursor_pos({12.f, cy});
-        gui::image("game/resources/gold/gold_coin_01.png", gui::get_text_line_height());
+        gui::image("game/resources/gold/gold_coin_01.webp", gui::get_text_line_height());
         gui::same_line();
         gui::text(std::to_string(std::uint64_t(resources.gold)), {.color = fan::color{1.f, 0.84f, 0.f}, .outlined = true});
         gui::same_line();

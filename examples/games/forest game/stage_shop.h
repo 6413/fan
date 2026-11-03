@@ -78,7 +78,7 @@ void update() {
 tilemap_loader_t::id_t main_map_id;
 fan::physics::body_id_t player_sensor_door, vendor_buy_sensor;
 fan::graphics::sprite_t vendor;
-fan::graphics::image_t vendor_image{"npc/vendor/vendor.png", image_presets::pixel_art()};
+fan::graphics::image_t vendor_image{"npc/vendor/vendor.webp", image_presets::pixel_art()};
 static inline std::string_view vendor_dialogue[] = { "Hello there!", "Feel free to browse the shop.", "I also buy junk." };
 static inline std::string_view vendor_answers[] = { "Yes, gladly!", "No." };
 fan::graphics::gui::dialogue_box_t dialogue_box;

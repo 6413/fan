@@ -162,7 +162,7 @@ struct car_t {
   fan::physics::body_id_t middle_checkpoint_sensor;
   uint16_t laps = 0;
 
-  fan::graphics::image_t car_image{ "images/car_red.png" };
+  fan::graphics::image_t car_image{ "images/car_red.webp" };
   std::vector<fan::graphics::circle_t> drift_lines;
   fan::graphics::trail_t rear_left_trail;
   fan::graphics::trail_t rear_right_trail;

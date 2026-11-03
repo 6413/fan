@@ -38,7 +38,7 @@ void spawn_grass_leaf(int x, int y, f32_t ts) {
     .size = leaf_size,
     .rotation_point = fan::vec2(0, leaf_size.y),
     .shader = grass_shader,
-    .image = fan::graphics::image_t("images/plant_03.png", fan::graphics::image_presets::smooth()),
+    .image = fan::graphics::image_t("images/plant_03.webp", fan::graphics::image_presets::smooth()),
     .enable_culling = false
   }});
 }
