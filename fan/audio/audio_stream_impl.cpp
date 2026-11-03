@@ -190,7 +190,21 @@ namespace fan::audio {
       ((live_player_t*)dev->pUserData)->pull((f32_t*)output, frame_count);
     };
     ma_device_config config = make_config(ma_device_type_playback, proc, this);
-    if (ma_device_init(nullptr, &config, &d->device) != MA_SUCCESS) {
+    // without an explicit list miniaudio falls back to its null backend, which plays silence
+  #if defined(_WIN32)
+    ma_backend backends[] = {ma_backend_wasapi, ma_backend_dsound, ma_backend_winmm};
+  #elif defined(__linux__)
+    ma_backend backends[] = {ma_backend_pulseaudio, ma_backend_alsa, ma_backend_jack};
+  #else
+    ma_backend backends[] = {ma_backend_coreaudio};
+  #endif
+    if (ma_context_init(backends, sizeof(backends) / sizeof(backends[0]), nullptr, &d->context) != MA_SUCCESS) {
+      std::printf("audio playback: no audio backend available\n");
+      destroy_device(device);
+      return false;
+    }
+    d->has_context = true;
+    if (ma_device_init(&d->context, &config, &d->device) != MA_SUCCESS) {
       destroy_device(device);
       return false;
     }
@@ -199,6 +213,7 @@ namespace fan::audio {
       destroy_device(device);
       return false;
     }
+    std::printf("audio playback backend: %s\n", ma_get_backend_name(d->context.backend));
     return true;
   }
 
