@@ -22,15 +22,17 @@ export namespace fan::audio {
   // the first entry is always the default output
   std::vector<loopback_device_t> get_loopback_devices();
 
+  // outside loopback_capture_t so it can be a defaulted argument of its members
+  struct loopback_capture_options_t {
+    std::string device_id;
+    // records every app except discord's process tree (windows only), device_id is then unused
+    bool exclude_discord = false;
+    f32_t gain = 1.f;
+  };
+
   struct loopback_capture_t {
     using callback_t = std::function<void(const f32_t* pcm, std::uint32_t frame_count)>;
-
-    struct options_t {
-      std::string device_id;
-      // records every app except discord's process tree (windows only), device_id is then unused
-      bool exclude_discord = false;
-      f32_t gain = 1.f;
-    };
+    using options_t = loopback_capture_options_t;
 
     loopback_capture_t() = default;
     loopback_capture_t(const loopback_capture_t&) = delete;
