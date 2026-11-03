@@ -64,6 +64,7 @@ local fan_features = {
   FAN_WAYLAND_SCREEN = false,
   FAN_NETWORK = false,
   FAN_AUDIO = false,
+  FAN_AUDIO_STREAM = false,
   FAN_VIDEO = false,
   FAN_REFLECTION = false,
   FAN_SHADERC = true
@@ -578,7 +579,7 @@ local module_files = {
 
 local feature_modules = {
   FAN_WINDOW = {
-    "fan/window/window.ixx", "fan/window/input_common.ixx", "fan/window/input.ixx", "fan/window/input_action.ixx",
+    "fan/window/window.ixx", "fan/window/input_common.ixx", "fan/window/input.ixx", "fan/window/input_action.ixx", "fan/window/input_inject.ixx",
     "fan/graphics/common_types.ixx", "fan/graphics/material.ixx", "fan/graphics/camera.ixx", "fan/graphics/image_load.ixx",
     "fan/graphics/webp.ixx", "fan/graphics/stb.ixx", "fan/graphics/common_context.ixx",
     "fan/graphics/audio_subsystem.ixx", "fan/graphics/physics_subsystem.ixx", "fan/graphics/input_subsystem.ixx",
@@ -598,6 +599,7 @@ local feature_modules = {
   FAN_FMT = { "fan/utils/fmt.ixx" },
   FAN_NETWORK = { "fan/network/network.ixx", "fan/network/network_socket.ixx", "fan/graphics/2D/graphics_network.ixx" },
   FAN_AUDIO = { "fan/audio/audio.ixx" },
+  FAN_AUDIO_STREAM = { "fan/audio/audio_stream.ixx" },
   FAN_PHYSICS_2D = { "fan/physics/b2_integration.ixx", "fan/physics/physics_common_context.ixx", "fan/graphics/physics_shapes.ixx", "fan/physics/vehicle_controller.ixx" },
   FAN_GUI = {
     "fan/graphics/gui/gui_base.ixx", "fan/graphics/gui/gui_input.ixx",
@@ -841,6 +843,7 @@ if has_config("FAN_2D") then
     end
 
     if has_config("FAN_AUDIO") then add_links("opus", "pulse-simple", "pulse") end
+    if has_config("FAN_AUDIO_STREAM") then add_links("opus", "dl") end
     if has_config("FAN_NETWORK") then add_links("ssl", "curl") end
     if has_config("FAN_GUI") then add_packages("freetype", "lunasvg") end
     if has_config("FAN_PHYSICS_2D") then add_packages("box2d") end

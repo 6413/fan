@@ -26,6 +26,7 @@ export import fan.io.directory;
 export import fan.window.input;
 export import fan.window.input_common;
 export import fan.window;
+export import fan.window.input_inject;
 
 export import fan.graphics.image_load;
 
@@ -73,6 +74,9 @@ export import fan.event;
 
 #if defined(FAN_AUDIO)
   export import fan.audio;
+#endif
+#if defined(FAN_AUDIO_STREAM)
+  export import fan.audio.stream;
 #endif
 #if defined(FAN_PHYSICS_2D)
   export import fan.math.intersection;
