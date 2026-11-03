@@ -33,7 +33,7 @@ export namespace fan::graphics::gui {
       int renderer = 0;
     };
     struct performance_settings_t {
-      bool vsync = false;
+      bool vsync = true;
       bool show_fps = false;
       bool show_profiler = false;
       bool track_heap = false;
@@ -50,7 +50,7 @@ export namespace fan::graphics::gui {
       f32_t volume = 1.0f;
     };
     struct post_processing_t {
-      int mode = 1;
+      int mode = 0;
       fan::color clear_color = fan::color(0.f, 0.f, 0.f, 1.f);
       fan::color ambient_color = fan::color(0.1f, 0.1f, 0.1f, 1.f);
       f32_t bloom_strength = 0.0445f;
