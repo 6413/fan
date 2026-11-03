@@ -14,8 +14,23 @@ export namespace fan::audio {
   inline constexpr std::uint32_t stream_frame_size = 960;
   inline constexpr std::uint32_t stream_max_packet = 1275;
 
+  // an output whose mix can be recorded; an empty id follows the system default output
+  struct loopback_device_t {
+    std::string id;
+    std::string name;
+  };
+  // the first entry is always the default output
+  std::vector<loopback_device_t> get_loopback_devices();
+
   struct loopback_capture_t {
     using callback_t = std::function<void(const f32_t* pcm, std::uint32_t frame_count)>;
+
+    struct options_t {
+      std::string device_id;
+      // records every app except discord's process tree (windows only), device_id is then unused
+      bool exclude_discord = false;
+      f32_t gain = 1.f;
+    };
 
     loopback_capture_t() = default;
     loopback_capture_t(const loopback_capture_t&) = delete;
@@ -23,16 +38,29 @@ export namespace fan::audio {
     ~loopback_capture_t();
 
     static bool is_supported();
-    bool start(callback_t cb);
+    static bool can_exclude_processes();
+    // root of the running discord process tree, 0 when discord is not running
+    static std::uint32_t find_discord_pid();
+
+    bool start(callback_t cb, const options_t& options = {});
     void stop();
     bool is_running() const;
+    void set_gain(f32_t value);
     const std::string& get_error() const;
+    // pid excluded by the running capture, 0 when recording a device mix
+    std::uint32_t get_excluded_pid() const;
     void on_data(const f32_t* pcm, std::uint32_t frame_count);
 
+    bool start_device(const std::string& device_id);
+    bool start_process_exclude(std::uint32_t pid);
+
     void* device = nullptr;
+    void* process_capture = nullptr;
+    std::uint32_t excluded_pid = 0;
     callback_t callback;
     std::vector<f32_t> pending;
     std::string error;
+    std::atomic<f32_t> gain = 1.f;
   };
 
   struct live_player_t {
