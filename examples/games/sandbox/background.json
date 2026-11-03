@@ -5,7 +5,7 @@
         {
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "images/far-clouds.png"
+          "image_path": "images/far-clouds.webp"
         }
       ],
       "position": [
@@ -28,7 +28,7 @@
         {
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "images/near-clouds.png"
+          "image_path": "images/near-clouds.webp"
         }
       ],
       "position": [
@@ -51,7 +51,7 @@
         {
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "images/mountains.png"
+          "image_path": "images/mountains.webp"
         }
       ],
       "position": [
@@ -74,7 +74,7 @@
         {
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "images/far-mountains.png"
+          "image_path": "images/far-mountains.webp"
         }
       ],
       "position": [
@@ -97,7 +97,7 @@
         {
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "images/trees.png"
+          "image_path": "images/trees.webp"
         }
       ],
       "position": [

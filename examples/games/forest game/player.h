@@ -4,7 +4,7 @@ struct player_t {
     body.set_draw_offset(fan::vec2(0, -body.get_size().y));
     body.set_linear_damping(1500.f);
     body.add_child(light);
-    animator.load_animations(body, "npc/player");
+    animator.load_animations(body, "npc/player", ".webp");
 
     fan::vec2 sword_size = sword.get_image().get_size().normalize() * body.get_size().min() * 2.f;
     f32_t sword_scale = 0.8;
@@ -40,7 +40,7 @@ struct player_t {
   static constexpr fan::vec2 light_size = 200.f;
   light_t light{{}, light_size, fan::colors::white / 4.f};
   sprite_sheet_controller_t animator;
-  sprite_t sword{image_t("npc/player/sword.png", image_presets::pixel_art())};
+  sprite_t sword{image_t("npc/player/sword.webp", image_presets::pixel_art())};
 };
 
 struct pet_t {

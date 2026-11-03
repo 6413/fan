@@ -3,7 +3,7 @@
     {
       "images": [
         {
-          "image_path": "images/forest_mountain.png"
+          "image_path": "images/forest_mountain.webp"
         }
       ],
       "position": [
@@ -22,7 +22,7 @@
         {
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "images/forest_back.png"
+          "image_path": "images/forest_back.webp"
         }
       ],
       "position": [
@@ -41,7 +41,7 @@
         {
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "images/forest_mid.png"
+          "image_path": "images/forest_mid.webp"
         }
       ],
       "position": [
@@ -60,7 +60,7 @@
         {
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "images/forest_short.png"
+          "image_path": "images/forest_short.webp"
         }
       ],
       "position": [
@@ -79,7 +79,7 @@
         {
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "images/forest_long.png"
+          "image_path": "images/forest_long.webp"
         }
       ],
       "position": [

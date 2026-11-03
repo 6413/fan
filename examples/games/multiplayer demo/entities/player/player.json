@@ -5,79 +5,79 @@
       "id": 0,
       "images": [
         {
-          "image_path": "game\\entities\\player\\Armature_walk_00.png"
+          "image_path": "game\\entities\\player\\Armature_walk_00.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_01.png"
+          "image_path": "game\\entities\\player\\Armature_walk_01.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_02.png"
+          "image_path": "game\\entities\\player\\Armature_walk_02.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_03.png"
+          "image_path": "game\\entities\\player\\Armature_walk_03.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_04.png"
+          "image_path": "game\\entities\\player\\Armature_walk_04.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_05.png"
+          "image_path": "game\\entities\\player\\Armature_walk_05.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_06.png"
+          "image_path": "game\\entities\\player\\Armature_walk_06.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_07.png"
+          "image_path": "game\\entities\\player\\Armature_walk_07.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_08.png"
+          "image_path": "game\\entities\\player\\Armature_walk_08.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_09.png"
+          "image_path": "game\\entities\\player\\Armature_walk_09.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_10.png"
+          "image_path": "game\\entities\\player\\Armature_walk_10.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_11.png"
+          "image_path": "game\\entities\\player\\Armature_walk_11.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_12.png"
+          "image_path": "game\\entities\\player\\Armature_walk_12.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_13.png"
+          "image_path": "game\\entities\\player\\Armature_walk_13.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_14.png"
+          "image_path": "game\\entities\\player\\Armature_walk_14.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_15.png"
+          "image_path": "game\\entities\\player\\Armature_walk_15.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_16.png"
+          "image_path": "game\\entities\\player\\Armature_walk_16.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_17.png"
+          "image_path": "game\\entities\\player\\Armature_walk_17.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_18.png"
+          "image_path": "game\\entities\\player\\Armature_walk_18.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_19.png"
+          "image_path": "game\\entities\\player\\Armature_walk_19.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_20.png"
+          "image_path": "game\\entities\\player\\Armature_walk_20.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_21.png"
+          "image_path": "game\\entities\\player\\Armature_walk_21.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_22.png"
+          "image_path": "game\\entities\\player\\Armature_walk_22.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_23.png"
+          "image_path": "game\\entities\\player\\Armature_walk_23.webp"
         },
         {
-          "image_path": "game\\entities\\player\\Armature_walk_24.png"
+          "image_path": "game\\entities\\player\\Armature_walk_24.webp"
         }
       ],
       "name": "0",
@@ -117,7 +117,7 @@
       ],
       "images": [
         {
-          "image_path": "game\\entities\\player\\Armature_walk_03.png"
+          "image_path": "game\\entities\\player\\Armature_walk_03.webp"
         }
       ],
       "position": [

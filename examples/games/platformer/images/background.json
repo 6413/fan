@@ -9,7 +9,7 @@
       ],
       "images": [
         {
-          "image_path": "back-walls.png"
+          "image_path": "back-walls.webp"
         }
       ],
       "position": [
@@ -26,7 +26,7 @@
     {
       "images": [
         {
-          "image_path": "tiles.png"
+          "image_path": "tiles.webp"
         }
       ],
       "position": [
@@ -44,7 +44,7 @@
       "images": [
         {
           "image_format": 4,
-          "image_path": "background.png"
+          "image_path": "background2.webp"
         }
       ],
       "position": [

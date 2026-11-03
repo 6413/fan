@@ -184,7 +184,7 @@ void gen_world() {
         shape.set_image("images/dirt" + std::to_string(fan::random::value_i64(0, 3)) + ".webp");
         break;
       case tile_stone:
-        shape.set_image("images/stone.png");
+        shape.set_image("images/stone.webp");
         break;
       }
 
