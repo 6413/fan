@@ -12,7 +12,6 @@ extern "C" {
 #include <fan/utils/utility.h>
 #include <WITCH/WITCH.h>
 #include <WITCH/PR/PR.h>
-#include <WITCH/MD/SCR/SCR.h>
 #endif
 
 #endif
@@ -109,7 +108,6 @@ bool fan::graphics::desktop_capture_t::open() {
   if (!ok) return false;
 
   auto& rect = output_desc.DesktopCoordinates;
-  desktop_origin = fan::vec2i(rect.left, rect.top);
   if (!create_textures(rect.right - rect.left, rect.bottom - rect.top)) return false;
 
   if (output->DuplicateOutput(device, &duplication) != S_OK) {
@@ -344,25 +342,6 @@ void fan::graphics::screen_encode_t::sleep_thread() {
   }
 }
 
-static bool is_start_code(const std::uint8_t* data) {
-  return data[0] == 0 && data[1] == 0 && data[2] == 1;
-}
-
-// a stream's parameters come first in a keyframe, so only the start needs a look
-static std::span<const std::uint8_t> find_h264_sequence_header(const std::uint8_t* data, std::size_t size) {
-  std::size_t search_end = (std::min)(size, (std::size_t)128);
-  for (std::size_t i = 0; i + 3 < search_end; ++i) {
-    if (is_start_code(data + i) && (data[i + 3] & 0x1f) == 7) {
-      std::size_t end = i + 3;
-      while (end + 3 < size && !is_start_code(data + end)) {
-        ++end;
-      }
-      return {data + i, end - i};
-    }
-  }
-  return {};
-}
-
 fan::graphics::screen_decode_t::decode_data_t fan::graphics::screen_decode_t::decode(void* data, std::uintptr_t length, fan::graphics::shape_t& universal_image_renderer) {
   decode_data_t ret;
 
@@ -378,22 +357,6 @@ fan::graphics::screen_decode_t::decode_data_t fan::graphics::screen_decode_t::de
     update_flags = 0;
     reload_codec_cb();
 
-  }
-
-  // cuvid can't follow a new resolution and fails the keyframe that brings it,
-  // so a new decoder has to be there before that keyframe goes in
-  auto sequence_header = find_h264_sequence_header(static_cast<const std::uint8_t*>(data), length);
-  if (!sequence_header.empty() && !std::ranges::equal(sequence_header, last_sequence_header)) {
-    bool stream_changed = !last_sequence_header.empty();
-    last_sequence_header.assign(sequence_header.begin(), sequence_header.end());
-    if (stream_changed) {
-      std::lock_guard<std::mutex> lock(mutex);
-      if (!decoder_.open()) {
-        ret.type = 254;
-        return ret;
-      }
-      reload_codec_cb();
-    }
   }
 
   // keep the decoder's native planes (yuv420p / nv12); the default converts to rgba,

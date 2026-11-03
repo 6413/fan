@@ -201,8 +201,17 @@ export namespace fan {
       #if defined(_WIN32)
         return read_desktop();
       #else
-        screen_buffer = MD_SCR_read(&mdscr);
-        return screen_buffer != nullptr;
+        auto now = std::chrono::steady_clock::now();
+        if (std::uint8_t* frame = MD_SCR_read(&mdscr)) {
+          screen_buffer = frame;
+          last_read = now;
+          return true;
+        }
+        if (!screen_buffer || (!(encode_write_flags & codec_update_e::force_keyframe) && now - last_read < std::chrono::milliseconds(100))) {
+          return false;
+        }
+        last_read = now;
+        return true;
       #endif
       }
 
