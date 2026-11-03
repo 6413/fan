@@ -306,6 +306,11 @@ export namespace fan {
           codec_name_ = encoder->codec_name;
           return true;
         }
+        static constexpr const char* codec_names[] = {"H264", "H265", "AV1"};
+        fan::print_impl(std::string("failed to open ") + codec_names[config.codec] + " encoder: " +
+          std::to_string(config.width) + "x" + std::to_string(config.height) + " from " +
+          std::to_string((int)encoder->screencap_res.x) + "x" + std::to_string((int)encoder->screencap_res.y) +
+          (config.use_hardware ? ", hardware" : ", software"));
         return false;
 
       }
