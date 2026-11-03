@@ -77,8 +77,8 @@ namespace fan::window::input {
     case 0x30: { return fan::input::key_b; }
     case 0x31: { return fan::input::key_n; }
     case 0x32: { return fan::input::key_m; }
-    case 0x33: { return fan::input::key_less_than; }
-    case 0x34: { return fan::input::key_greater_than; }
+    case 0x33: { return fan::input::key_comma; }
+    case 0x34: { return fan::input::key_period; }
     case 0x35: { return fan::input::key_slash; }
     case 0x36: { return fan::input::key_right_shift; }
     case 0x37: { return fan::input::key_numpad_multiply; }
@@ -109,7 +109,7 @@ namespace fan::window::input {
     case 0x50: { return fan::input::key_numpad_2; }
     case 0x51: { return fan::input::key_numpad_3; }
     case 0x52: { return fan::input::key_numpad_0; }
-    case 0x53: { return fan::input::key_numpad_subtract; }
+    case 0x53: { return fan::input::key_numpad_decimal; }
     case 0x56: { return fan::input::key_less_than; }
     case 0x57: { return fan::input::key_f11; }
     case 0x58: { return fan::input::key_f12; }
@@ -186,8 +186,8 @@ namespace fan::window::input {
     case 0x30: { return fan::input::key_b; }
     case 0x31: { return fan::input::key_n; }
     case 0x32: { return fan::input::key_m; }
-    case 0x33: { return fan::input::key_less_than; }
-    case 0x34: { return fan::input::key_greater_than; }
+    case 0x33: { return fan::input::key_comma; }
+    case 0x34: { return fan::input::key_period; }
     case 0x35: { return fan::input::key_slash; }
     case 0x36: { return fan::input::key_right_shift; }
     case 0x37: { return fan::input::key_numpad_multiply; }
@@ -218,7 +218,7 @@ namespace fan::window::input {
     case 0x50: { return fan::input::key_numpad_2; }
     case 0x51: { return fan::input::key_numpad_3; }
     case 0x52: { return fan::input::key_numpad_0; }
-    case 0x53: { return fan::input::key_numpad_subtract; }
+    case 0x53: { return fan::input::key_numpad_decimal; }
     case 0x56: { return fan::input::key_less_than; }
     case 0x57: { return fan::input::key_f11; }
     case 0x58: { return fan::input::key_f12; }
@@ -307,6 +307,8 @@ namespace fan::window::input {
     case fan::input::key_k: { return 0x25; }
     case fan::input::key_l: { return 0x26; }
     case fan::input::key_semicolon: { return 0x27; }
+    case fan::input::key_apostrophe: { return 0x28; }
+    case fan::input::key_grave_accent: { return 0x29; }
     case fan::input::key_left_shift: { return 0x2A; }
     case fan::input::key_backslash: { return 0x2B; }
     case fan::input::key_z: { return 0x2C; }
@@ -316,8 +318,8 @@ namespace fan::window::input {
     case fan::input::key_b: { return 0x30; }
     case fan::input::key_n: { return 0x31; }
     case fan::input::key_m: { return 0x32; }
-    case fan::input::key_less_than: { return 0x33; }
-    case fan::input::key_greater_than: { return 0x34; }
+    case fan::input::key_comma: { return 0x33; }
+    case fan::input::key_period: { return 0x34; }
     case fan::input::key_slash: { return 0x35; }
     case fan::input::key_right_shift: { return 0x36; }
     case fan::input::key_numpad_multiply: { return 0x37; }
@@ -350,7 +352,8 @@ namespace fan::window::input {
     case fan::input::key_numpad_2: { return 0x50; }
     case fan::input::key_numpad_3: { return 0x51; }
     case fan::input::key_numpad_0: { return 0x52; }
-                                      //case fan::input::key_numpad_subtract: { return 0x53; }
+    case fan::input::key_numpad_decimal: { return 0x53; }
+    case fan::input::key_less_than: { return 0x56; }
 
     case fan::input::key_numpad_enter: { return 0x11c; }
     case fan::input::key_right_control: { return 0x11d; }
@@ -371,6 +374,7 @@ namespace fan::window::input {
     case fan::input::key_left_super: { return 0x15b; }
     case fan::input::key_right_super: { return 0x15c; }
     case fan::input::key_menu: { return 0x15d; }
+    case fan::input::key_print_screen: { return 0x137; }
 
   #elif defined(fan_platform_unix)
 
@@ -413,6 +417,8 @@ namespace fan::window::input {
     case fan::input::key_k: { return 0x25; }
     case fan::input::key_l: { return 0x26; }
     case fan::input::key_semicolon: { return 0x27; }
+    case fan::input::key_apostrophe: { return 0x28; }
+    case fan::input::key_grave_accent: { return 0x29; }
     case fan::input::key_left_shift: { return 0x2A; }
     case fan::input::key_backslash: { return 0x2B; }
     case fan::input::key_z: { return 0x2C; }
@@ -422,8 +428,8 @@ namespace fan::window::input {
     case fan::input::key_b: { return 0x30; }
     case fan::input::key_n: { return 0x31; }
     case fan::input::key_m: { return 0x32; }
-                              //case fan::input::key_less_than: { return 0x33; }
-                              //case fan::input::key_greater_than: { return 0x34; }
+    case fan::input::key_comma: { return 0x33; }
+    case fan::input::key_period: { return 0x34; }
     case fan::input::key_slash: { return 0x35; }
     case fan::input::key_right_shift: { return 0x36; }
     case fan::input::key_numpad_multiply: { return 0x37; }
@@ -447,7 +453,7 @@ namespace fan::window::input {
     case fan::input::key_numpad_7: { return 0x47; }
     case fan::input::key_numpad_8: { return 0x48; }
     case fan::input::key_numpad_9: { return 0x49; }
-                                      //case fan::input::key_numpad_subtract: { return 0x4A; }
+    case fan::input::key_numpad_subtract: { return 0x4A; }
     case fan::input::key_numpad_4: { return 0x4B; }
     case fan::input::key_numpad_5: { return 0x4C; }
     case fan::input::key_numpad_6: { return 0x4D; }
@@ -456,9 +462,8 @@ namespace fan::window::input {
     case fan::input::key_numpad_2: { return 0x50; }
     case fan::input::key_numpad_3: { return 0x51; }
     case fan::input::key_numpad_0: { return 0x52; }
-    case fan::input::key_numpad_subtract: { return 0x53; }
+    case fan::input::key_numpad_decimal: { return 0x53; }
     case fan::input::key_less_than: { return 0x56; }
-    case fan::input::key_greater_than: { return 0xe056; }
     case fan::input::key_numpad_enter: { return 0xe01c; }
     case fan::input::key_right_control: { return 0xe01d; }
                                         //case fan::input::key_left_shift: { return 0xe02a; }
@@ -478,6 +483,7 @@ namespace fan::window::input {
     case fan::input::key_left_super: { return 0xe05b; }
     case fan::input::key_right_super: { return 0xe05c; }
     case fan::input::key_menu: { return 0xe05d; }
+    case fan::input::key_print_screen: { return 0xe037; }
 
   #else
 

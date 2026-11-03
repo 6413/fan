@@ -178,7 +178,7 @@ export namespace fan {
       #endif
       }
 
-      static thread_local std::chrono::steady_clock::time_point last_cleanup_time_;
+      inline static thread_local std::chrono::steady_clock::time_point last_cleanup_time_ = std::chrono::steady_clock::now();
 
       static std::unordered_map<codec_config_t::codec_type_e, std::vector<std::string>> get_codec_names() {
         return {
@@ -367,7 +367,6 @@ export namespace fan {
       }
     };
 
-    thread_local std::chrono::steady_clock::time_point libav_encoder_t::last_cleanup_time_ = std::chrono::steady_clock::now();
 
     struct libav_decoder_t {
       const AVCodec* codec_ = nullptr;
