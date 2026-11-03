@@ -4505,14 +4505,14 @@ namespace fan::graphics {
     enable_directional({});
   }
 
-  void sprite_sheet_controller_t::load_animations(fan::graphics::shapes::shape_t& body, const std::string& base_path, const std::source_location& callers_path) {
+  void sprite_sheet_controller_t::load_animations(fan::graphics::shapes::shape_t& body, const std::string& base_path, const std::string& extension, const std::source_location& callers_path) {
     auto lp = fan::graphics::image_presets::pixel_art();
     for (const std::string dir : {"down", "up", "left", "right"}) {
-      fan::graphics::image_t idle {base_path + "/static_" + dir + ".png", lp, callers_path};
+      fan::graphics::image_t idle {base_path + "/static_" + dir + extension, lp, callers_path};
       body.add_sprite_sheet(fan::graphics::sprite_sheet_t("idle_" + dir, 1, {idle}));
       body.add_sprite_sheet(fan::graphics::sprite_sheet_t("move_" + dir, 6, {
-        {base_path + "/" + dir + "_left_hand_forward.png", lp, callers_path}, idle,
-        {base_path + "/" + dir + "_right_hand_forward.png", lp, callers_path}, idle
+        {base_path + "/" + dir + "_left_hand_forward" + extension, lp, callers_path}, idle,
+        {base_path + "/" + dir + "_right_hand_forward" + extension, lp, callers_path}, idle
       }));
     }
 
