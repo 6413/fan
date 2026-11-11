@@ -267,6 +267,15 @@ namespace fan::io::file {
 			if (auto r = try_all(exe_dir, std::string(file_path)); !r.empty()) return r;
 		}
 
+		// assets (shaders/, fonts/, ...) live in fan's root, which an app built out of tree
+		// and run from elsewhere can't reach through cwd or the exe's folder
+		if (const char* asset_dir = std::getenv("FAN_ASSET_DIR"); asset_dir && *asset_dir) {
+			if (auto r = try_all(fs::path(asset_dir), std::string(file_path)); !r.empty()) return r;
+		}
+	#if defined(FAN_SOURCE_DIR)
+		if (auto r = try_all(fs::path(FAN_SOURCE_DIR), std::string(file_path)); !r.empty()) return r;
+	#endif
+
 		if (!exe_dir.empty()) {
 			fs::path p = current_dir;
 			while (p.has_parent_path()) {

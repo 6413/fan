@@ -123,6 +123,20 @@ export namespace fan {
       }
     }
 
+    // a device type that failed once (no cuda gpu, no driver) is not retried, each attempt is slow and logs errors
+    inline bool create_hw_device(AVBufferRef** out, AVHWDeviceType type) {
+      static std::mutex mutex;
+      static std::unordered_set<int> unavailable;
+      {
+        std::lock_guard lock(mutex);
+        if (unavailable.contains((int)type)) return false;
+      }
+      if (av_hwdevice_ctx_create(out, type, nullptr, nullptr, 0) == 0) return true;
+      std::lock_guard lock(mutex);
+      unavailable.insert((int)type);
+      return false;
+    }
+
     struct libav_encoder_t {
       struct gpu_state_t;
 
@@ -140,6 +154,8 @@ export namespace fan {
         bool initialized = false;
 
         AVBufferRef* hw_device_ctx = nullptr;
+        // set for vaapi: frames are converted on the cpu into `frame` and uploaded into this pool
+        AVBufferRef* hw_frames_ctx = nullptr;
         AVHWDeviceType hw_type = AV_HWDEVICE_TYPE_NONE;
         fan::vec2 screencap_res;
         codec_config_t config;
@@ -227,7 +243,7 @@ export namespace fan {
         };
 
         for (auto type : hw_types) {
-          if (av_hwdevice_ctx_create(&encoder->hw_device_ctx, type, nullptr, nullptr, 0) == 0) {
+          if (create_hw_device(&encoder->hw_device_ctx, type)) {
             encoder->hw_type = type;
 
             return true;
@@ -251,7 +267,12 @@ export namespace fan {
       }
 
       bool find_and_init_codec(encoder_state_t* encoder, const codec_config_t& config);
-      bool open_codec(encoder_state_t* encoder, const codec_config_t& config, const std::string& name, bool use_gpu);
+      bool open_codec(encoder_state_t* encoder, const codec_config_t& config, const std::string& name, bool use_gpu, bool low_power = false);
+      static bool open_vaapi_frames(encoder_state_t* encoder, const codec_config_t& config);
+      // the format the cpu writes into, the codec's own format is a gpu surface for vaapi
+      static AVPixelFormat cpu_pixel_format(const encoder_state_t* encoder) {
+        return encoder->hw_frames_ctx ? AV_PIX_FMT_NV12 : encoder->codec_ctx->pix_fmt;
+      }
       void apply_pending_reinit();
 
       void cleanup_encoder_state(encoder_state_t* encoder) {
@@ -266,6 +287,7 @@ export namespace fan {
         if (encoder->packet) av_packet_free(&encoder->packet);
 
         if (encoder->codec_ctx) avcodec_free_context(&encoder->codec_ctx);
+        if (encoder->hw_frames_ctx) av_buffer_unref(&encoder->hw_frames_ctx);
         if (encoder->hw_device_ctx) av_buffer_unref(&encoder->hw_device_ctx);
 
         encoder->initialized = false;
@@ -436,7 +458,7 @@ export namespace fan {
         };
 
         for (const auto& [type, name] : hw_types) {
-          if (av_hwdevice_ctx_create(&hw_device_ctx_, type, nullptr, nullptr, 0) == 0) {
+          if (create_hw_device(&hw_device_ctx_, type)) {
             hw_type_ = type;
 
             hw_pixel_format_ = get_hw_pixel_format(type);

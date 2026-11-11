@@ -11,6 +11,7 @@ extern "C" {
 #include <libavutil/opt.h>
 #include <libavutil/log.h>
 #include <libswscale/swscale.h>
+#include <libavutil/hwcontext.h>
 }
 #if defined(_WIN32)
 #ifndef NOMINMAX
@@ -293,7 +294,18 @@ namespace fan {
     bool libav_encoder_t::find_and_init_codec(encoder_state_t* encoder, const codec_config_t& config) {
       auto codec_names = get_codec_names();
 
+      // nvenc without an nvidia gpu or amf without its runtime fails the same way every time
+      static std::mutex unavailable_mutex;
+      static std::unordered_set<std::string> unavailable;
+      auto is_vendor_encoder = [](const std::string& name) {
+        return name.find("nvenc") != std::string::npos || name.find("amf") != std::string::npos;
+      };
+
       for (const auto& name : codec_names[config.codec]) {
+        {
+          std::lock_guard lock(unavailable_mutex);
+          if (unavailable.contains(name)) continue;
+        }
         encoder->codec = avcodec_find_encoder_by_name(name.c_str());
 
         if (!encoder->codec) continue;
@@ -305,8 +317,22 @@ namespace fan {
           return true;
         }
       #endif
+        if (name.find("vaapi") != std::string::npos) {
+          // vaapi encodes gpu surfaces, it needs the vaapi device that init_hardware_acceleration opened
+          if (encoder->hw_type != AV_HWDEVICE_TYPE_VAAPI) continue;
+          // amd only has the normal entrypoint, some intel chips only the low power one
+          if (open_codec(encoder, config, name, false, false) || open_codec(encoder, config, name, false, true)) {
+            return true;
+          }
+          encoder->codec = nullptr;
+          continue;
+        }
         if (open_codec(encoder, config, name, false)) {
           return true;
+        }
+        if (is_vendor_encoder(name)) {
+          std::lock_guard lock(unavailable_mutex);
+          unavailable.insert(name);
         }
 
         encoder->codec = nullptr;
@@ -316,7 +342,26 @@ namespace fan {
 
     }
 
-    bool libav_encoder_t::open_codec(encoder_state_t* encoder, const codec_config_t& config, const std::string& name, bool use_gpu) {
+    bool libav_encoder_t::open_vaapi_frames(encoder_state_t* encoder, const codec_config_t& config) {
+      AVBufferRef* frames = av_hwframe_ctx_alloc(encoder->hw_device_ctx);
+      if (!frames) return false;
+      auto* frames_ctx = (AVHWFramesContext*)frames->data;
+      frames_ctx->format = AV_PIX_FMT_VAAPI;
+      frames_ctx->sw_format = AV_PIX_FMT_NV12;
+      frames_ctx->width = config.width;
+      frames_ctx->height = config.height;
+      frames_ctx->initial_pool_size = 16;
+      if (av_hwframe_ctx_init(frames) < 0) {
+        av_buffer_unref(&frames);
+        return false;
+      }
+      encoder->hw_frames_ctx = frames;
+      encoder->codec_ctx->pix_fmt = AV_PIX_FMT_VAAPI;
+      encoder->codec_ctx->hw_frames_ctx = av_buffer_ref(frames);
+      return encoder->codec_ctx->hw_frames_ctx != nullptr;
+    }
+
+    bool libav_encoder_t::open_codec(encoder_state_t* encoder, const codec_config_t& config, const std::string& name, bool use_gpu, bool low_power) {
       encoder->codec_ctx = avcodec_alloc_context3(encoder->codec);
       if (!encoder->codec_ctx) return false;
 
@@ -345,6 +390,12 @@ namespace fan {
       if (!use_gpu && encoder->hw_device_ctx && name.find("nvenc") != std::string::npos) {
         encoder->codec_ctx->hw_device_ctx = av_buffer_ref(encoder->hw_device_ctx);
 
+      }
+
+      if (name.find("vaapi") != std::string::npos && !open_vaapi_frames(encoder, config)) {
+        avcodec_free_context(&encoder->codec_ctx);
+        if (encoder->hw_frames_ctx) av_buffer_unref(&encoder->hw_frames_ctx);
+        return false;
       }
 
       void* options = encoder->codec_ctx->priv_data;
@@ -390,7 +441,7 @@ namespace fan {
         av_opt_set_int(options, "preanalysis", 0, 0);
       }
       else if (name.find("vaapi") != std::string::npos) {
-        av_opt_set(options, "low_power", "1", 0);
+        av_opt_set_int(options, "low_power", low_power ? 1 : 0, 0);
       }
       else if (name == "libx264" || name == "libx265") {
         av_opt_set(options, "preset", "ultrafast", 0);
@@ -403,6 +454,7 @@ namespace fan {
       }
 
       avcodec_free_context(&encoder->codec_ctx);
+      if (encoder->hw_frames_ctx) av_buffer_unref(&encoder->hw_frames_ctx);
       destroy_gpu_state(encoder);
       return false;
 
@@ -437,7 +489,7 @@ namespace fan {
 
       }
 
-      encoder->frame->format = encoder->codec_ctx->pix_fmt;
+      encoder->frame->format = cpu_pixel_format(encoder);
       encoder->frame->width = config.width;
       encoder->frame->height = config.height;
 
@@ -472,7 +524,7 @@ namespace fan {
       av_opt_set_pixel_fmt(ctx, "src_format", AV_PIX_FMT_BGRA, 0);
       av_opt_set_int(ctx, "dstw", config.width, 0);
       av_opt_set_int(ctx, "dsth", config.height, 0);
-      av_opt_set_pixel_fmt(ctx, "dst_format", encoder->codec_ctx->pix_fmt, 0);
+      av_opt_set_pixel_fmt(ctx, "dst_format", cpu_pixel_format(encoder), 0);
       av_opt_set_int(ctx, "sws_flags", fan::graphics::get_sws_flags(quality), 0);
       av_opt_set_int(ctx, "threads", threads, 0);
 
@@ -537,9 +589,19 @@ namespace fan {
 
       if (!encoder || !encoder->initialized || !encoder->frame || !bgra_data || stride <= 0) return results;
 
-      if (convert_frame(encoder, bgra_data, stride)) {
-        submit_frame(encoder, encoder->frame, pts, force_keyframe, results);
+      if (!convert_frame(encoder, bgra_data, stride)) return results;
+
+      if (encoder->hw_frames_ctx) {
+        AVFrame* surface = av_frame_alloc();
+        if (surface && av_hwframe_get_buffer(encoder->hw_frames_ctx, surface, 0) >= 0 &&
+          av_hwframe_transfer_data(surface, encoder->frame, 0) >= 0) {
+          submit_frame(encoder, surface, pts, force_keyframe, results);
+        }
+        av_frame_free(&surface);
+        return results;
       }
+
+      submit_frame(encoder, encoder->frame, pts, force_keyframe, results);
       return results;
 
     }
