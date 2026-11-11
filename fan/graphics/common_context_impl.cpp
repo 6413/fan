@@ -727,6 +727,9 @@ namespace fan::graphics {
     std::string code;
     auto found = fan::io::file::find_relative_path(path, callers_path);
     if (found.empty()) {
+      // without this the empty source fails to compile with a misleading "#version" error
+      fan::print("shader file not found:", std::string(path),
+        "(searched the working directory, the executable's directory, FAN_ASSET_DIR and the fan source tree)");
       return code;
     }
     fan::io::file::read(found, &code);

@@ -31,15 +31,28 @@ rule("mode.asan")
 rule_end()
 
 if is_mode("asan") then add_rules("mode.asan") end
+
+-- lets apps built out of tree find fan's assets (shaders/, fonts/, ...) when run from elsewhere
+add_defines('FAN_SOURCE_DIR="' .. (os.projectdir():gsub("\\", "/")) .. '"')
 set_defaultmode("mode_none")
 
 if is_mode("mode_none") or is_mode("debug") then
   add_defines("_DEBUG=3")
 end
+-- keeps symbols in release builds so crash dumps can be read, the binary can be stripped afterwards
+option("FAN_DEBUG_INFO") set_default(false) set_showmenu(true) option_end()
+
 if is_mode("release") then
   set_optimize("fastest")
   add_cxflags("-O3", "-ffunction-sections", "-fdata-sections", {force = true})
-  add_ldflags("-s", "-fuse-ld=gold", "-Wl,--gc-sections", "-Wl,--icf=all", {force = true})
+  if has_config("FAN_DEBUG_INFO") then
+    set_symbols("debug")
+    set_strip("none")
+    add_cxflags("-g", {force = true})
+    add_ldflags("-fuse-ld=gold", "-Wl,--gc-sections", "-Wl,--icf=all", {force = true})
+  else
+    add_ldflags("-s", "-fuse-ld=gold", "-Wl,--gc-sections", "-Wl,--icf=all", {force = true})
+  end
   add_defines("NDEBUG", "_DEBUG=0")
 elseif is_mode("release-minsize") then
   set_optimize("smallest")

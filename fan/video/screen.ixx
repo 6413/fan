@@ -152,6 +152,11 @@ export namespace fan {
 
         resolution_manager.detect_and_set_optimal(*this);
 
+        {
+          // this open applies all of config_, a change queued before it would only reopen the same encoder again
+          std::lock_guard<std::mutex> lock(mutex);
+          update_flags = 0;
+        }
         if (!encoder_.open(config_, fan::vec2(mdscr.Geometry.Resolution.x, mdscr.Geometry.Resolution.y))) {
           fan::print_impl("Failed to reopen encoder with screen resolution");
 
