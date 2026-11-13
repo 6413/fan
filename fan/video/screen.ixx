@@ -168,6 +168,17 @@ export namespace fan {
 
       }
 
+      // ends the capture, the next screen_read opens it again. On Wayland that asks which screen or window to
+      // share again, and picks up a changed resolution or rotation. Windows captures the desktop and has nothing to redo
+      void close_screen() {
+      #if !defined(_WIN32)
+        if (!mdscr_initialized_) return;
+        MD_SCR_close(&mdscr);
+        screen_buffer = nullptr;
+        mdscr_initialized_ = false;
+      #endif
+      }
+
       ~screen_encode_t() { encoder_.close(); }
       bool is_initialized() const { return encoder_.is_initialized();
 
