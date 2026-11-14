@@ -124,13 +124,98 @@ void fan::graphics::desktop_capture_t::close() {
   if (context) {
     release_textures();
   }
+  release_window_buffer();
   release_com(duplication);
   release_com(output);
   release_com(context);
   release_com(device);
 }
 
+void fan::graphics::desktop_capture_t::release_window_buffer() {
+  if (window_dc) {
+    SelectObject((HDC)window_dc, (HGDIOBJ)window_old_bitmap);
+    if (window_bitmap) DeleteObject((HGDIOBJ)window_bitmap);
+    DeleteDC((HDC)window_dc);
+  }
+  window_dc = nullptr;
+  window_bitmap = nullptr;
+  window_old_bitmap = nullptr;
+  window_bits = nullptr;
+  window_buffer_width = window_buffer_height = 0;
+}
+
+// One window instead of the monitor: PrintWindow asks the window itself to paint into a bitmap, so what covers it
+// doesn't show. The bitmap goes to the same texture the desktop frames use, the rest of the pipeline is the same
+bool fan::graphics::desktop_capture_t::acquire_window(std::uint32_t timeout_ms) {
+  HWND hwnd = (HWND)target_window.load();
+  if (!IsWindow(hwnd)) {
+    // closed: back to the monitor
+    target_window = 0;
+    release_window_buffer();
+    return false;
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
+  RECT rect;
+  if (IsIconic(hwnd) || !GetWindowRect(hwnd, &rect)) {
+    return false;
+  }
+  std::int32_t width = rect.right - rect.left;
+  std::int32_t height = rect.bottom - rect.top;
+  if (width < 16 || height < 16) {
+    return false;
+  }
+  desktop_origin = fan::vec2i(rect.left, rect.top);
+
+  if (!window_dc || width != window_buffer_width || height != window_buffer_height) {
+    release_window_buffer();
+    HDC screen_dc = GetDC(nullptr);
+    HDC dc = CreateCompatibleDC(screen_dc);
+    ReleaseDC(nullptr, screen_dc);
+    BITMAPINFO info {};
+    info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    info.bmiHeader.biWidth = width;
+    info.bmiHeader.biHeight = -height; // top down
+    info.bmiHeader.biPlanes = 1;
+    info.bmiHeader.biBitCount = 32;
+    info.bmiHeader.biCompression = BI_RGB;
+    void* bits = nullptr;
+    HBITMAP bitmap = CreateDIBSection(dc, &info, DIB_RGB_COLORS, &bits, nullptr, 0);
+    if (!dc || !bitmap) {
+      if (bitmap) DeleteObject(bitmap);
+      if (dc) DeleteDC(dc);
+      return false;
+    }
+    window_old_bitmap = SelectObject(dc, bitmap);
+    window_dc = dc;
+    window_bitmap = bitmap;
+    window_bits = (std::uint8_t*)bits;
+    window_buffer_width = width;
+    window_buffer_height = height;
+  }
+
+  // 2 is PW_RENDERFULLCONTENT: windows drawn by the compositor (browsers, most games in a window) too
+  if (!PrintWindow(hwnd, (HDC)window_dc, 2)) {
+    return false;
+  }
+  std::uint32_t* pixels = (std::uint32_t*)window_bits;
+  for (std::size_t i = 0, count = (std::size_t)width * height; i < count; ++i) {
+    pixels[i] |= 0xff000000u;
+  }
+  if ((std::int32_t)Geometry.Resolution.x != width || (std::int32_t)Geometry.Resolution.y != height) {
+    if (!create_textures(width, height)) {
+      return false;
+    }
+  }
+  context->UpdateSubresource(texture, 0, nullptr, window_bits, width * 4, 0);
+  has_frame = true;
+  return true;
+}
+
 bool fan::graphics::desktop_capture_t::acquire(std::uint32_t timeout_ms) {
+  if (target_window.load() != 0) {
+    release_com(duplication);
+    return acquire_window(timeout_ms);
+  }
   if (!duplication) {
     if (std::chrono::steady_clock::now() < next_reopen || output->DuplicateOutput(device, &duplication) != S_OK) {
       release_duplication();
