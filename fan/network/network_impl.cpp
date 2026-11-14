@@ -1206,17 +1206,28 @@ namespace fan {
                 std::string chunk(msg.buffer.begin(), msg.buffer.end());
                 request_data += chunk;
 
+                // a client decides how much is sent, without limits one connection can use up the memory
+                constexpr std::size_t max_header_size = 64 * 1024;
+                constexpr std::size_t max_body_size = 64 * 1024 * 1024;
+
                 std::size_t header_end = request_data.find("\r\n\r\n");
+                if (header_end == std::string::npos ? request_data.size() > max_header_size : header_end > max_header_size) {
+                  throw std::runtime_error("request headers too large");
+                }
                 if (header_end != std::string::npos) {
                   headers_complete = true;
 
                   std::size_t cl_pos = request_data.find("Content-Length:");
-                  if (cl_pos != std::string::npos) {
+                  // the same text inside the body is not a header
+                  if (cl_pos != std::string::npos && cl_pos < header_end) {
                     std::size_t cl_start = cl_pos + 15;
                     std::size_t cl_end = request_data.find("\r\n", cl_start);
                     std::string cl_str = request_data.substr(cl_start, cl_end - cl_start);
                     cl_str.erase(0, cl_str.find_first_not_of(" \t"));
                     content_length = std::stoull(cl_str);
+                    if (content_length > max_body_size) {
+                      throw std::runtime_error("request body too large");
+                    }
                   }
 
                   std::size_t current_body_length = request_data.length() - (header_end + 4);

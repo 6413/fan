@@ -279,8 +279,17 @@ void fan::vulkan::context_t::destroy_vulkan_soft() {
   pending_deletion_queue.release();
   main_deletion_queue.release();
   memory_queue.clear();
-  pending_image_uploads.clear();
-  pending_image_uploads.shrink_to_fit();
+  {
+    // loads still running drop their result, a context opened again gets a guard of its own
+    std::lock_guard<std::mutex> guard_lock(async_image_guard->mutex);
+    async_image_guard->alive = false;
+  }
+  async_image_guard = std::make_shared<async_image_guard_t>();
+  {
+    std::lock_guard<std::mutex> upload_lock(async_image_mutex);
+    pending_image_uploads.clear();
+    pending_image_uploads.shrink_to_fit();
+  }
   image_pool.clear();
   image_pool.shrink_to_fit();
   pre_begin_cmd_cb.clear();

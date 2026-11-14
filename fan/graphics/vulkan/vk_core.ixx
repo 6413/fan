@@ -252,6 +252,13 @@ export namespace fan {
       };
       std::vector<pending_image_upload_t> pending_image_uploads;
       std::mutex async_image_mutex;
+      // the loader threads are detached and can finish after the context is gone.
+      // They hold this instead of the context and only touch the context while alive is set
+      struct async_image_guard_t {
+        std::mutex mutex;
+        bool alive = true;
+      };
+      std::shared_ptr<async_image_guard_t> async_image_guard = std::make_shared<async_image_guard_t>();
 
       std::vector<VkDescriptorImageInfo> image_pool; // for draw
       std::unordered_map<std::uint32_t, fan::graphics::image_nr_t> color_image_cache;
