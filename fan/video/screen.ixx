@@ -48,6 +48,10 @@ export namespace fan {
       // the last acquired frame in system memory, one frame late so the copy never stalls on the gpu
       std::uint8_t* map_for_cpu(bool new_frame);
 
+      // 0: the whole monitor. Otherwise the top level window (an HWND) that is captured instead, also when other
+      // windows cover it. Set from any thread, it takes effect at the next frame. Goes back to 0 when the window closes
+      std::atomic<std::uintptr_t> target_window {0};
+
       MD_SCR_Geometry_t Geometry{};
       // where the captured monitor sits on the virtual desktop
       fan::vec2i desktop_origin = 0;
@@ -65,6 +69,14 @@ export namespace fan {
       std::chrono::steady_clock::time_point next_reopen;
 
     private:
+      bool acquire_window(std::uint32_t timeout_ms);
+      void release_window_buffer();
+      void* window_dc = nullptr;
+      void* window_bitmap = nullptr;
+      void* window_old_bitmap = nullptr;
+      std::uint8_t* window_bits = nullptr;
+      std::int32_t window_buffer_width = 0;
+      std::int32_t window_buffer_height = 0;
       bool create_textures(std::uint32_t width, std::uint32_t height);
       void release_textures();
       void release_duplication();
