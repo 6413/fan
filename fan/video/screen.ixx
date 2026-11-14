@@ -109,7 +109,8 @@ export namespace fan {
         return true;
       }
 
-      bool open(const codec_config_t& default_config = codec_config_t()) {
+      // starts from the fixed defaults below, the capture's own size replaces them at the first read
+      bool open() {
         mdscr_initialized_ = false;
 
         config_.frame_rate = 30;
@@ -257,9 +258,10 @@ export namespace fan {
       codec_config_t config_;
       std::string name = "libx264";
       std::uintptr_t new_codec = 0;
-      std::uint8_t update_flags = 0;
+      // set by the gui and network threads, read and cleared by the encoding thread
+      std::atomic<std::uint8_t> update_flags = 0;
 
-      std::uint8_t encode_write_flags = 0;
+      std::atomic<std::uint8_t> encode_write_flags = 0;
       bool user_set_resolution = false;
       std::uint32_t user_width = 0, user_height = 0;
       bool mdscr_initialized_ = false;
@@ -343,7 +345,7 @@ export namespace fan {
       std::vector<std::uint8_t> last_sequence_header;
       std::string name = "auto-detect";
       std::uintptr_t new_codec = 0;
-      std::uint8_t update_flags = 0;
+      std::atomic<std::uint8_t> update_flags = 0;
 
       fan::vec2ui frame_size_ = { 1, 1 };
       fan::vec2ui decoded_size;

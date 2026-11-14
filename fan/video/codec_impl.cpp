@@ -731,14 +731,20 @@ namespace fan {
           codec_ctx_->delay = 0;
         }
 
-        std::atomic<bool> open_completed {false};
+        // a driver that hangs in the open leaves this thread running after the timeout below,
+        // so everything it touches has to outlive this scope
+        struct open_state_t {
+          std::atomic<bool> completed {false};
+          std::atomic<int> result {-1};
+        };
+        auto open_state = std::make_shared<open_state_t>();
+        auto& open_completed = open_state->completed;
+        auto& open_result = open_state->result;
 
-        std::atomic<int> open_result {-1};
-
-        std::thread open_thread([&]() {
-          int result = avcodec_open2(codec_ctx_, codec_, nullptr);
-          open_result.store(result);
-          open_completed.store(true);
+        std::thread open_thread([open_state, ctx = codec_ctx_, codec = codec_]() {
+          int result = avcodec_open2(ctx, codec, nullptr);
+          open_state->result.store(result);
+          open_state->completed.store(true);
         });
 
         auto start_time = std::chrono::steady_clock::now();
@@ -757,8 +763,9 @@ namespace fan {
         if (timed_out) {
           if (open_thread.joinable()) open_thread.detach();
 
-          if (codec_ctx_->hw_device_ctx) av_buffer_unref(&codec_ctx_->hw_device_ctx);
-          avcodec_free_context(&codec_ctx_);
+          // the open is still running inside this context. It is left to leak, freeing it would
+          // take it away from under the driver call
+          codec_ctx_ = nullptr;
           codec_ = nullptr;
           continue;
         }

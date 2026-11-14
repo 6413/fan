@@ -3,6 +3,7 @@ module;
 #include <fan/utils/utility.h>
 
 #include <uv.h>
+#include <atomic>
 #include <coroutine>
 #if defined(fan_platform_windows)
 #include <windows.h>
@@ -104,7 +105,8 @@ namespace fan::ipc {
     uv_async_t async {};
     std::thread watcher;
     std::coroutine_handle<> pending {};
-    bool stop = false;
+    // written by the destructor while the watcher thread reads it
+    std::atomic<bool> stop = false;
   };
 
   async_consumer_t::async_consumer_t(const char* event_name) {

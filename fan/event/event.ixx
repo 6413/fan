@@ -99,8 +99,18 @@ export namespace fan::event {
   template <typename... tasks_t>
   fan::event::task_t when_all(tasks_t&&... tasks) {
     counter_awaitable_t::state_t state{ sizeof...(tasks_t), {} };
+    // a task that throws still counts as finished, otherwise the caller would wait forever.
+    // The first error is passed on once all of them are done
+    std::exception_ptr error;
     auto run_task = [&](auto&& t) -> fan::event::task_t {
-      co_await std::forward<decltype(t)>(t);
+      try {
+        co_await std::forward<decltype(t)>(t);
+      }
+      catch (...) {
+        if (!error) {
+          error = std::current_exception();
+        }
+      }
       if (--state.remaining == 0 && state.continuation) {
         state.continuation.resume();
       }
@@ -109,6 +119,9 @@ export namespace fan::event {
       co_await run_task(std::forward<tasks_t>(tasks));
     }), ...);
     co_await counter_awaitable_t{ &state };
+    if (error) {
+      std::rethrow_exception(error);
+    }
   }
 
   template<typename T = void>
@@ -201,15 +214,24 @@ export namespace fan::event {
   fan::event::waitv_t<std::invoke_result_t<func_t&>> run_on_thread(func_t f) {
     using ret_t = std::invoke_result_t<func_t&>;
 
-    fan::event::signal_awaitable_t<ret_t> sig;
-    fan::event::thread_create([&sig, f = std::move(f)]() mutable {
+    // shared with the thread: the coroutine can be destroyed while f is still running
+    auto sig = std::make_shared<fan::event::signal_awaitable_t<ret_t>>();
+    // signal runs on the main thread like this coroutine does, so clearing the handle here is enough
+    // to keep a late result from resuming a destroyed coroutine
+    struct forget_waiter_t {
+      std::shared_ptr<fan::event::signal_awaitable_t<ret_t>> sig;
+      ~forget_waiter_t() {
+        sig->waiting_coroutine = nullptr;
+      }
+    } forget_waiter {sig};
+    fan::event::thread_create([sig, f = std::move(f)]() mutable {
       ret_t result = f();
 
-      fan::event::post_to_main([&sig, result = std::move(result)]() mutable {
-        sig.signal(std::move(result));
+      fan::event::post_to_main([sig, result = std::move(result)]() mutable {
+        sig->signal(std::move(result));
       });
     });
-    co_return co_await sig;
+    co_return co_await *sig;
   }
 
   struct poll_awaitable_t {
