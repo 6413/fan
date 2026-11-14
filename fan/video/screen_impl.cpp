@@ -225,13 +225,17 @@ bool fan::graphics::screen_encode_t::read_desktop() {
 bool fan::graphics::screen_encode_t::encode_write() {
   if (!ensure_mdscr_initialized()) return false;
 
-  // the desktop's size can change while streaming
-  if (encoder_.screencap_res_.x != mdscr.Geometry.Resolution.x || encoder_.screencap_res_.y != mdscr.Geometry.Resolution.y) {
+  bool follow_capture_size = !user_set_resolution &&
+    (config_.width != mdscr.Geometry.Resolution.x || config_.height != mdscr.Geometry.Resolution.y);
+
+  // the desktop's size can change while streaming. When the output follows it the encoder is opened
+  // below with the new config, opening it here as well would do the whole thing twice
+  if (!follow_capture_size &&
+    (encoder_.screencap_res_.x != mdscr.Geometry.Resolution.x || encoder_.screencap_res_.y != mdscr.Geometry.Resolution.y)) {
     if (!encoder_.open(config_, fan::vec2(mdscr.Geometry.Resolution.x, mdscr.Geometry.Resolution.y))) return false;
   }
 
-  if (!user_set_resolution &&
-    (config_.width != mdscr.Geometry.Resolution.x || config_.height != mdscr.Geometry.Resolution.y)) {
+  if (follow_capture_size) {
     resolution_manager.detect_and_set_optimal(*this);
 
     config_.width = mdscr.Geometry.Resolution.x;
@@ -264,7 +268,14 @@ bool fan::graphics::screen_encode_t::encode_write() {
 
   }
 
-  bool force_keyframe = (encode_write_flags & codec_update_e::force_keyframe) != 0;
+  // taken in one step, a request that arrives during the encode stays set for the next frame
+  bool force_keyframe = (encode_write_flags.fetch_and((std::uint8_t)~codec_update_e::force_keyframe) & codec_update_e::force_keyframe) != 0;
+  // a frame that never reaches the encoder must not use the request up
+  auto keep_keyframe_request = [&] {
+    if (force_keyframe) {
+      encode_write_flags |= codec_update_e::force_keyframe;
+    }
+  };
 
   std::vector<libav_encoder_t::encode_result_t> results;
 
@@ -276,29 +287,30 @@ bool fan::graphics::screen_encode_t::encode_write() {
 #endif
   {
     if (!screen_buffer) {
+      keep_keyframe_request();
       return false;
     }
 
     if (mdscr.Geometry.Resolution.x <= 0 || mdscr.Geometry.Resolution.y <= 0) {
       fan::print_impl("Error: invalid screen resolution");
 
+      keep_keyframe_request();
       return false;
     }
 
     if (mdscr.Geometry.LineSize < mdscr.Geometry.Resolution.x * 4) {
       fan::print_impl("Error: LineSize too small for BGRA.");
 
+      keep_keyframe_request();
       return false;
     }
 
     results = encoder_.encode_frame(screen_buffer, mdscr.Geometry.LineSize, frame_timestamp_, force_keyframe);
   }
 
-  if (encode_write_flags & codec_update_e::force_keyframe) encode_write_flags &= ~codec_update_e::force_keyframe;
-
   std::lock_guard<std::mutex> lock(data_mutex);
 
-  for (const auto& result : results) {
+  for (auto& result : results) {
     encode_data_t packet;
 
     packet.data = std::move(result.data);
@@ -328,7 +340,7 @@ static void precise_sleep(std::uint64_t ns) {
 }
 
 void fan::graphics::screen_encode_t::sleep_thread() {
-  std::uint64_t target_frame_time_ns = 1000000000ULL / config_.frame_rate;
+  std::uint64_t target_frame_time_ns = 1000000000ULL / (std::max)(config_.frame_rate, 1);
 
   std::uint64_t current_time = fan::time::now();
   std::uint64_t time_diff = current_time - frame_process_start_time_;

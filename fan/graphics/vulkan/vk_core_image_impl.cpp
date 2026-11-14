@@ -609,9 +609,11 @@ fan::graphics::image_nr_t fan::vulkan::context_t::request_image_load_async(
   if (fan::webp::validate(path)) {
     fan::webp::get_image_size(path, &size);
   } else {
-    int x, y, comp;
-    ::stbi_info(path.data(), &x, &y, &comp);
-    size = {static_cast<std::uint32_t>(x), static_cast<std::uint32_t>(y)};
+    // stbi_info leaves these untouched when it can't read the file
+    int x = 0, y = 0, comp = 0;
+    if (::stbi_info(path.data(), &x, &y, &comp)) {
+      size = {static_cast<std::uint32_t>(x), static_cast<std::uint32_t>(y)};
+    }
   }
   
   __fan_internal_image_list[nr].size = size;
@@ -619,9 +621,13 @@ fan::graphics::image_nr_t fan::vulkan::context_t::request_image_load_async(
   __fan_internal_image_list[nr].image_path = path;
 
   std::string path_str(path);
-  std::jthread([this, path_str, nr, p, on_gpu_uploaded]() {
+  std::jthread([this, guard = async_image_guard, path_str, nr, p, on_gpu_uploaded]() {
     auto owned = fan::image::load_owned(path_str);
     if (!owned.valid()) { return; }
+
+    // held until the push is done, so the context can't be closed in between
+    std::lock_guard guard_lock(guard->mutex);
+    if (!guard->alive) { return; }
 
     std::lock_guard lock(async_image_mutex);
     pending_image_uploads.push_back({
