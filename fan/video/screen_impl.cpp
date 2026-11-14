@@ -154,7 +154,8 @@ bool fan::graphics::desktop_capture_t::acquire_window(std::uint32_t timeout_ms) 
     release_window_buffer();
     return false;
   }
-  std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
+  // no wait here: the encode loop paces the frames, a wait on top of it halved the rate
+  (void)timeout_ms;
   RECT rect;
   if (IsIconic(hwnd) || !GetWindowRect(hwnd, &rect)) {
     return false;
@@ -425,20 +426,21 @@ static void precise_sleep(std::uint64_t ns) {
 }
 
 void fan::graphics::screen_encode_t::sleep_thread() {
-  std::uint64_t target_frame_time_ns = 1000000000ULL / (std::max)(config_.frame_rate, 1);
+  std::uint64_t interval = 1000000000ULL / (std::max)(config_.frame_rate, 1);
+  std::uint64_t now = fan::time::now();
 
-  std::uint64_t current_time = fan::time::now();
-  std::uint64_t time_diff = current_time - frame_process_start_time_;
-
-  if (time_diff > target_frame_time_ns) {
-    frame_process_start_time_ = current_time;
-
+  // The next frame is due one interval after the last one was due, not after it arrived: a late frame makes the
+  // next wait shorter, so the rate stays at frame_rate on average. Waiting a full interval from the arrival, and
+  // then for the screen's next refresh on top, lost a refresh every frame (60 fps on a 60 Hz screen came out ~30).
+  // The capture waits for the screen's next frame after this, so the wait ends a little early to not miss it
+  std::uint64_t due = frame_process_start_time_ + interval;
+  if (due < now || due > now + interval * 2) {
+    due = now; // far behind, or the clock was reset: start over from now
   }
-  else {
-    std::uint64_t sleep_time = target_frame_time_ns - time_diff;
-
-    frame_process_start_time_ = current_time + sleep_time;
-    precise_sleep(sleep_time);
+  frame_process_start_time_ = due;
+  std::uint64_t slack = (std::min)(interval / 4, (std::uint64_t)4000000);
+  if (due > now + slack) {
+    precise_sleep(due - slack - now);
   }
 }
 
