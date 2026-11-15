@@ -75,6 +75,8 @@ export namespace fan {
       int gop_size = 30;
 
       bool use_hardware = true;
+      // only encoders that run on the CPU (x264 and the like): the graphics card's encoders are skipped
+      bool software_only = false;
 
     };
 
@@ -408,6 +410,8 @@ export namespace fan {
 
       std::string codec_name_;
       bool using_hardware_ = false;
+      // false: the CPU decoder is used even when the graphics card could decode. Read when the codec opens
+      bool allow_hardware_ = true;
       std::uint32_t decode_failures_ = 0;
       // plane buffers given back by the caller, reused so frames don't reallocate
       std::vector<std::vector<std::uint8_t>> spare_planes_;
