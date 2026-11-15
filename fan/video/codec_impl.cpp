@@ -302,6 +302,10 @@ namespace fan {
       };
 
       for (const auto& name : codec_names[config.codec]) {
+        if (config.software_only && (name.find("nvenc") != std::string::npos || name.find("amf") != std::string::npos ||
+          name.find("vaapi") != std::string::npos || name.find("qsv") != std::string::npos)) {
+          continue;
+        }
         {
           std::lock_guard lock(unavailable_mutex);
           if (unavailable.contains(name)) continue;
@@ -830,11 +834,13 @@ namespace fan {
         sliced_stream_ = detected_codec == "h264" && count_h264_slices(data, size) > 1;
 
         bool hw_success = false;
-        try {
-          hw_success = find_and_init_hw_decoder(detected_codec);
-        }
-        catch (...) {
-          hw_success = false;
+        if (allow_hardware_) {
+          try {
+            hw_success = find_and_init_hw_decoder(detected_codec);
+          }
+          catch (...) {
+            hw_success = false;
+          }
         }
 
         if (!hw_success && !find_and_init_sw_decoder(detected_codec)) {
