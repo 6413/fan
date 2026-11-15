@@ -408,7 +408,10 @@ namespace fan {
         av_opt_set(options, "preset", "p1", 0);
         av_opt_set(options, "tune", "ll", 0);
 
-        av_opt_set_int(options, "delay", 2, 0);
+        // frames come out as they are encoded. A delay of n holds n frames back, at 60 fps 2 of them were 33 ms
+        av_opt_set_int(options, "delay", 0, 0);
+        // several slices let a software decoder use its threads inside one frame, see find_and_init_sw_decoder
+        encoder->codec_ctx->slices = 4;
         av_opt_set_int(options, "async_depth", 8, 0);
         av_opt_set_int(options, "zerolatency", 0, 0);
 
@@ -446,6 +449,9 @@ namespace fan {
       else if (name == "libx264" || name == "libx265") {
         av_opt_set(options, "preset", "ultrafast", 0);
         av_opt_set(options, "tune", "zerolatency", 0);
+        // without a buffer limit one busy frame can be many times the average, and the viewer waits for all of it
+        encoder->codec_ctx->rc_max_rate = config.bitrate;
+        encoder->codec_ctx->rc_buffer_size = config.bitrate / 2;
       }
 
       if (avcodec_open2(encoder->codec_ctx, encoder->codec, nullptr) == 0) {
@@ -517,7 +523,7 @@ namespace fan {
       if (!ctx) return nullptr;
 
       // a few threads make conversion several times faster, all of them would take cores from a game
-      int threads = std::clamp((int)std::thread::hardware_concurrency() / 4, 1, 4);
+      int threads = std::clamp((int)std::thread::hardware_concurrency() / 4, 1, 8);
 
       av_opt_set_int(ctx, "srcw", encoder->screencap_res.x, 0);
       av_opt_set_int(ctx, "srch", encoder->screencap_res.y, 0);
@@ -615,8 +621,7 @@ namespace fan {
       while (avcodec_receive_packet(encoder->codec_ctx, encoder->packet) >= 0) {
         encode_result_t result;
 
-        result.data.resize(encoder->packet->size);
-        std::memcpy(result.data.data(), encoder->packet->data, encoder->packet->size);
+        result.data.assign(encoder->packet->data, encoder->packet->data + encoder->packet->size);
         result.is_keyframe = (encoder->packet->flags & AV_PKT_FLAG_KEY) != 0;
         result.pts = encoder->packet->pts;
         result.dts = encoder->packet->dts;
@@ -655,6 +660,10 @@ namespace fan {
           encoder->codec_ctx->rc_max_rate = encoder->config.bitrate;
           encoder->codec_ctx->rc_min_rate = encoder->config.bitrate;
         }
+        else if (encoder->codec_name == "libx264" || encoder->codec_name == "libx265") {
+          encoder->codec_ctx->rc_max_rate = encoder->config.bitrate;
+          encoder->codec_ctx->rc_buffer_size = encoder->config.bitrate / 2;
+        }
       }
 
       if (update_flags & codec_update_e::frame_rate) {
@@ -668,6 +677,19 @@ namespace fan {
 
       return true;
 
+    }
+
+    // slice NAL units (types 1 and 5) in one annex b access unit
+    static int count_h264_slices(const std::uint8_t* data, std::size_t size) {
+      int slices = 0;
+      for (std::size_t i = 0; i + 3 < size; ++i) {
+        if (data[i] == 0 && data[i + 1] == 0 && data[i + 2] == 1) {
+          std::uint8_t type = data[i + 3] & 0x1f;
+          slices += type == 1 || type == 5;
+          i += 3;
+        }
+      }
+      return slices;
     }
 
     bool libav_decoder_t::find_and_init_hw_decoder(const std::string& codec_type) {
@@ -804,6 +826,8 @@ namespace fan {
         if (detected_codec == "auto-detect") {
           detected_codec = detect_codec_from_data(data, size);
         }
+
+        sliced_stream_ = detected_codec == "h264" && count_h264_slices(data, size) > 1;
 
         bool hw_success = false;
         try {

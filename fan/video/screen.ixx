@@ -52,6 +52,11 @@ export namespace fan {
       // windows cover it. Set from any thread, it takes effect at the next frame. Goes back to 0 when the window closes
       std::atomic<std::uintptr_t> target_window {0};
 
+      // true while the captured screen is in HDR and its frames are tone mapped. hdr_exposure darkens (< 1) or
+      // brightens (> 1) them, set from any thread
+      std::atomic<bool> hdr_active {false};
+      std::atomic<f32_t> hdr_exposure {0.8f};
+
       MD_SCR_Geometry_t Geometry{};
       // where the captured monitor sits on the virtual desktop
       fan::vec2i desktop_origin = 0;
@@ -80,6 +85,23 @@ export namespace fan {
       bool create_textures(std::uint32_t width, std::uint32_t height);
       void release_textures();
       void release_duplication();
+
+      // An HDR screen is captured in its own format (16 bit float, linear, 1.0 = 80 nits) and tone mapped on the gpu
+      // to the 8 bit picture the rest takes. The old way had Windows do it, which came out washed out
+      HRESULT duplicate();
+      f32_t query_sdr_white_nits();
+      bool create_tonemap();
+      bool tonemap_frame(ID3D11Texture2D* desktop, std::uint32_t width, std::uint32_t height);
+      void release_tonemap();
+      ID3D11Texture2D* hdr_texture = nullptr;
+      ID3D11ShaderResourceView* hdr_view = nullptr;
+      ID3D11RenderTargetView* target_view = nullptr;
+      ID3D11VertexShader* tonemap_vs = nullptr;
+      ID3D11PixelShader* tonemap_ps = nullptr;
+      ID3D11Buffer* tonemap_params = nullptr;
+      f32_t sdr_white_nits = 200.f;
+      f32_t peak_nits = 1000.f;
+      bool hdr_reported = false;
     };
     using screen_capture_t = desktop_capture_t;
   #else

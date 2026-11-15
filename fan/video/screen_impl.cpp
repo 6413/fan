@@ -14,6 +14,9 @@ extern "C" {
 #include <WITCH/PR/PR.h>
 #if defined(_WIN32)
   #include <WITCH/MD/SCR/SCR.h>
+  #include <dxgi1_6.h>
+  #include <d3dcompiler.h>
+  #pragma comment(lib, "d3dcompiler.lib")
 #endif
 #endif
 
@@ -66,6 +69,9 @@ void fan::graphics::desktop_capture_t::release_textures() {
     context->Unmap(staging[mapped_index], 0);
     mapped = nullptr;
   }
+  release_com(target_view);
+  release_com(hdr_view);
+  release_com(hdr_texture);
   release_com(texture);
   release_com(staging[0]);
   release_com(staging[1]);
@@ -113,7 +119,7 @@ bool fan::graphics::desktop_capture_t::open() {
   auto& rect = output_desc.DesktopCoordinates;
   if (!create_textures(rect.right - rect.left, rect.bottom - rect.top)) return false;
 
-  if (output->DuplicateOutput(device, &duplication) != S_OK) {
+  if (duplicate() != S_OK) {
     release_duplication();
     return false;
   }
@@ -125,6 +131,7 @@ void fan::graphics::desktop_capture_t::close() {
     release_textures();
   }
   release_window_buffer();
+  release_tonemap();
   release_com(duplication);
   release_com(output);
   release_com(context);
@@ -212,13 +219,214 @@ bool fan::graphics::desktop_capture_t::acquire_window(std::uint32_t timeout_ms) 
   return true;
 }
 
+// Starts duplicating the screen. Asking for the 16 bit float format first: an HDR screen then comes in its own
+// format, an SDR screen still in 8 bit. The old call is the fallback (Windows before 10 1703)
+HRESULT fan::graphics::desktop_capture_t::duplicate() {
+  IDXGIOutput5* output5 = nullptr;
+  if (output->QueryInterface(IID_PPV_ARGS(&output5)) == S_OK) {
+    const DXGI_FORMAT formats[] = {DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_B8G8R8A8_UNORM};
+    // this call wants a caller that is per monitor DPI aware (v2), for this thread only while it runs
+    using set_context_t = HANDLE(WINAPI*)(HANDLE);
+    auto set_context = (set_context_t)GetProcAddress(GetModuleHandleW(L"user32.dll"), "SetThreadDpiAwarenessContext");
+    HANDLE previous = set_context ? set_context((HANDLE)-4) : nullptr; // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+    HRESULT result = output5->DuplicateOutput1(device, 0, 2, formats, &duplication);
+    if (set_context && previous) {
+      set_context(previous);
+    }
+    output5->Release();
+    if (result == S_OK) {
+      sdr_white_nits = query_sdr_white_nits();
+      // the brightest the monitor shows, the tone mapping reaches full white there
+      IDXGIOutput6* output6 = nullptr;
+      DXGI_OUTPUT_DESC1 desc1 {};
+      peak_nits = 1000.f;
+      if (output->QueryInterface(IID_PPV_ARGS(&output6)) == S_OK) {
+        if (output6->GetDesc1(&desc1) == S_OK && desc1.MaxLuminance > 100.f) {
+          peak_nits = desc1.MaxLuminance;
+        }
+        output6->Release();
+      }
+      return S_OK;
+    }
+  }
+  return output->DuplicateOutput(device, &duplication);
+}
+
+// How bright SDR white is on this screen while it is in HDR (Settings > Display > HDR > SDR content brightness).
+// The tone mapping puts that brightness at full white, so the picture looks like it does on the screen
+f32_t fan::graphics::desktop_capture_t::query_sdr_white_nits() {
+  DXGI_OUTPUT_DESC output_desc {};
+  if (output->GetDesc(&output_desc) != S_OK) {
+    return 200.f;
+  }
+  UINT32 path_count = 0, mode_count = 0;
+  if (GetDisplayConfigBufferSizes(QDC_ONLY_ACTIVE_PATHS, &path_count, &mode_count) != ERROR_SUCCESS) {
+    return 200.f;
+  }
+  std::vector<DISPLAYCONFIG_PATH_INFO> paths(path_count);
+  std::vector<DISPLAYCONFIG_MODE_INFO> modes(mode_count);
+  if (QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS, &path_count, paths.data(), &mode_count, modes.data(), nullptr) != ERROR_SUCCESS) {
+    return 200.f;
+  }
+  // spelled out here, older SDK headers leave the SDR white level request out
+  struct sdr_white_level_t {
+    DISPLAYCONFIG_DEVICE_INFO_HEADER header;
+    ULONG level; // 1000 is 80 nits
+  };
+  for (UINT32 i = 0; i < path_count; ++i) {
+    DISPLAYCONFIG_SOURCE_DEVICE_NAME source {};
+    source.header.type = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME;
+    source.header.size = sizeof(source);
+    source.header.adapterId = paths[i].sourceInfo.adapterId;
+    source.header.id = paths[i].sourceInfo.id;
+    if (DisplayConfigGetDeviceInfo(&source.header) != ERROR_SUCCESS || std::wcscmp(source.viewGdiDeviceName, output_desc.DeviceName) != 0) {
+      continue;
+    }
+    sdr_white_level_t white {};
+    white.header.type = (DISPLAYCONFIG_DEVICE_INFO_TYPE)11; // DISPLAYCONFIG_DEVICE_INFO_GET_SDR_WHITE_LEVEL
+    white.header.size = sizeof(white);
+    white.header.adapterId = paths[i].targetInfo.adapterId;
+    white.header.id = paths[i].targetInfo.id;
+    if (DisplayConfigGetDeviceInfo(&white.header) == ERROR_SUCCESS && white.level > 0) {
+      return white.level / 1000.f * 80.f;
+    }
+  }
+  return 200.f;
+}
+
+// one triangle over the whole picture. Each pixel: scaled so SDR white is 1.0, brighter parts rolled off softly
+// instead of clipped (by luminance, so colours keep their hue), then put into sRGB like any 8 bit screen picture
+static const char tonemap_hlsl[] = R"(
+cbuffer params : register(b0) { float white_scale; float peak; float knee; float unused; };
+Texture2D<float4> source : register(t0);
+
+float4 vs(uint id : SV_VertexID) : SV_Position {
+  float2 uv = float2((id << 1) & 2, id & 2);
+  return float4(uv * float2(2, -2) + float2(-1, 1), 0, 1);
+}
+
+float3 to_srgb(float3 c) {
+  return c <= 0.0031308 ? c * 12.92 : 1.055 * pow(c, 1.0 / 2.4) - 0.055;
+}
+
+float4 ps(float4 position : SV_Position) : SV_Target {
+  float3 c = max(source.Load(int3(position.xy, 0)).rgb * white_scale, 0.0);
+  float luminance = dot(c, float3(0.2126, 0.7152, 0.0722));
+  if (luminance > knee) {
+    float room = 1.0 - knee;
+    float x = (luminance - knee) / room;
+    float w = max((peak - knee) / room, 1.0);
+    float r = x * (1.0 + x / (w * w)) / (1.0 + x);
+    c *= (knee + room * min(r, 1.0)) / luminance;
+  }
+  float brightest = max(c.r, max(c.g, c.b));
+  if (brightest > 1.0) {
+    c /= brightest;
+  }
+  return float4(to_srgb(c), 1.0);
+}
+)";
+
+bool fan::graphics::desktop_capture_t::create_tonemap() {
+  ID3DBlob* vs_code = nullptr;
+  ID3DBlob* ps_code = nullptr;
+  ID3DBlob* errors = nullptr;
+  bool ok =
+    D3DCompile(tonemap_hlsl, sizeof(tonemap_hlsl) - 1, "tonemap", nullptr, nullptr, "vs", "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &vs_code, &errors) == S_OK &&
+    D3DCompile(tonemap_hlsl, sizeof(tonemap_hlsl) - 1, "tonemap", nullptr, nullptr, "ps", "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &ps_code, &errors) == S_OK &&
+    device->CreateVertexShader(vs_code->GetBufferPointer(), vs_code->GetBufferSize(), nullptr, &tonemap_vs) == S_OK &&
+    device->CreatePixelShader(ps_code->GetBufferPointer(), ps_code->GetBufferSize(), nullptr, &tonemap_ps) == S_OK;
+  if (!ok && errors) {
+    fan::print_impl(std::string("HDR tone mapping shader: ") + (const char*)errors->GetBufferPointer());
+  }
+  release_com(vs_code);
+  release_com(ps_code);
+  release_com(errors);
+  if (ok) {
+    D3D11_BUFFER_DESC desc {};
+    desc.ByteWidth = 16;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    ok = device->CreateBuffer(&desc, nullptr, &tonemap_params) == S_OK;
+  }
+  if (!ok) {
+    release_tonemap();
+  }
+  return ok;
+}
+
+void fan::graphics::desktop_capture_t::release_tonemap() {
+  release_com(tonemap_vs);
+  release_com(tonemap_ps);
+  release_com(tonemap_params);
+}
+
+bool fan::graphics::desktop_capture_t::tonemap_frame(ID3D11Texture2D* desktop, std::uint32_t width, std::uint32_t height) {
+  if (!tonemap_ps && !create_tonemap()) {
+    return false;
+  }
+  if (!hdr_texture) {
+    D3D11_TEXTURE2D_DESC desc {};
+    desc.Width = width;
+    desc.Height = height;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+    if (device->CreateTexture2D(&desc, nullptr, &hdr_texture) != S_OK ||
+      device->CreateShaderResourceView(hdr_texture, nullptr, &hdr_view) != S_OK) {
+      release_com(hdr_view);
+      release_com(hdr_texture);
+      return false;
+    }
+  }
+  if (!target_view && device->CreateRenderTargetView(texture, nullptr, &target_view) != S_OK) {
+    return false;
+  }
+
+  // the duplicated frame can't be read by a shader, it is copied to one that can
+  context->CopyResource(hdr_texture, desktop);
+  f32_t exposure = std::clamp(hdr_exposure.load(), 0.2f, 2.f);
+  f32_t white = std::max(sdr_white_nits, 1.f);
+  const f32_t params[4] = {
+    80.f / white * exposure,                          // 1.0 = SDR white, times the exposure
+    std::max(peak_nits / white * exposure, 1.5f),     // the monitor's peak on that scale
+    0.5f,                                             // below this nothing changes
+    0
+  };
+  context->UpdateSubresource(tonemap_params, 0, nullptr, params, 0, 0);
+
+  D3D11_VIEWPORT viewport {0, 0, (f32_t)width, (f32_t)height, 0, 1};
+  context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+  context->IASetInputLayout(nullptr);
+  context->VSSetShader(tonemap_vs, nullptr, 0);
+  context->PSSetShader(tonemap_ps, nullptr, 0);
+  context->PSSetConstantBuffers(0, 1, &tonemap_params);
+  context->PSSetShaderResources(0, 1, &hdr_view);
+  context->RSSetState(nullptr);
+  context->RSSetViewports(1, &viewport);
+  context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+  context->OMSetDepthStencilState(nullptr, 0);
+  context->OMSetRenderTargets(1, &target_view, nullptr);
+  context->Draw(3, 0);
+
+  // nothing stays bound, the encoder reads the texture next
+  ID3D11ShaderResourceView* no_view = nullptr;
+  ID3D11RenderTargetView* no_target = nullptr;
+  context->PSSetShaderResources(0, 1, &no_view);
+  context->OMSetRenderTargets(1, &no_target, nullptr);
+  return true;
+}
+
 bool fan::graphics::desktop_capture_t::acquire(std::uint32_t timeout_ms) {
   if (target_window.load() != 0) {
     release_com(duplication);
     return acquire_window(timeout_ms);
   }
   if (!duplication) {
-    if (std::chrono::steady_clock::now() < next_reopen || output->DuplicateOutput(device, &duplication) != S_OK) {
+    if (std::chrono::steady_clock::now() < next_reopen || duplicate() != S_OK) {
       release_duplication();
       std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
       return false;
@@ -244,9 +452,15 @@ bool fan::graphics::desktop_capture_t::acquire(std::uint32_t timeout_ms) {
     D3D11_TEXTURE2D_DESC desc;
     desktop->GetDesc(&desc);
     if ((desc.Width == Geometry.Resolution.x && desc.Height == Geometry.Resolution.y) || create_textures(desc.Width, desc.Height)) {
-      context->CopyResource(texture, desktop);
-      new_frame = true;
-      has_frame = true;
+      hdr_active = desc.Format == DXGI_FORMAT_R16G16B16A16_FLOAT;
+      if (desc.Format == DXGI_FORMAT_R16G16B16A16_FLOAT) {
+        new_frame = tonemap_frame(desktop, desc.Width, desc.Height);
+      }
+      else {
+        context->CopyResource(texture, desktop);
+        new_frame = true;
+      }
+      has_frame |= new_frame;
     }
     desktop->Release();
   }
