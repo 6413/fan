@@ -442,8 +442,8 @@ export namespace fan {
       struct send_data_t;
       std::unique_ptr<send_data_t> data;
 
-      udp_send_t(const udp_t& udp, const buffer_t& message, const socket_address_t& addr);
-      udp_send_t(const udp_t& udp, const buffer_t& message, const std::string& ip, int port);
+      udp_send_t(const udp_t& udp, buffer_t message, const socket_address_t& addr);
+      udp_send_t(const udp_t& udp, buffer_t message, const std::string& ip, int port);
       udp_send_t(const udp_t& udp, const std::string& message, const std::string& ip, int port);
       udp_send_t(const udp_t& udp, const std::string& message, const socket_address_t& addr);
 
@@ -536,11 +536,12 @@ export namespace fan {
       udp_send_t send(const std::string& data, const socket_address_t& addr) {
         return udp_send_t{ *this, data, addr };
       }
-      udp_send_t send(const buffer_t& data, const std::string& ip, int port) {
-        return udp_send_t{ *this, data, ip, port };
+      // the buffer is taken over, a temporary or std::move()d one is sent without a copy
+      udp_send_t send(buffer_t data, const std::string& ip, int port) {
+        return udp_send_t{ *this, std::move(data), ip, port };
       }
-      udp_send_t send(const buffer_t& data, const socket_address_t& addr) {
-        return udp_send_t{ *this, data, addr };
+      udp_send_t send(buffer_t data, const socket_address_t& addr) {
+        return udp_send_t{ *this, std::move(data), addr };
       }
       udp_send_t reply(const udp_datagram_t& received, const std::string& response) {
         return udp_send_t{ *this, response, received.sender };

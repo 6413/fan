@@ -411,6 +411,8 @@ export namespace fan {
       std::uint32_t decode_failures_ = 0;
       // plane buffers given back by the caller, reused so frames don't reallocate
       std::vector<std::vector<std::uint8_t>> spare_planes_;
+      // the stream's frames come in several slices, set from the first packet
+      bool sliced_stream_ = false;
       enum AVPixelFormat hw_pixel_format_ = AV_PIX_FMT_NONE;
 
       AVBufferRef* hw_device_ctx_ = nullptr;
@@ -506,6 +508,12 @@ export namespace fan {
 
         // a few threads keep software decoding at the stream's frame rate, all of them would take cores from a game
         codec_ctx_->thread_count = std::clamp((int)std::thread::hardware_concurrency() / 4, 1, 4);
+        if (sliced_stream_) {
+          // slices decode side by side inside one frame. Frame threads would hold thread_count - 1 frames back,
+          // 50 ms at 60 fps with 4 threads
+          codec_ctx_->thread_type = FF_THREAD_SLICE;
+          codec_ctx_->flags |= AV_CODEC_FLAG_LOW_DELAY;
+        }
 
         if (avcodec_open2(codec_ctx_, codec_, nullptr) == 0) {
           codec_name_ = it->second;

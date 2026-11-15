@@ -707,10 +707,10 @@ namespace fan {
     udp_send_t::udp_send_t(udp_send_t&&) noexcept = default;
     udp_send_t& udp_send_t::operator=(udp_send_t&&) noexcept = default;
 
-    udp_send_t::udp_send_t(const udp_t& udp, const buffer_t& message, const socket_address_t& addr) :
+    udp_send_t::udp_send_t(const udp_t& udp, buffer_t message, const socket_address_t& addr) :
       data(std::make_unique<send_data_t>()) {
       data->req.data = data.get();
-      data->data_buffer = message;
+      data->data_buffer = std::move(message);
       data->destination = addr;
       uv_buf_t buf = uv_buf_init(data->data_buffer.data(), data->data_buffer.size());
       data->status = uv_udp_send(&data->req, udp.socket.get(), &buf, 1,
@@ -728,8 +728,8 @@ namespace fan {
       }
     }
 
-    udp_send_t::udp_send_t(const udp_t& udp, const buffer_t& message, const std::string& ip, int port) :
-      udp_send_t(udp, message, socket_address_t(ip, port)) {}
+    udp_send_t::udp_send_t(const udp_t& udp, buffer_t message, const std::string& ip, int port) :
+      udp_send_t(udp, std::move(message), socket_address_t(ip, port)) {}
 
     udp_send_t::udp_send_t(const udp_t& udp, const std::string& message, const socket_address_t& addr) :
       udp_send_t(udp, buffer_t{ message.begin(), message.end() }, addr) {}
