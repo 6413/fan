@@ -6,6 +6,8 @@ module;
 #include <libavformat/avformat.h>
 extern "C" {
 #include <libavutil/pixdesc.h>
+#include <libavcodec/avcodec.h>
+#include <libswscale/swscale.h>
 }
 
 #if defined(FAN_2D)
@@ -18,6 +20,20 @@ extern "C" {
   #include <d3dcompiler.h>
   #pragma comment(lib, "d3dcompiler.lib")
 #endif
+#endif
+
+#if defined(_WIN32)
+  #include <mfapi.h>
+  #include <mfidl.h>
+  #include <mfreadwrite.h>
+#elif defined(__linux__)
+  #include <cerrno>
+  #include <linux/videodev2.h>
+  #include <sys/ioctl.h>
+  #include <sys/mman.h>
+  #include <fcntl.h>
+  #include <unistd.h>
+  #include <poll.h>
 #endif
 
 #endif
@@ -518,6 +534,486 @@ bool fan::graphics::screen_encode_t::read_desktop() {
   }
   capture_time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - now).count();
   return true;
+}
+
+#endif
+
+#if defined(_WIN32)
+
+#pragma comment(lib, "mfplat.lib")
+#pragma comment(lib, "mf.lib")
+#pragma comment(lib, "mfreadwrite.lib")
+#pragma comment(lib, "mfuuid.lib")
+#pragma comment(lib, "ole32.lib")
+
+namespace {
+  struct media_foundation_t {
+    media_foundation_t() {
+      com = SUCCEEDED(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
+      started = SUCCEEDED(MFStartup(MF_VERSION, MFSTARTUP_LITE));
+    }
+    ~media_foundation_t() {
+      if (started) {
+        MFShutdown();
+      }
+      if (com) {
+        CoUninitialize();
+      }
+    }
+    bool com = false;
+    bool started = false;
+  };
+
+  struct camera_impl_t {
+    media_foundation_t media_foundation;
+    IMFSourceReader* reader = nullptr;
+    LONG stride = 0;
+  };
+
+  std::string camera_string(IMFActivate* device, const GUID& key) {
+    WCHAR* wide = nullptr;
+    UINT32 length = 0;
+    if (FAILED(device->GetAllocatedString(key, &wide, &length))) {
+      return {};
+    }
+    std::string utf8(WideCharToMultiByte(CP_UTF8, 0, wide, (int)length, nullptr, 0, nullptr, nullptr), '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wide, (int)length, utf8.data(), (int)utf8.size(), nullptr, nullptr);
+    CoTaskMemFree(wide);
+    return utf8;
+  }
+
+  UINT32 enumerate_cameras(IMFActivate*** devices) {
+    IMFAttributes* attributes = nullptr;
+    UINT32 count = 0;
+    *devices = nullptr;
+    if (SUCCEEDED(MFCreateAttributes(&attributes, 1))) {
+      attributes->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE, MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID);
+      if (FAILED(MFEnumDeviceSources(attributes, devices, &count))) {
+        count = 0;
+      }
+      attributes->Release();
+    }
+    return count;
+  }
+
+  void release_cameras(IMFActivate** devices, UINT32 count) {
+    for (UINT32 i = 0; i < count; ++i) {
+      devices[i]->Release();
+    }
+    CoTaskMemFree(devices);
+  }
+}
+
+std::vector<fan::graphics::camera_device_t> fan::graphics::get_camera_devices() {
+  std::vector<camera_device_t> cameras;
+  media_foundation_t media_foundation;
+  if (!media_foundation.started) {
+    return cameras;
+  }
+  IMFActivate** devices = nullptr;
+  UINT32 count = enumerate_cameras(&devices);
+  for (UINT32 i = 0; i < count; ++i) {
+    cameras.push_back({
+      camera_string(devices[i], MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK),
+      camera_string(devices[i], MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME)
+    });
+  }
+  release_cameras(devices, count);
+  return cameras;
+}
+
+bool fan::graphics::camera_capture_t::open(const std::string& device_id, std::uint32_t wanted_width, std::uint32_t wanted_height, std::uint32_t wanted_fps) {
+  close();
+  error.clear();
+  auto* c = new camera_impl_t;
+  impl = c;
+  auto fail = [&](const char* reason) {
+    error = reason;
+    close();
+    return false;
+  };
+  if (!c->media_foundation.started) {
+    return fail("media foundation is not available");
+  }
+  IMFActivate** devices = nullptr;
+  UINT32 count = enumerate_cameras(&devices);
+  IMFMediaSource* source = nullptr;
+  for (UINT32 i = 0; i < count && !source; ++i) {
+    if (device_id.empty() || camera_string(devices[i], MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK) == device_id) {
+      devices[i]->ActivateObject(IID_PPV_ARGS(&source));
+    }
+  }
+  release_cameras(devices, count);
+  if (!source) {
+    return fail("the camera is not there or is in use");
+  }
+  IMFAttributes* attributes = nullptr;
+  if (SUCCEEDED(MFCreateAttributes(&attributes, 1))) {
+    attributes->SetUINT32(MF_SOURCE_READER_ENABLE_VIDEO_PROCESSING, TRUE);
+  }
+  HRESULT created = MFCreateSourceReaderFromMediaSource(source, attributes, &c->reader);
+  if (attributes) {
+    attributes->Release();
+  }
+  source->Release();
+  if (FAILED(created)) {
+    return fail("failed to read from the camera");
+  }
+  const DWORD stream = (DWORD)MF_SOURCE_READER_FIRST_VIDEO_STREAM;
+
+  IMFMediaType* best = nullptr;
+  std::uint64_t best_score = (std::uint64_t)-1;
+  IMFMediaType* type = nullptr;
+  for (DWORD i = 0; SUCCEEDED(c->reader->GetNativeMediaType(stream, i, &type)); ++i) {
+    UINT32 w = 0, h = 0, rate = 0, rate_base = 1;
+    MFGetAttributeSize(type, MF_MT_FRAME_SIZE, &w, &h);
+    MFGetAttributeRatio(type, MF_MT_FRAME_RATE, &rate, &rate_base);
+    std::int64_t fps = rate_base ? rate / rate_base : 0;
+    std::uint64_t score = (std::uint64_t)std::abs((std::int64_t)w * h - (std::int64_t)wanted_width * wanted_height) * 1000 +
+      (std::uint64_t)std::abs(fps - (std::int64_t)wanted_fps);
+    if (score < best_score) {
+      if (best) {
+        best->Release();
+      }
+      best = type;
+      best_score = score;
+    }
+    else {
+      type->Release();
+    }
+  }
+  if (best) {
+    c->reader->SetCurrentMediaType(stream, nullptr, best);
+    best->Release();
+  }
+  IMFMediaType* output = nullptr;
+  if (FAILED(MFCreateMediaType(&output))) {
+    return fail("failed to set the camera's format");
+  }
+  output->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
+  output->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32);
+  HRESULT set = c->reader->SetCurrentMediaType(stream, nullptr, output);
+  output->Release();
+  IMFMediaType* current = nullptr;
+  if (FAILED(set) || FAILED(c->reader->GetCurrentMediaType(stream, &current))) {
+    return fail("the camera has no format that can be used");
+  }
+  UINT32 w = 0, h = 0, stride = 0;
+  MFGetAttributeSize(current, MF_MT_FRAME_SIZE, &w, &h);
+  c->stride = SUCCEEDED(current->GetUINT32(MF_MT_DEFAULT_STRIDE, &stride)) ? (LONG)stride : (LONG)w * 4;
+  current->Release();
+  if (w == 0 || h == 0) {
+    return fail("the camera has no format that can be used");
+  }
+  width = w;
+  height = h;
+  frame.assign((std::size_t)width * height * 4, 0);
+  return true;
+}
+
+void fan::graphics::camera_capture_t::close() {
+  auto* c = (camera_impl_t*)impl;
+  if (!c) {
+    return;
+  }
+  if (c->reader) {
+    c->reader->Release();
+  }
+  delete c;
+  impl = nullptr;
+}
+
+std::uint8_t* fan::graphics::camera_capture_t::read(std::uint32_t) {
+  auto* c = (camera_impl_t*)impl;
+  if (!c) {
+    return nullptr;
+  }
+  DWORD flags = 0;
+  LONGLONG timestamp = 0;
+  IMFSample* sample = nullptr;
+  HRESULT result = c->reader->ReadSample((DWORD)MF_SOURCE_READER_FIRST_VIDEO_STREAM, 0, nullptr, &flags, &timestamp, &sample);
+  if (FAILED(result) || (flags & (MF_SOURCE_READERF_ERROR | MF_SOURCE_READERF_ENDOFSTREAM))) {
+    if (sample) {
+      sample->Release();
+    }
+    error = "the camera stopped";
+    close();
+    return nullptr;
+  }
+  if (!sample) {
+    return nullptr;
+  }
+  IMFMediaBuffer* buffer = nullptr;
+  BYTE* data = nullptr;
+  DWORD length = 0;
+  bool copied = false;
+  if (SUCCEEDED(sample->ConvertToContiguousBuffer(&buffer))) {
+    std::size_t row_size = (std::size_t)width * 4;
+    std::size_t source_stride = (std::size_t)std::abs(c->stride);
+    if (SUCCEEDED(buffer->Lock(&data, nullptr, &length))) {
+      if (source_stride >= row_size && length >= source_stride * (height - 1) + row_size) {
+        for (std::uint32_t y = 0; y < height; ++y) {
+          const BYTE* row = data + source_stride * (c->stride < 0 ? height - 1 - y : y);
+          std::uint8_t* out = frame.data() + row_size * y;
+          std::memcpy(out, row, row_size);
+          for (std::size_t x = 3; x < row_size; x += 4) {
+            out[x] = 255;
+          }
+        }
+        copied = true;
+      }
+      buffer->Unlock();
+    }
+    buffer->Release();
+  }
+  sample->Release();
+  return copied ? frame.data() : nullptr;
+}
+
+#elif defined(__linux__)
+
+namespace {
+  struct camera_impl_t {
+    struct buffer_t {
+      void* data = nullptr;
+      std::size_t size = 0;
+    };
+    int fd = -1;
+    std::uint32_t pixel_format = 0;
+    std::uint32_t line_size = 0;
+    std::vector<buffer_t> buffers;
+    AVCodecContext* decoder = nullptr;
+    AVFrame* decoded = nullptr;
+    AVPacket* packet = nullptr;
+    SwsContext* scaler = nullptr;
+    std::vector<std::uint8_t> compressed;
+  };
+
+  int camera_ioctl(int fd, unsigned long request, void* argument) {
+    int result;
+    do {
+      result = ioctl(fd, request, argument);
+    } while (result == -1 && errno == EINTR);
+    return result;
+  }
+}
+
+std::vector<fan::graphics::camera_device_t> fan::graphics::get_camera_devices() {
+  std::vector<camera_device_t> cameras;
+  for (int i = 0; i < 64; ++i) {
+    std::string path = "/dev/video" + std::to_string(i);
+    int fd = ::open(path.c_str(), O_RDWR | O_NONBLOCK);
+    if (fd < 0) {
+      continue;
+    }
+    v4l2_capability capability {};
+    v4l2_fmtdesc format {};
+    format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    if (camera_ioctl(fd, VIDIOC_QUERYCAP, &capability) == 0 &&
+      ((capability.capabilities & V4L2_CAP_DEVICE_CAPS ? capability.device_caps : capability.capabilities) & V4L2_CAP_VIDEO_CAPTURE) &&
+      camera_ioctl(fd, VIDIOC_ENUM_FMT, &format) == 0) {
+      cameras.push_back({path, (const char*)capability.card});
+    }
+    ::close(fd);
+  }
+  return cameras;
+}
+
+bool fan::graphics::camera_capture_t::open(const std::string& device_id, std::uint32_t wanted_width, std::uint32_t wanted_height, std::uint32_t wanted_fps) {
+  close();
+  error.clear();
+  auto fail = [&](const std::string& reason) {
+    error = reason;
+    close();
+    return false;
+  };
+  std::string path = device_id;
+  if (path.empty()) {
+    auto cameras = get_camera_devices();
+    if (cameras.empty()) {
+      return fail("no camera found");
+    }
+    path = cameras.front().id;
+  }
+  auto* c = new camera_impl_t;
+  impl = c;
+  c->fd = ::open(path.c_str(), O_RDWR | O_NONBLOCK);
+  if (c->fd < 0) {
+    return fail("failed to open " + path + ": " + std::strerror(errno));
+  }
+  v4l2_format format {};
+  for (std::uint32_t pixel_format : {(std::uint32_t)V4L2_PIX_FMT_MJPEG, (std::uint32_t)V4L2_PIX_FMT_YUYV}) {
+    format = {};
+    format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    format.fmt.pix.width = wanted_width;
+    format.fmt.pix.height = wanted_height;
+    format.fmt.pix.pixelformat = pixel_format;
+    format.fmt.pix.field = V4L2_FIELD_ANY;
+    if (camera_ioctl(c->fd, VIDIOC_S_FMT, &format) == 0 && format.fmt.pix.pixelformat == pixel_format) {
+      c->pixel_format = pixel_format;
+      break;
+    }
+  }
+  if (c->pixel_format == 0 || format.fmt.pix.width == 0 || format.fmt.pix.height == 0) {
+    return fail("the camera has no format that can be used (mjpeg or yuyv)");
+  }
+  width = format.fmt.pix.width;
+  height = format.fmt.pix.height;
+  c->line_size = format.fmt.pix.bytesperline ? format.fmt.pix.bytesperline : width * 2;
+
+  v4l2_streamparm rate {};
+  rate.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  rate.parm.capture.timeperframe.numerator = 1;
+  rate.parm.capture.timeperframe.denominator = wanted_fps;
+  camera_ioctl(c->fd, VIDIOC_S_PARM, &rate);
+
+  v4l2_requestbuffers request {};
+  request.count = 4;
+  request.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  request.memory = V4L2_MEMORY_MMAP;
+  if (camera_ioctl(c->fd, VIDIOC_REQBUFS, &request) != 0 || request.count < 2) {
+    return fail("the camera gave no buffers");
+  }
+  for (std::uint32_t i = 0; i < request.count; ++i) {
+    v4l2_buffer buffer {};
+    buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buffer.memory = V4L2_MEMORY_MMAP;
+    buffer.index = i;
+    if (camera_ioctl(c->fd, VIDIOC_QUERYBUF, &buffer) != 0) {
+      return fail("the camera gave no buffers");
+    }
+    void* data = mmap(nullptr, buffer.length, PROT_READ | PROT_WRITE, MAP_SHARED, c->fd, buffer.m.offset);
+    if (data == MAP_FAILED) {
+      return fail("the camera's buffers can't be mapped");
+    }
+    c->buffers.push_back({data, buffer.length});
+    if (camera_ioctl(c->fd, VIDIOC_QBUF, &buffer) != 0) {
+      return fail("the camera gave no buffers");
+    }
+  }
+  if (c->pixel_format == V4L2_PIX_FMT_MJPEG) {
+    const AVCodec* codec = avcodec_find_decoder(AV_CODEC_ID_MJPEG);
+    c->decoder = codec ? avcodec_alloc_context3(codec) : nullptr;
+    c->decoded = av_frame_alloc();
+    c->packet = av_packet_alloc();
+    if (!c->decoder || !c->decoded || !c->packet || avcodec_open2(c->decoder, codec, nullptr) < 0) {
+      return fail("no mjpeg decoder for the camera");
+    }
+  }
+  int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  if (camera_ioctl(c->fd, VIDIOC_STREAMON, &type) != 0) {
+    return fail(std::string("the camera did not start: ") + std::strerror(errno));
+  }
+  frame.assign((std::size_t)width * height * 4, 255);
+  return true;
+}
+
+void fan::graphics::camera_capture_t::close() {
+  auto* c = (camera_impl_t*)impl;
+  if (!c) {
+    return;
+  }
+  if (c->fd >= 0) {
+    int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    camera_ioctl(c->fd, VIDIOC_STREAMOFF, &type);
+  }
+  for (auto& buffer : c->buffers) {
+    munmap(buffer.data, buffer.size);
+  }
+  if (c->fd >= 0) {
+    ::close(c->fd);
+  }
+  if (c->decoder) {
+    avcodec_free_context(&c->decoder);
+  }
+  av_frame_free(&c->decoded);
+  av_packet_free(&c->packet);
+  sws_freeContext(c->scaler);
+  delete c;
+  impl = nullptr;
+}
+
+std::uint8_t* fan::graphics::camera_capture_t::read(std::uint32_t timeout_ms) {
+  auto* c = (camera_impl_t*)impl;
+  if (!c) {
+    return nullptr;
+  }
+  pollfd waiting {c->fd, POLLIN, 0};
+  int ready = poll(&waiting, 1, (int)timeout_ms);
+  if (ready > 0 && (waiting.revents & (POLLERR | POLLHUP | POLLNVAL))) {
+    error = "the camera stopped";
+    close();
+    return nullptr;
+  }
+  if (ready <= 0) {
+    return nullptr;
+  }
+  v4l2_buffer newest {};
+  bool have = false;
+  for (;;) {
+    v4l2_buffer buffer {};
+    buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buffer.memory = V4L2_MEMORY_MMAP;
+    if (camera_ioctl(c->fd, VIDIOC_DQBUF, &buffer) != 0) {
+      break;
+    }
+    if (have) {
+      camera_ioctl(c->fd, VIDIOC_QBUF, &newest);
+    }
+    newest = buffer;
+    have = true;
+  }
+  if (!have || newest.index >= c->buffers.size()) {
+    return nullptr;
+  }
+  const std::uint8_t* source[4] = {(const std::uint8_t*)c->buffers[newest.index].data, nullptr, nullptr, nullptr};
+  int source_stride[4] = {(int)c->line_size, 0, 0, 0};
+  int source_format = AV_PIX_FMT_YUYV422;
+  bool usable = !(newest.flags & V4L2_BUF_FLAG_ERROR) && newest.bytesused <= c->buffers[newest.index].size;
+  if (usable && c->pixel_format == V4L2_PIX_FMT_MJPEG) {
+    c->compressed.assign(source[0], source[0] + newest.bytesused);
+    c->compressed.resize(newest.bytesused + AV_INPUT_BUFFER_PADDING_SIZE, 0);
+    c->packet->data = c->compressed.data();
+    c->packet->size = (int)newest.bytesused;
+    usable = avcodec_send_packet(c->decoder, c->packet) == 0 && avcodec_receive_frame(c->decoder, c->decoded) == 0 &&
+      (std::uint32_t)c->decoded->width == width && (std::uint32_t)c->decoded->height == height;
+    if (usable) {
+      for (int i = 0; i < 4; ++i) {
+        source[i] = c->decoded->data[i];
+        source_stride[i] = c->decoded->linesize[i];
+      }
+      source_format = c->decoded->format;
+    }
+  }
+  else if (usable) {
+    usable = newest.bytesused >= (std::size_t)c->line_size * height;
+  }
+  if (usable) {
+    c->scaler = sws_getCachedContext(c->scaler, (int)width, (int)height, (AVPixelFormat)source_format,
+      (int)width, (int)height, AV_PIX_FMT_BGRA, SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
+    std::uint8_t* target[4] = {frame.data(), nullptr, nullptr, nullptr};
+    int target_stride[4] = {(int)width * 4, 0, 0, 0};
+    usable = c->scaler && sws_scale(c->scaler, source, source_stride, 0, (int)height, target, target_stride) > 0;
+  }
+  camera_ioctl(c->fd, VIDIOC_QBUF, &newest);
+  return usable ? frame.data() : nullptr;
+}
+
+#else
+
+std::vector<fan::graphics::camera_device_t> fan::graphics::get_camera_devices() {
+  return {};
+}
+
+bool fan::graphics::camera_capture_t::open(const std::string&, std::uint32_t, std::uint32_t, std::uint32_t) {
+  error = "cameras are not supported on this system";
+  return false;
+}
+
+void fan::graphics::camera_capture_t::close() {}
+
+std::uint8_t* fan::graphics::camera_capture_t::read(std::uint32_t) {
+  return nullptr;
 }
 
 #endif
