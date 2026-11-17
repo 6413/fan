@@ -291,6 +291,157 @@ export namespace fan::audio {
     std::size_t delay = 0;
   };
 
+  // Spectral noise suppressor for a microphone signal (steady noise: fans, hiss, hum, room tone).
+  // The noise floor of every frequency bin is tracked with minimum statistics, so it needs no
+  // calibration and follows the room as it changes. The speech-to-noise ratio is estimated with the
+  // decision-directed method and applied as a Wiener gain, smoothed over frequency and time so that
+  // it leaves no "musical" artefacts. Adds 512 samples (about 10 ms) of delay.
+  struct noise_suppressor_t {
+    static constexpr std::size_t fft_size = echo_canceller_t::fft_size;
+    static constexpr std::size_t hop = fft_size / 2;
+    static constexpr std::size_t bins = fft_size / 2 + 1;
+    using spectrum_t = echo_canceller_t::spectrum_t;
+
+    noise_suppressor_t() {
+      for (std::size_t i = 0; i < fft_size; ++i) {
+        window[i] = std::sin(std::numbers::pi_v<f32_t> * (i + 0.5f) / fft_size);
+      }
+      reset();
+    }
+    void reset() {
+      input.clear();
+      output.assign(hop, 0.f);
+      frame.fill(0.f);
+      overlap.fill(0.f);
+      smoothed.fill(0.f);
+      noise.fill(0.f);
+      previous_clean.fill(0.f);
+      gains.fill(1.f);
+      current_min.fill(std::numeric_limits<f32_t>::max());
+      for (auto& sub : sub_minima) {
+        sub.fill(std::numeric_limits<f32_t>::max());
+      }
+      frames_seen = 0;
+      sub_index = 0;
+      sub_frames = 0;
+    }
+    void process(f32_t* pcm, std::uint32_t frame_count) {
+      for (std::uint32_t i = 0; i < frame_count; ++i) {
+        input.push_back((pcm[i * stream_channels] + pcm[i * stream_channels + 1]) * 0.5f);
+      }
+      std::size_t used = 0;
+      for (; input.size() - used >= hop; used += hop) {
+        process_hop(input.data() + used);
+      }
+      input.erase(input.begin(), input.begin() + used);
+      for (std::uint32_t i = 0; i < frame_count; ++i) {
+        pcm[i * stream_channels] = pcm[i * stream_channels + 1] = output[i];
+      }
+      output.erase(output.begin(), output.begin() + frame_count);
+    }
+    void process_hop(const f32_t* samples) {
+      std::copy(frame.begin() + hop, frame.end(), frame.begin());
+      std::copy(samples, samples + hop, frame.end() - hop);
+
+      spectrum_t spectrum;
+      for (std::size_t i = 0; i < fft_size; ++i) {
+        spectrum[i] = frame[i] * window[i];
+      }
+      echo_canceller_t::transform(spectrum, false);
+
+      std::array<f32_t, bins> power;
+      for (std::size_t k = 0; k < bins; ++k) {
+        power[k] = std::norm(spectrum[k]) / (fft_size * fft_size);
+      }
+      track_noise(power);
+
+      std::array<f32_t, bins> wanted;
+      for (std::size_t k = 0; k < bins; ++k) {
+        f32_t floor_power = std::max(noise[k], tiny);
+        f32_t posteriori = power[k] / floor_power;
+        f32_t priori = decision_directed * previous_clean[k] / floor_power +
+          (1.f - decision_directed) * std::max(posteriori - 1.f, 0.f);
+        priori = std::max(priori, min_priori);
+        wanted[k] = priori / (1.f + priori);
+      }
+      // smooth over frequency: single bins that pop above the noise are the "musical" artefacts
+      std::array<f32_t, bins> blurred;
+      for (std::size_t k = 0; k < bins; ++k) {
+        f32_t left = wanted[k == 0 ? 0 : k - 1];
+        f32_t right = wanted[k + 1 < bins ? k + 1 : bins - 1];
+        blurred[k] = std::max(0.25f * left + 0.5f * wanted[k] + 0.25f * right, min_gain);
+      }
+      for (std::size_t k = 0; k < bins; ++k) {
+        // attack fast so word starts are not clipped, release slowly so tails do not chop
+        gains[k] += (blurred[k] - gains[k]) * (blurred[k] > gains[k] ? 0.8f : 0.35f);
+        previous_clean[k] = gains[k] * gains[k] * power[k];
+        spectrum[k] *= gains[k];
+        if (k != 0 && k != fft_size / 2) {
+          spectrum[fft_size - k] = std::conj(spectrum[k]);
+        }
+      }
+      echo_canceller_t::transform(spectrum, true);
+      for (std::size_t i = 0; i < fft_size; ++i) {
+        overlap[i] += spectrum[i].real() * window[i] / fft_size;
+      }
+      output.insert(output.end(), overlap.begin(), overlap.begin() + hop);
+      std::copy(overlap.begin() + hop, overlap.end(), overlap.begin());
+      std::fill(overlap.end() - hop, overlap.end(), 0.f);
+    }
+    void track_noise(const std::array<f32_t, bins>& power) {
+      ++frames_seen;
+      for (std::size_t k = 0; k < bins; ++k) {
+        // a plain running mean while warming up: a single frame is a poor estimate (its power is
+        // exponentially distributed, many bins are far too low) and must never enter the minima
+        smoothed[k] += (power[k] - smoothed[k]) * (frames_seen < warmup ? 1.f / frames_seen : 0.1f);
+        if (frames_seen >= warmup) {
+          current_min[k] = std::min(current_min[k], smoothed[k]);
+        }
+      }
+      // the floor is the lowest smoothed power of the last sub_count * sub_length frames, a speech pause
+      // always falls inside that window, then scaled up because a minimum underestimates the mean
+      if (++sub_frames >= sub_length) {
+        sub_minima[sub_index] = current_min;
+        sub_index = (sub_index + 1) % sub_count;
+        sub_frames = 0;
+        current_min.fill(std::numeric_limits<f32_t>::max());
+      }
+      for (std::size_t k = 0; k < bins; ++k) {
+        f32_t lowest = current_min[k];
+        for (const auto& sub : sub_minima) {
+          lowest = std::min(lowest, sub[k]);
+        }
+        f32_t estimate = lowest * bias;
+        // the first frames have no history yet: assume they are noise
+        noise[k] = frames_seen < warmup ? std::max(smoothed[k], tiny) : std::max(estimate, tiny);
+      }
+    }
+
+    static constexpr f32_t tiny = 1e-12f;
+    static constexpr f32_t bias = 1.6f;
+    static constexpr f32_t decision_directed = 0.92f;
+    static constexpr f32_t min_priori = 0.003f;
+    static constexpr f32_t min_gain = 0.08f;
+    static constexpr std::size_t sub_count = 8;
+    static constexpr std::size_t sub_length = 40;
+    static constexpr std::size_t warmup = 20;
+
+    std::vector<f32_t> input;
+    std::vector<f32_t> output;
+    std::array<f32_t, fft_size> window;
+    std::array<f32_t, fft_size> frame;
+    std::array<f32_t, fft_size> overlap;
+    std::array<f32_t, bins> smoothed;
+    std::array<f32_t, bins> noise;
+    std::array<f32_t, bins> previous_clean;
+    std::array<f32_t, bins> gains;
+    std::array<f32_t, bins> current_min;
+    std::array<std::array<f32_t, bins>, sub_count> sub_minima;
+    std::size_t frames_seen = 0;
+    std::size_t sub_index = 0;
+    std::size_t sub_frames = 0;
+  };
+
   struct live_mixer_t {
     struct source_t {
       std::vector<f32_t> ring;
