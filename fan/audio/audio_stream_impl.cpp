@@ -508,6 +508,267 @@ namespace fan::audio {
     pending.erase(pending.begin(), pending.begin() + offset);
   }
 
+  std::vector<microphone_device_t> get_microphone_devices() {
+    std::vector<microphone_device_t> devices = {{"", "Default microphone"}};
+  #if defined(_WIN32) || defined(__linux__)
+    ma_context context;
+    if (init_loopback_context(&context) != MA_SUCCESS) {
+      return devices;
+    }
+    ma_device_info* capture = nullptr;
+    ma_uint32 capture_count = 0;
+    if (ma_context_get_devices(&context, nullptr, nullptr, &capture, &capture_count) == MA_SUCCESS) {
+      for (ma_uint32 i = 0; i < capture_count; ++i) {
+      #if defined(_WIN32)
+        std::string id = wide_to_utf8(capture[i].id.wasapi);
+      #else
+        std::string id = capture[i].id.pulse;
+        if (id.ends_with(".monitor")) {
+          continue;
+        }
+      #endif
+        if (capture[i].isDefault) {
+          devices[0].name = std::string("Default microphone (") + capture[i].name + ")";
+        }
+        devices.push_back({id, capture[i].name});
+      }
+    }
+    ma_context_uninit(&context);
+  #endif
+    return devices;
+  }
+
+  microphone_capture_t::~microphone_capture_t() {
+    stop();
+  }
+
+  bool microphone_capture_t::start(callback_t cb, const std::string& device_id) {
+    stop();
+    error.clear();
+    callback = std::move(cb);
+  #if defined(_WIN32) || defined(__linux__)
+    auto* d = new device_t;
+    device = d;
+    auto proc = [](ma_device* dev, void*, const void* input, ma_uint32 frame_count) {
+      ((microphone_capture_t*)dev->pUserData)->on_data((const f32_t*)input, frame_count);
+    };
+    ma_device_config config = make_config(ma_device_type_capture, proc, this);
+    if (init_loopback_context(&d->context) != MA_SUCCESS &&
+      (!device_id.empty() || ma_context_init(nullptr, 0, nullptr, &d->context) != MA_SUCCESS)) {
+      error = "audio backend is not available";
+      destroy_device(device);
+      return false;
+    }
+    d->has_context = true;
+    ma_device_id id {};
+    if (!device_id.empty()) {
+    #if defined(_WIN32)
+      bool valid = MultiByteToWideChar(CP_UTF8, 0, device_id.c_str(), -1, id.wasapi, (int)(sizeof(id.wasapi) / sizeof(id.wasapi[0]))) != 0;
+    #else
+      bool valid = device_id.size() < sizeof(id.pulse);
+      if (valid) {
+        std::memcpy(id.pulse, device_id.c_str(), device_id.size());
+      }
+    #endif
+      if (!valid) {
+        error = "invalid device id";
+        destroy_device(device);
+        return false;
+      }
+      config.capture.pDeviceID = &id;
+    }
+    ma_result result = ma_device_init(&d->context, &config, &d->device);
+    if (result != MA_SUCCESS) {
+      error = std::string("failed to open the microphone: ") + ma_result_description(result);
+      destroy_device(device);
+      return false;
+    }
+    d->has_device = true;
+    if (ma_device_start(&d->device) != MA_SUCCESS) {
+      error = "failed to start the microphone";
+      destroy_device(device);
+      return false;
+    }
+    return true;
+  #else
+    error = "microphone capture is not supported on this platform";
+    return false;
+  #endif
+  }
+
+  void microphone_capture_t::stop() {
+    destroy_device(device);
+    pending.clear();
+    level.store(0.f, std::memory_order_relaxed);
+  }
+
+  bool microphone_capture_t::is_running() const {
+    return device != nullptr;
+  }
+
+  void microphone_capture_t::set_gain(f32_t value) {
+    gain.store(std::clamp(value, 0.f, 4.f), std::memory_order_relaxed);
+  }
+
+  f32_t microphone_capture_t::get_level() const {
+    return level.load(std::memory_order_relaxed);
+  }
+
+  const std::string& microphone_capture_t::get_error() const {
+    return error;
+  }
+
+  void microphone_capture_t::on_data(const f32_t* pcm, std::uint32_t frame_count) {
+    if (!pcm || !callback) {
+      return;
+    }
+    constexpr std::size_t packet_samples = stream_frame_size * stream_channels;
+    std::size_t start = pending.size();
+    pending.insert(pending.end(), pcm, pcm + frame_count * stream_channels);
+    f32_t g = gain.load(std::memory_order_relaxed);
+    f32_t peak = 0.f;
+    for (std::size_t i = start; i < pending.size(); ++i) {
+      pending[i] *= g;
+      peak = std::max(peak, std::abs(pending[i]));
+    }
+    level.store(peak, std::memory_order_relaxed);
+    std::size_t offset = 0;
+    for (; pending.size() - offset >= packet_samples; offset += packet_samples) {
+      callback(pending.data() + offset, stream_frame_size);
+    }
+    pending.erase(pending.begin(), pending.begin() + offset);
+  }
+
+  live_mixer_t::~live_mixer_t() {
+    stop();
+  }
+
+  bool live_mixer_t::start(const std::string& device_id) {
+    if (device) {
+      return true;
+    }
+    auto* d = new device_t;
+    device = d;
+    auto proc = [](ma_device* dev, void* output, const void*, ma_uint32 frame_count) {
+      ((live_mixer_t*)dev->pUserData)->pull((f32_t*)output, frame_count);
+    };
+    ma_device_config config = make_config(ma_device_type_playback, proc, this);
+    ma_device_id id {};
+    if (!device_id.empty() && init_loopback_context(&d->context) == MA_SUCCESS) {
+      d->has_context = true;
+    #if defined(_WIN32)
+      bool valid = MultiByteToWideChar(CP_UTF8, 0, device_id.c_str(), -1, id.wasapi, (int)(sizeof(id.wasapi) / sizeof(id.wasapi[0]))) != 0;
+    #else
+      bool valid = device_id.size() < sizeof(id.pulse);
+      if (valid) {
+        std::memcpy(id.pulse, device_id.c_str(), device_id.size());
+      }
+    #endif
+      if (valid) {
+        config.playback.pDeviceID = &id;
+      }
+    }
+    if (!d->has_context) {
+    #if defined(_WIN32)
+      ma_backend backends[] = {ma_backend_wasapi, ma_backend_dsound, ma_backend_winmm};
+    #elif defined(__linux__)
+      ma_backend backends[] = {ma_backend_pulseaudio, ma_backend_alsa, ma_backend_jack};
+    #else
+      ma_backend backends[] = {ma_backend_coreaudio};
+    #endif
+      if (ma_context_init(backends, sizeof(backends) / sizeof(backends[0]), nullptr, &d->context) != MA_SUCCESS) {
+        destroy_device(device);
+        return false;
+      }
+      d->has_context = true;
+    }
+    ma_result result = ma_device_init(&d->context, &config, &d->device);
+    if (result != MA_SUCCESS && config.playback.pDeviceID) {
+      config.playback.pDeviceID = nullptr;
+      result = ma_device_init(&d->context, &config, &d->device);
+    }
+    if (result != MA_SUCCESS) {
+      destroy_device(device);
+      return false;
+    }
+    d->has_device = true;
+    if (ma_device_start(&d->device) != MA_SUCCESS) {
+      destroy_device(device);
+      return false;
+    }
+    return true;
+  }
+
+  void live_mixer_t::stop() {
+    destroy_device(device);
+    std::lock_guard<std::mutex> lock(mutex);
+    sources.clear();
+  }
+
+  bool live_mixer_t::is_running() const {
+    return device != nullptr;
+  }
+
+  void live_mixer_t::push(std::uint32_t source_id, const f32_t* pcm, std::uint32_t frame_count) {
+    std::lock_guard<std::mutex> lock(mutex);
+    source_t& source = sources[source_id];
+    if (source.ring.empty()) {
+      source.ring.resize((max_frames + stream_frame_size) * stream_channels);
+    }
+    std::size_t capacity = source.ring.size() / stream_channels;
+    if (frame_count > capacity) {
+      pcm += (frame_count - capacity) * stream_channels;
+      frame_count = (std::uint32_t)capacity;
+    }
+    if (source.buffered_frames + frame_count > max_frames) {
+      std::size_t skip = std::min<std::size_t>(source.buffered_frames + frame_count - target_frames, source.buffered_frames);
+      source.read_frame = (source.read_frame + skip) % capacity;
+      source.buffered_frames -= skip;
+    }
+    std::size_t write_frame = (source.read_frame + source.buffered_frames) % capacity;
+    std::size_t first = std::min<std::size_t>(frame_count, capacity - write_frame);
+    std::memcpy(&source.ring[write_frame * stream_channels], pcm, first * stream_channels * sizeof(f32_t));
+    std::memcpy(source.ring.data(), pcm + first * stream_channels, (frame_count - first) * stream_channels * sizeof(f32_t));
+    source.buffered_frames += frame_count;
+  }
+
+  void live_mixer_t::remove(std::uint32_t source_id) {
+    std::lock_guard<std::mutex> lock(mutex);
+    sources.erase(source_id);
+  }
+
+  void live_mixer_t::set_volume(f32_t value) {
+    volume.store(std::clamp(value, 0.f, 4.f), std::memory_order_relaxed);
+  }
+
+  void live_mixer_t::pull(f32_t* out, std::uint32_t frame_count) {
+    std::memset(out, 0, frame_count * stream_channels * sizeof(f32_t));
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      f32_t gain = volume.load(std::memory_order_relaxed);
+      for (auto& [id, source] : sources) {
+        std::size_t capacity = source.ring.size() / stream_channels;
+        source.primed = source.primed || source.buffered_frames >= target_frames;
+        std::size_t count = source.primed ? std::min<std::size_t>(frame_count, source.buffered_frames) : 0;
+        for (std::size_t i = 0; i < count; ++i) {
+          std::size_t at = ((source.read_frame + i) % capacity) * stream_channels;
+          for (std::uint32_t c = 0; c < stream_channels; ++c) {
+            out[i * stream_channels + c] += source.ring[at + c] * gain;
+          }
+        }
+        source.read_frame = (source.read_frame + count) % capacity;
+        source.buffered_frames -= count;
+        source.primed = source.primed && count == frame_count;
+      }
+    }
+    for (std::size_t i = 0; i < (std::size_t)frame_count * stream_channels; ++i) {
+      out[i] = std::clamp(out[i], -1.f, 1.f);
+    }
+    if (played) {
+      played(out, frame_count);
+    }
+  }
+
   live_player_t::~live_player_t() {
     stop();
   }
@@ -620,10 +881,10 @@ namespace fan::audio {
     close();
   }
 
-  bool opus_encoder_t::open(std::int32_t bitrate) {
+  bool opus_encoder_t::open(std::int32_t bitrate, bool voice) {
     close();
     int err = 0;
-    auto* encoder = opus_encoder_create(stream_sample_rate, stream_channels, OPUS_APPLICATION_AUDIO, &err);
+    auto* encoder = opus_encoder_create(stream_sample_rate, stream_channels, voice ? OPUS_APPLICATION_VOIP : OPUS_APPLICATION_AUDIO, &err);
     if (err != OPUS_OK || !encoder) {
       return false;
     }

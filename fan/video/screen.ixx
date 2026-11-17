@@ -108,6 +108,33 @@ export namespace fan {
     using screen_capture_t = MD_SCR_t;
   #endif
 
+    struct camera_device_t {
+      std::string id;
+      std::string name;
+    };
+    std::vector<camera_device_t> get_camera_devices();
+
+    struct camera_capture_t {
+      camera_capture_t() = default;
+      camera_capture_t(const camera_capture_t&) = delete;
+      camera_capture_t& operator=(const camera_capture_t&) = delete;
+      ~camera_capture_t() {
+        close();
+      }
+      bool open(const std::string& device_id = {}, std::uint32_t wanted_width = 1280, std::uint32_t wanted_height = 720, std::uint32_t wanted_fps = 30);
+      void close();
+      bool is_open() const {
+        return impl != nullptr;
+      }
+      std::uint8_t* read(std::uint32_t timeout_ms);
+
+      std::uint32_t width = 0;
+      std::uint32_t height = 0;
+      std::string error;
+      std::vector<std::uint8_t> frame;
+      void* impl = nullptr;
+    };
+
     struct resolution_manager_t {
       struct detected_info_t {
         std::uint32_t screen_width, screen_height;
@@ -169,21 +196,39 @@ export namespace fan {
       bool ensure_mdscr_initialized() {
         if (mdscr_initialized_) return true;
 
-      #if defined(_WIN32)
-        if (!mdscr.open()) {
-          fan::print_impl("failed to open screen");
-
-          return false;
+        if (camera_active_) {
+          auto now = std::chrono::steady_clock::now();
+          if (now < camera_retry_at_) return false;
+          if (!camera.open(camera_id_, 1280, 720, (std::uint32_t)std::max(config_.frame_rate, 1))) {
+            fan::print_impl("failed to open the camera: " + camera.error);
+            camera_retry_at_ = now + std::chrono::seconds(2);
+            return false;
+          }
+        #if !defined(_WIN32)
+          std::memset(&mdscr, 0, sizeof(mdscr));
+        #endif
+          mdscr.Geometry.Resolution.x = camera.width;
+          mdscr.Geometry.Resolution.y = camera.height;
+          mdscr.Geometry.LineSize = camera.width * 4;
         }
-        encoder_.gpu_device_ = mdscr.device;
-      #else
-        std::memset(&mdscr, 0, sizeof(mdscr));
-        if (int ret = MD_SCR_open(&mdscr); ret != 0) {
-          fan::print_impl("failed to open screen:" + std::to_string(ret));
+        else {
+        #if defined(_WIN32)
+          if (!screen_open_ && !mdscr.open()) {
+            fan::print_impl("failed to open screen");
 
-          return false;
+            return false;
+          }
+          screen_open_ = false;
+          encoder_.gpu_device_ = mdscr.device;
+        #else
+          std::memset(&mdscr, 0, sizeof(mdscr));
+          if (int ret = MD_SCR_open(&mdscr); ret != 0) {
+            fan::print_impl("failed to open screen:" + std::to_string(ret));
+
+            return false;
+          }
+        #endif
         }
-      #endif
 
         resolution_manager.detect_and_set_optimal(*this);
 
@@ -206,6 +251,12 @@ export namespace fan {
       // ends the capture, the next screen_read opens it again. On Wayland that asks which screen or window to
       // share again, and picks up a changed resolution or rotation. Windows captures the desktop and has nothing to redo
       void close_screen() {
+        if (camera_active_) {
+          camera.close();
+          screen_buffer = nullptr;
+          mdscr_initialized_ = false;
+          return;
+        }
       #if !defined(_WIN32)
         if (!mdscr_initialized_) return;
         MD_SCR_close(&mdscr);
@@ -246,8 +297,73 @@ export namespace fan {
 
       void sleep_thread();
 
+      void set_camera(bool enabled, const std::string& device_id) {
+        std::lock_guard<std::mutex> lock(source_mutex_);
+        if (enabled == want_camera_ && (!enabled || device_id == wanted_camera_id_)) return;
+        want_camera_ = enabled;
+        wanted_camera_id_ = device_id;
+        source_changed_ = true;
+      }
+      bool is_camera() const {
+        return camera_active_;
+      }
+      void poll_source() {
+        if (!source_changed_.exchange(false)) return;
+        bool enabled;
+        std::string device_id;
+        {
+          std::lock_guard<std::mutex> lock(source_mutex_);
+          enabled = want_camera_;
+          device_id = wanted_camera_id_;
+        }
+        if (camera_active_) {
+          camera.close();
+        #if defined(_WIN32)
+          if (screen_open_) mdscr.Geometry = screen_geometry_;
+        #endif
+        }
+        else if (mdscr_initialized_) {
+        #if defined(_WIN32)
+          screen_geometry_ = mdscr.Geometry;
+          screen_open_ = true;
+        #else
+          MD_SCR_close(&mdscr);
+        #endif
+        }
+      #if defined(_WIN32)
+        encoder_.gpu_device_ = nullptr;
+      #endif
+        screen_buffer = nullptr;
+        mdscr_initialized_ = false;
+        camera_active_ = enabled;
+        camera_id_ = device_id;
+        camera_retry_at_ = {};
+      }
+
+      bool read_camera() {
+        auto now = std::chrono::steady_clock::now();
+        if (std::uint8_t* frame = camera.read((std::uint32_t)std::max(1000 / std::max(config_.frame_rate, 1), 1))) {
+          screen_buffer = frame;
+          last_read = now;
+          return true;
+        }
+        if (!camera.is_open()) {
+          screen_buffer = nullptr;
+          mdscr_initialized_ = false;
+          camera_retry_at_ = now + std::chrono::seconds(2);
+          return false;
+        }
+        if (!screen_buffer || (!(encode_write_flags & codec_update_e::force_keyframe) && now - last_read < std::chrono::milliseconds(100))) {
+          return false;
+        }
+        last_read = now;
+        return true;
+      }
+
       bool screen_read() {
+        poll_source();
         if (!ensure_mdscr_initialized()) return false;
+        if (camera_active_) return read_camera();
 
       #if defined(_WIN32)
         return read_desktop();
@@ -305,6 +421,18 @@ export namespace fan {
       libav_encoder_t encoder_;
       screen_capture_t mdscr;
       std::uint8_t* screen_buffer = nullptr;
+      camera_capture_t camera;
+      bool camera_active_ = false;
+      std::string camera_id_;
+      std::chrono::steady_clock::time_point camera_retry_at_{};
+      std::mutex source_mutex_;
+      bool want_camera_ = false;
+      std::string wanted_camera_id_;
+      std::atomic<bool> source_changed_ = false;
+    #if defined(_WIN32)
+      bool screen_open_ = false;
+      decltype(desktop_capture_t::Geometry) screen_geometry_{};
+    #endif
       // time spent copying the last frame, not waiting for it
       std::uint64_t capture_time_ns = 0;
       std::chrono::steady_clock::time_point last_read;

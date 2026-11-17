@@ -65,6 +65,263 @@ export namespace fan::audio {
     std::atomic<f32_t> gain = 1.f;
   };
 
+  using microphone_device_t = loopback_device_t;
+  std::vector<microphone_device_t> get_microphone_devices();
+
+  struct microphone_capture_t {
+    using callback_t = std::function<void(const f32_t* pcm, std::uint32_t frame_count)>;
+
+    microphone_capture_t() = default;
+    microphone_capture_t(const microphone_capture_t&) = delete;
+    microphone_capture_t& operator=(const microphone_capture_t&) = delete;
+    ~microphone_capture_t();
+
+    bool start(callback_t cb, const std::string& device_id = {});
+    void stop();
+    bool is_running() const;
+    void set_gain(f32_t value);
+    f32_t get_level() const;
+    const std::string& get_error() const;
+    void on_data(const f32_t* pcm, std::uint32_t frame_count);
+
+    void* device = nullptr;
+    callback_t callback;
+    std::vector<f32_t> pending;
+    std::string error;
+    std::atomic<f32_t> gain = 1.f;
+    std::atomic<f32_t> level = 0.f;
+  };
+
+  struct echo_canceller_t {
+    static constexpr std::size_t fft_size = 512;
+    static constexpr std::size_t hop = fft_size / 2;
+    static constexpr std::size_t bins = fft_size / 2 + 1;
+    static constexpr std::size_t bands = 24;
+    static constexpr std::size_t lags = 96;
+    static constexpr std::size_t mic_delay = fft_size * 2;
+    using spectrum_t = std::array<std::complex<f32_t>, fft_size>;
+    using band_powers_t = std::array<f32_t, bands>;
+
+    echo_canceller_t() {
+      for (std::size_t i = 0; i < fft_size; ++i) {
+        window[i] = std::sin(std::numbers::pi_v<f32_t> * (i + 0.5f) / fft_size);
+      }
+      for (std::size_t b = 0; b <= bands; ++b) {
+        band_edges[b] = std::max<std::size_t>(b, (std::size_t)std::lround((bins - 1) * std::pow((f32_t)b / bands, 2.f)));
+      }
+      band_edges[bands] = bins;
+      reset();
+    }
+    void reset() {
+      {
+        std::lock_guard<std::mutex> lock(reference_mutex);
+        reference.clear();
+      }
+      input.clear();
+      output.assign(mic_delay + hop, 0.f);
+      mic_window.fill(0.f);
+      reference_window.fill(0.f);
+      overlap.fill(0.f);
+      for (auto& powers : played) {
+        powers.fill(0.f);
+      }
+      match.fill(0.f);
+      echo_tail.fill(0.f);
+      coupling_top.fill(0.f);
+      coupling_bottom.fill(0.f);
+      gains.fill(1.f);
+      played_at = 0;
+      delay = 0;
+    }
+    void push_reference(const f32_t* pcm, std::uint32_t frame_count) {
+      std::lock_guard<std::mutex> lock(reference_mutex);
+      for (std::uint32_t i = 0; i < frame_count; ++i) {
+        reference.push_back((pcm[i * stream_channels] + pcm[i * stream_channels + 1]) * 0.5f);
+      }
+      if (reference.size() > mic_delay) {
+        reference.erase(reference.begin(), reference.end() - mic_delay);
+      }
+    }
+    void process(f32_t* pcm, std::uint32_t frame_count) {
+      for (std::uint32_t i = 0; i < frame_count; ++i) {
+        input.push_back((pcm[i * stream_channels] + pcm[i * stream_channels + 1]) * 0.5f);
+      }
+      std::size_t used = 0;
+      for (; input.size() - used >= hop + mic_delay; used += hop) {
+        process_hop(input.data() + used);
+      }
+      input.erase(input.begin(), input.begin() + used);
+      for (std::uint32_t i = 0; i < frame_count; ++i) {
+        pcm[i * stream_channels] = pcm[i * stream_channels + 1] = output[i];
+      }
+      output.erase(output.begin(), output.begin() + frame_count);
+    }
+    void process_hop(const f32_t* mic) {
+      std::copy(mic_window.begin() + hop, mic_window.end(), mic_window.begin());
+      std::copy(mic, mic + hop, mic_window.end() - hop);
+      std::copy(reference_window.begin() + hop, reference_window.end(), reference_window.begin());
+      {
+        std::lock_guard<std::mutex> lock(reference_mutex);
+        std::size_t count = std::min(reference.size(), hop);
+        std::fill(reference_window.end() - hop, reference_window.end() - count, 0.f);
+        std::copy(reference.begin(), reference.begin() + count, reference_window.end() - count);
+        reference.erase(reference.begin(), reference.begin() + count);
+      }
+      spectrum_t heard, sent;
+      band_powers_t heard_power;
+      played_at = (played_at + 1) % lags;
+      analyse(reference_window, sent, played[played_at]);
+      analyse(mic_window, heard, heard_power);
+
+      f32_t heard_size = size_of(heard_power);
+      for (std::size_t lag = 0; lag < lags; ++lag) {
+        const band_powers_t& then = played[(played_at + lags - lag) % lags];
+        f32_t then_size = size_of(then);
+        if (then_size > quiet && heard_size > quiet) {
+          f32_t alike = 0.f;
+          for (std::size_t b = 0; b < bands; ++b) {
+            alike += then[b] * heard_power[b];
+          }
+          match[lag] += (alike / (then_size * heard_size) - match[lag]) * 0.01f;
+        }
+      }
+      delay = std::max_element(match.begin(), match.end()) - match.begin();
+
+      std::array<f32_t, bands> wanted;
+      for (std::size_t b = 0; b < bands; ++b) {
+        f32_t now = 0.f;
+        for (std::size_t lag = delay == 0 ? 0 : delay - 1; lag <= std::min(delay + 1, lags - 1); ++lag) {
+          now = std::max(now, played[(played_at + lags - lag) % lags][b]);
+        }
+        echo_tail[b] = std::max(now, echo_tail[b] * tail_decay);
+        if (echo_tail[b] > quiet) {
+          coupling_top[b] += (heard_power[b] * echo_tail[b] - coupling_top[b]) * learn_rate;
+          coupling_bottom[b] += (echo_tail[b] * echo_tail[b] - coupling_bottom[b]) * learn_rate;
+        }
+        f32_t coupling = coupling_bottom[b] > quiet * quiet ? coupling_top[b] / coupling_bottom[b] : unlearned_coupling;
+        f32_t echo = coupling * echo_tail[b] * over_estimate;
+        wanted[b] = std::clamp(1.f - echo / (heard_power[b] + quiet), min_gain, 1.f);
+        gains[b] = wanted[b] < gains[b] ? wanted[b] : gains[b] + (wanted[b] - gains[b]) * 0.3f;
+      }
+      for (std::size_t b = 0; b < bands; ++b) {
+        for (std::size_t i = band_edges[b]; i < band_edges[b + 1]; ++i) {
+          heard[i] *= gains[b];
+          if (i != 0 && i != fft_size / 2) {
+            heard[fft_size - i] = std::conj(heard[i]);
+          }
+        }
+      }
+      transform(heard, true);
+      for (std::size_t i = 0; i < fft_size; ++i) {
+        overlap[i] += heard[i].real() * window[i] / fft_size;
+      }
+      output.insert(output.end(), overlap.begin(), overlap.begin() + hop);
+      std::copy(overlap.begin() + hop, overlap.end(), overlap.begin());
+      std::fill(overlap.end() - hop, overlap.end(), 0.f);
+    }
+    void analyse(const std::array<f32_t, fft_size>& samples, spectrum_t& spectrum, band_powers_t& powers) const {
+      for (std::size_t i = 0; i < fft_size; ++i) {
+        spectrum[i] = samples[i] * window[i];
+      }
+      transform(spectrum, false);
+      for (std::size_t b = 0; b < bands; ++b) {
+        powers[b] = 0.f;
+        for (std::size_t i = band_edges[b]; i < band_edges[b + 1]; ++i) {
+          powers[b] += std::norm(spectrum[i]);
+        }
+        powers[b] /= fft_size * fft_size;
+      }
+    }
+    static f32_t size_of(const band_powers_t& powers) {
+      f32_t sum = 0.f;
+      for (f32_t power : powers) {
+        sum += power * power;
+      }
+      return std::sqrt(sum);
+    }
+    static void transform(spectrum_t& data, bool inverse) {
+      for (std::size_t i = 1, j = 0; i < fft_size; ++i) {
+        std::size_t bit = fft_size >> 1;
+        for (; j & bit; bit >>= 1) {
+          j ^= bit;
+        }
+        j ^= bit;
+        if (i < j) {
+          std::swap(data[i], data[j]);
+        }
+      }
+      for (std::size_t length = 2; length <= fft_size; length <<= 1) {
+        f32_t angle = 2.f * std::numbers::pi_v<f32_t> / length * (inverse ? 1.f : -1.f);
+        std::complex<f32_t> step(std::cos(angle), std::sin(angle));
+        for (std::size_t i = 0; i < fft_size; i += length) {
+          std::complex<f32_t> turn(1.f, 0.f);
+          for (std::size_t k = 0; k < length / 2; ++k) {
+            std::complex<f32_t> a = data[i + k], b = data[i + k + length / 2] * turn;
+            data[i + k] = a + b;
+            data[i + k + length / 2] = a - b;
+            turn *= step;
+          }
+        }
+      }
+    }
+
+    static constexpr f32_t quiet = 1e-10f;
+    static constexpr f32_t tail_decay = 0.85f;
+    static constexpr f32_t learn_rate = 0.005f;
+    static constexpr f32_t unlearned_coupling = 4.f;
+    static constexpr f32_t over_estimate = 3.f;
+    static constexpr f32_t min_gain = 0.03f;
+
+    std::mutex reference_mutex;
+    std::vector<f32_t> reference;
+    std::vector<f32_t> input;
+    std::vector<f32_t> output;
+    std::array<f32_t, fft_size> window;
+    std::array<std::size_t, bands + 1> band_edges;
+    std::array<f32_t, fft_size> mic_window;
+    std::array<f32_t, fft_size> reference_window;
+    std::array<f32_t, fft_size> overlap;
+    std::array<band_powers_t, lags> played;
+    std::array<f32_t, lags> match;
+    band_powers_t echo_tail;
+    band_powers_t coupling_top;
+    band_powers_t coupling_bottom;
+    band_powers_t gains;
+    std::size_t played_at = 0;
+    std::size_t delay = 0;
+  };
+
+  struct live_mixer_t {
+    struct source_t {
+      std::vector<f32_t> ring;
+      std::size_t read_frame = 0;
+      std::size_t buffered_frames = 0;
+      bool primed = false;
+    };
+    using played_callback_t = std::function<void(const f32_t* pcm, std::uint32_t frame_count)>;
+
+    live_mixer_t() = default;
+    live_mixer_t(const live_mixer_t&) = delete;
+    live_mixer_t& operator=(const live_mixer_t&) = delete;
+    ~live_mixer_t();
+
+    bool start(const std::string& device_id = {});
+    void stop();
+    bool is_running() const;
+    void push(std::uint32_t source, const f32_t* pcm, std::uint32_t frame_count);
+    void remove(std::uint32_t source);
+    void set_volume(f32_t value);
+    void pull(f32_t* out, std::uint32_t frame_count);
+
+    void* device = nullptr;
+    std::mutex mutex;
+    std::unordered_map<std::uint32_t, source_t> sources;
+    std::atomic<f32_t> volume = 1.f;
+    played_callback_t played;
+    std::uint32_t target_frames = stream_frame_size * 3;
+    std::uint32_t max_frames = stream_frame_size * 15;
+  };
+
   struct live_player_t {
     live_player_t() = default;
     live_player_t(const live_player_t&) = delete;
@@ -98,7 +355,7 @@ export namespace fan::audio {
     opus_encoder_t& operator=(const opus_encoder_t&) = delete;
     ~opus_encoder_t();
 
-    bool open(std::int32_t bitrate = 128000);
+    bool open(std::int32_t bitrate = 128000, bool voice = false);
     void close();
     std::int32_t encode(const f32_t* pcm, std::uint8_t* out, std::int32_t capacity);
 
