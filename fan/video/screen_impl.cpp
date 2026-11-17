@@ -3,8 +3,8 @@ module;
 #if defined (FAN_WINDOW) && defined(FAN_VIDEO)
 
 #include <cstring>
-#include <libavformat/avformat.h>
 extern "C" {
+#include <libavformat/avformat.h>
 #include <libavutil/pixdesc.h>
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
