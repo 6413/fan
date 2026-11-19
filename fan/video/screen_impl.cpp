@@ -442,7 +442,14 @@ bool fan::graphics::desktop_capture_t::acquire(std::uint32_t timeout_ms) {
     return acquire_window(timeout_ms);
   }
   if (!duplication) {
-    if (std::chrono::steady_clock::now() < next_reopen || duplicate() != S_OK) {
+    // waiting out the retry delay must not push it further: re-arming it on every wait (a wait is shorter than the
+    // delay) never let the capture reopen after the administrator prompt or a fullscreen switch took it away
+    if (std::chrono::steady_clock::now() < next_reopen) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
+      return false;
+    }
+    if (duplicate() != S_OK) {
+      // still on the secure desktop (administrator prompt, lock screen): try again shortly
       release_duplication();
       std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
       return false;
