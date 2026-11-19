@@ -370,6 +370,11 @@ export namespace fan {
       #else
         auto now = std::chrono::steady_clock::now();
         if (std::uint8_t* frame = MD_SCR_read(&mdscr)) {
+          // the read waits for the compositor's next frame and copies it: both are in here
+          std::uint64_t took = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - now).count();
+          capture_time_ns = took;
+          screen_wait_ns += took;
+          ++new_frames;
           screen_buffer = frame;
           last_read = now;
           return true;
@@ -435,6 +440,10 @@ export namespace fan {
     #endif
       // time spent copying the last frame, not waiting for it
       std::uint64_t capture_time_ns = 0;
+      // new frames the screen gave and the time spent getting them (waiting for the screen included), summed since
+      // the start: the perf log reads the change per second, to tell a screen that gives few frames from a slow capture
+      std::uint64_t new_frames = 0;
+      std::uint64_t screen_wait_ns = 0;
       std::chrono::steady_clock::time_point last_read;
 
       std::vector<encode_data_t> encoded_packets_;

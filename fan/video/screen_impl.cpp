@@ -518,9 +518,14 @@ std::uint8_t* fan::graphics::desktop_capture_t::map_for_cpu(bool new_frame) {
 
 bool fan::graphics::screen_encode_t::read_desktop() {
   std::uint32_t wait_ms = (std::max)(1000 / (std::max)(config_.frame_rate, 1), 1);
+  auto acquire_start = std::chrono::steady_clock::now();
   bool new_frame = mdscr.acquire(wait_ms);
 
   auto now = std::chrono::steady_clock::now();
+  if (new_frame) {
+    ++new_frames;
+    screen_wait_ns += std::chrono::duration_cast<std::chrono::nanoseconds>(now - acquire_start).count();
+  }
   if (!new_frame) {
     // a still screen must still answer keyframe requests and show viewers it's alive
     bool keyframe_wanted = (encode_write_flags & codec_update_e::force_keyframe) != 0;
