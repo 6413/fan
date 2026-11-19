@@ -41,6 +41,9 @@ if is_mode("mode_none") or is_mode("debug") then
 end
 -- keeps symbols in release builds so crash dumps can be read, the binary can be stripped afterwards
 option("FAN_DEBUG_INFO") set_default(false) set_showmenu(true) option_end()
+-- comma separated module names, e.g. "fan.print,fan.network.crypto": only those and what they import are built,
+-- for a program that uses a few modules (the ecps server). Empty builds every module the features turn on
+option("FAN_ONLY") set_default("") set_showmenu(true) option_end()
 
 if is_mode("release") then
   set_optimize("fastest")
@@ -642,14 +645,56 @@ for _, feat in ipairs(feature_names) do
     for _, f in ipairs(feature_modules[feat]) do table.insert(module_files, f) end
   end
 end
-table.insert(module_files, "fan/fan.ixx")
+local only_modules = get_config("FAN_ONLY")
+if only_modules and only_modules ~= "" then
+  -- each module's name and what it and its _impl.cpp import, read from the sources
+  local file_of, needs = {}, {}
+  for _, f in ipairs(module_files) do
+    local text = io.readfile(f) or ""
+    local name = text:match("export%s+module%s+([%w_%.]+)%s*;")
+    if name then
+      file_of[name] = f
+      local impl = path.join(path.directory(f), path.basename(f) .. "_impl.cpp")
+      if os.isfile(impl) then
+        text = text .. "\n" .. (io.readfile(impl) or "")
+      end
+      local list = {}
+      for dep in text:gmatch("import%s+([%w_%.]+)%s*;") do table.insert(list, dep) end
+      needs[f] = list
+    end
+  end
+  local keep, queue = {}, {}
+  for name in only_modules:gmatch("[^,%s]+") do
+    if not file_of[name] then
+      raise("FAN_ONLY: no module named " .. name .. " among the ones the features turn on")
+    end
+    table.insert(queue, file_of[name])
+  end
+  while #queue > 0 do
+    local f = table.remove(queue)
+    if not keep[f] then
+      keep[f] = true
+      for _, dep in ipairs(needs[f]) do
+        if file_of[dep] then table.insert(queue, file_of[dep]) end
+      end
+    end
+  end
+  local kept = {}
+  for _, f in ipairs(module_files) do
+    if keep[f] then table.insert(kept, f) end
+  end
+  module_files = kept
+else
+  -- fan.ixx exports every module, a program that names its modules doesn't need it
+  table.insert(module_files, "fan/fan.ixx")
+end
 
 local impl_files = {}
 for _, m in ipairs(module_files) do
   local p = path.join(path.directory(m), path.basename(m) .. "_impl.cpp")
   if os.isfile(p) then table.insert(impl_files, p) end
 end
-if os.isfile("fan/memory/memory_profile.cpp") then
+if os.isfile("fan/memory/memory_profile.cpp") and table.contains(module_files, "fan/memory/memory.ixx") then
   table.insert(impl_files, "fan/memory/memory_profile.cpp")
 end
 if has_config("FAN_2D") then
