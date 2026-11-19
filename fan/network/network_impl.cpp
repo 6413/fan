@@ -713,6 +713,17 @@ namespace fan {
       data->data_buffer = std::move(message);
       data->destination = addr;
       uv_buf_t buf = uv_buf_init(data->data_buffer.data(), data->data_buffer.size());
+      // most sends fit in the socket buffer at once: done here, without waiting a loop pass for the completion.
+      // Only when the socket is busy (or earlier sends still wait) does it go the asynchronous way, in order
+      int sent = uv_udp_try_send(udp.socket.get(), &buf, 1, data->destination.sockaddr_ptr());
+      if (sent >= 0) {
+        data->status = 0;
+        return;
+      }
+      if (sent != UV_EAGAIN && sent != UV_ENOSYS) {
+        data->status = sent;
+        return;
+      }
       data->status = uv_udp_send(&data->req, udp.socket.get(), &buf, 1,
         data->destination.sockaddr_ptr(),
         [](uv_udp_send_t* req, int status) {
