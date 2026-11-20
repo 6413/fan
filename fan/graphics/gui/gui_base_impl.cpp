@@ -1753,23 +1753,6 @@ namespace fan::graphics::gui {
     ImGui::DockSpaceOverViewport(dockspace_id, viewport, flags, static_cast<const ImGuiWindowClass*>(window_class));
   }
 
-  id_t dock_space_in_window(id_t dockspace_id, const fan::vec2& size, int flags) {
-    return ImGui::DockSpace(dockspace_id, size, flags);
-  }
-
-  void dock_space_split_once(id_t dockspace_id, const fan::vec2& size, dir_t dir, f32_t ratio, const std::string& main_window, const std::string& side_window) {
-    if (ImGui::DockBuilderGetNode(dockspace_id)) {
-      return;
-    }
-    ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
-    ImGui::DockBuilderSetNodeSize(dockspace_id, size);
-    ImGuiID main_id = dockspace_id;
-    ImGuiID side_id = ImGui::DockBuilderSplitNode(main_id, dir, ratio, nullptr, &main_id);
-    ImGui::DockBuilderDockWindow(side_window.c_str(), side_id);
-    ImGui::DockBuilderDockWindow(main_window.c_str(), main_id);
-    ImGui::DockBuilderFinish(dockspace_id);
-  }
-
   bool is_mouse_hovering_rect(const fan::vec2& min, const fan::vec2& max, bool clip) {
     return ImGui::IsMouseHoveringRect(min, max, clip);
   }
