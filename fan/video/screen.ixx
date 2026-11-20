@@ -166,20 +166,34 @@ export namespace fan {
     // the wait for the compositor (about one refresh) and the encoding one after the other, 16 + 4 ms at 1440p,
     // and that capped the rate at about 50 fps. Here the reads go on while a frame is encoded, the encoder takes the
     // newest one. Three buffers: the one being written, the newest finished one and the one the encoder reads
+    // PipeWire's loop (made by MD_SCR_open) only delivers frames to the thread it was made on: the capture is opened,
+    // read and closed all on this thread
     struct capture_thread_t {
       ~capture_thread_t() { stop(); }
 
-      void start(MD_SCR_t* scr) {
+      // opens the capture on the thread (the portal may ask which screen first) and waits for that, then the thread
+      // goes on reading. Returns MD_SCR_open's result, 0 is open
+      int open(MD_SCR_t* scr) {
         stop();
         running = true;
         fresh = false;
         writing = 0;
         latest = -1;
         reading = -1;
+        open_result = 1;
+        opened = false;
         thread = std::thread([this, scr] { run(scr); });
+        std::unique_lock<std::mutex> lock(mutex);
+        ready.wait(lock, [this] { return opened; });
+        int result = open_result;
+        lock.unlock();
+        if (result != 0) {
+          thread.join();
+        }
+        return result;
       }
 
-      // returns after the read in progress (at most about a second, the read's own timeout)
+      // closes the capture: returns after the read in progress (at most about a second, the read's own timeout)
       void stop() {
         if (!thread.joinable()) {
           return;
@@ -206,6 +220,17 @@ export namespace fan {
       }
 
       void run(MD_SCR_t* scr) {
+        int result = MD_SCR_open(scr);
+        {
+          std::lock_guard<std::mutex> lock(mutex);
+          open_result = result;
+          opened = true;
+        }
+        ready.notify_all();
+        if (result != 0) {
+          running = false;
+          return;
+        }
         while (running) {
           auto start = std::chrono::steady_clock::now();
           std::uint8_t* frame = MD_SCR_read(scr);
@@ -243,6 +268,7 @@ export namespace fan {
           last_read_ns.store(took, std::memory_order_relaxed);
           ready.notify_one();
         }
+        MD_SCR_close(scr);
       }
 
       std::thread thread;
@@ -252,6 +278,8 @@ export namespace fan {
       std::vector<std::uint8_t> buffers[3];
       int writing = 0, latest = -1, reading = -1;
       bool fresh = false;
+      bool opened = false;
+      int open_result = 1;
       // frames the compositor gave and the time their reads took (waiting included), for the perf log
       std::atomic<std::uint64_t> frames = 0;
       std::atomic<std::uint64_t> read_ns = 0;
@@ -320,7 +348,7 @@ export namespace fan {
           encoder_.gpu_device_ = mdscr.device;
         #else
           std::memset(&mdscr, 0, sizeof(mdscr));
-          if (int ret = MD_SCR_open(&mdscr); ret != 0) {
+          if (int ret = capture_thread_.open(&mdscr); ret != 0) {
             fan::print_impl("failed to open screen:" + std::to_string(ret));
 
             return false;
@@ -357,8 +385,8 @@ export namespace fan {
         }
       #if !defined(_WIN32)
         if (!mdscr_initialized_) return;
+        // closes the capture on its thread
         capture_thread_.stop();
-        MD_SCR_close(&mdscr);
         screen_buffer = nullptr;
         mdscr_initialized_ = false;
       #endif
@@ -432,7 +460,6 @@ export namespace fan {
           screen_open_ = true;
         #else
           capture_thread_.stop();
-          MD_SCR_close(&mdscr);
         #endif
         }
       #if defined(_WIN32)
@@ -474,9 +501,6 @@ export namespace fan {
         return read_desktop();
       #else
         auto now = std::chrono::steady_clock::now();
-        if (!capture_thread_.active()) {
-          capture_thread_.start(&mdscr);
-        }
         // the capture thread's counts are the screen's, what this thread takes of them is the encoder's
         new_frames = capture_thread_.frames.load(std::memory_order_relaxed);
         screen_wait_ns = capture_thread_.read_ns.load(std::memory_order_relaxed);
