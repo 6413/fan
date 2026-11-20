@@ -216,7 +216,7 @@ export namespace fan {
         }
         fresh = false;
         reading = latest;
-        return buffers[reading].data();
+        return slots[reading];
       }
 
       void run(MD_SCR_t* scr) {
@@ -239,17 +239,29 @@ export namespace fan {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
             continue;
           }
-          std::size_t size = (std::size_t)scr->Geometry.LineSize * scr->Geometry.Resolution.y;
+          // No copy: the frame is in WITCH's buffer (malloc'd, freed by MD_SCR_close), which is swapped for one of
+          // ours of the same size. WITCH fills that one next, the encoder reads the one that came out. A copy here cost
+          // its time on every frame, GNOME only makes the next frame once this one is taken
+          std::size_t size = scr->pw_ctx ? scr->pw_ctx->frame_size : 0;
           int target;
           {
             std::lock_guard<std::mutex> lock(mutex);
             target = writing;
           }
-          auto& buffer = buffers[target];
-          if (buffer.size() != size) {
-            buffer.resize(size);
+          if (size == 0 || frame != scr->pw_ctx->frame_data) {
+            continue;
           }
-          std::memcpy(buffer.data(), frame, size);
+          if (slots[target] == nullptr || slot_size[target] != size) {
+            std::free(slots[target]);
+            slots[target] = (std::uint8_t*)std::malloc(size);
+            slot_size[target] = slots[target] ? size : 0;
+            if (!slots[target]) {
+              continue;
+            }
+          }
+          std::uint8_t* spare = slots[target];
+          slots[target] = frame;
+          scr->pw_ctx->frame_data = spare;
           std::uint64_t took = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count();
           {
             std::lock_guard<std::mutex> lock(mutex);
@@ -268,14 +280,25 @@ export namespace fan {
           last_read_ns.store(took, std::memory_order_relaxed);
           ready.notify_one();
         }
+        // WITCH frees the buffer it holds, ours are freed here
         MD_SCR_close(scr);
+        std::lock_guard<std::mutex> lock(mutex);
+        for (int i = 0; i < 3; ++i) {
+          std::free(slots[i]);
+          slots[i] = nullptr;
+          slot_size[i] = 0;
+        }
+        latest = reading = -1;
+        fresh = false;
       }
 
       std::thread thread;
       std::atomic<bool> running = false;
       std::mutex mutex;
       std::condition_variable ready;
-      std::vector<std::uint8_t> buffers[3];
+      // malloc'd, like WITCH's frame buffer they are swapped with
+      std::uint8_t* slots[3] = {};
+      std::size_t slot_size[3] = {};
       int writing = 0, latest = -1, reading = -1;
       bool fresh = false;
       bool opened = false;
