@@ -434,11 +434,6 @@ export namespace fan::graphics::gui {
   f32_t get_line_height_with_spacing();
 
   void dock_space_over_viewport(id_t dockspace_id = 0, const gui::viewport_t* viewport = NULL, int flags = 0, const void* window_class = NULL);
-  // a dock space inside the current window
-  id_t dock_space_in_window(id_t dockspace_id, const fan::vec2& size = fan::vec2(0, 0), int flags = 0);
-  // the first layout of a dock space, only when it has none yet (none saved either): side_window docked on the dir
-  // side with ratio of the size, main_window in the rest. Call it before dock_space_in_window()
-  void dock_space_split_once(id_t dockspace_id, const fan::vec2& size, dir_t dir, f32_t ratio, const std::string& main_window, const std::string& side_window);
 
   bool is_mouse_hovering_rect(const fan::vec2& min, const fan::vec2& max, bool clip = true);
 
