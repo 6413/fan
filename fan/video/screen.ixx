@@ -371,11 +371,22 @@ export namespace fan {
           encoder_.gpu_device_ = mdscr.device;
         #else
           std::memset(&mdscr, 0, sizeof(mdscr));
+        #if defined(MD_SCR_HAS_RESTORE_TOKEN)
+          // a token from the share before (kept over an update) shares the same screen or window without the dialog.
+          // It is used once: the next share after this one asks again, as usual
+          MD_SCR_set_restore_token(take_resume_token().c_str());
+        #endif
           if (int ret = capture_thread_.open(&mdscr); ret != 0) {
             fan::print_impl("failed to open screen:" + std::to_string(ret));
 
             return false;
           }
+        #if defined(MD_SCR_HAS_RESTORE_TOKEN)
+          {
+            std::lock_guard<std::mutex> lock(restore_token_mutex_);
+            restore_token_ = MD_SCR_get_restore_token();
+          }
+        #endif
         #endif
         }
 
@@ -414,6 +425,25 @@ export namespace fan {
         mdscr_initialized_ = false;
       #endif
       }
+
+      // Linux, the portal's restore tokens. restore_token(): the one of the screen or window shared now (empty when the
+      // portal gave none), for keeping over an update. set_resume_token(): given to the next opening of the capture,
+      // once, which then shares that screen or window without the dialog. The gui thread reads and sets them
+      std::string restore_token() {
+        std::lock_guard<std::mutex> lock(restore_token_mutex_);
+        return restore_token_;
+      }
+      void set_resume_token(const std::string& token) {
+        std::lock_guard<std::mutex> lock(restore_token_mutex_);
+        resume_token_ = token;
+      }
+      std::string take_resume_token() {
+        std::lock_guard<std::mutex> lock(restore_token_mutex_);
+        return std::exchange(resume_token_, std::string());
+      }
+      std::mutex restore_token_mutex_;
+      std::string restore_token_;
+      std::string resume_token_;
 
       ~screen_encode_t() {
       #if !defined(_WIN32)
