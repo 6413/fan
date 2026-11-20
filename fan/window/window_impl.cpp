@@ -54,6 +54,9 @@ namespace fan {
       #if defined(GLFW_FEATURE_UNAVAILABLE)
         if (error == GLFW_FEATURE_UNAVAILABLE) { return; }
       #endif
+        // the clipboard holding no text (an image, files) is not an error: reading it gives nothing. Ctrl+V in any
+        // text field asks for it, throwing here ended the program
+        if (error == GLFW_FORMAT_UNAVAILABLE) { return; }
         fan::throw_error("GLFW error " + std::to_string(error) + ": " + description);
       });
       glfwInit();
