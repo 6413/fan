@@ -387,6 +387,8 @@ export namespace fan {
     void set_error_callback(GLFWerrorfun callback);
 
     void show();
+    // false: showing the window (the engine does it at the first frame) doesn't take the focus from another program
+    void set_focus_on_show(bool focus);
     bool is_wayland() const;
 
 #if defined(fan_platform_windows)
