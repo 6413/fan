@@ -966,6 +966,10 @@ namespace fan {
     glfwShowWindow(*this);
   }
 
+  void window_t::set_focus_on_show(bool focus) {
+    glfwSetWindowAttrib(*this, GLFW_FOCUS_ON_SHOW, focus ? GLFW_TRUE : GLFW_FALSE);
+  }
+
   bool window_t::is_wayland() const {
   #if GLFW_VERSION_MAJOR > 3 || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 4)
     return glfwGetPlatform() == GLFW_PLATFORM_WAYLAND;
