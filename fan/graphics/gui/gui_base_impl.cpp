@@ -274,6 +274,13 @@ namespace fan::graphics::gui {
       ImGui::BringWindowToDisplayFront(w);
       ImGui::BringWindowToFocusFront(w);
     }
+
+    // an open popup (a prompt, a menu) stays above the topmost windows too, else it ends up behind them
+    for (const ImGuiPopupData& popup : g->OpenPopupStack) {
+      if (popup.Window && popup.Window->WasActive) {
+        ImGui::BringWindowToDisplayFront(popup.Window);
+      }
+    }
   }
 
   bool begin(str_view_t window_name, bool* p_open, window_flags_t flags) {
