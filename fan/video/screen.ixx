@@ -161,6 +161,104 @@ export namespace fan {
       }
     };
 
+  #if !defined(_WIN32)
+    // Linux: the compositor's frames are taken on a thread of their own. Read on the encoding thread, a frame cost
+    // the wait for the compositor (about one refresh) and the encoding one after the other, 16 + 4 ms at 1440p,
+    // and that capped the rate at about 50 fps. Here the reads go on while a frame is encoded, the encoder takes the
+    // newest one. Three buffers: the one being written, the newest finished one and the one the encoder reads
+    struct capture_thread_t {
+      ~capture_thread_t() { stop(); }
+
+      void start(MD_SCR_t* scr) {
+        stop();
+        running = true;
+        fresh = false;
+        writing = 0;
+        latest = -1;
+        reading = -1;
+        thread = std::thread([this, scr] { run(scr); });
+      }
+
+      // returns after the read in progress (at most about a second, the read's own timeout)
+      void stop() {
+        if (!thread.joinable()) {
+          return;
+        }
+        running = false;
+        ready.notify_all();
+        thread.join();
+      }
+
+      bool active() const { return thread.joinable(); }
+
+      // the newest frame not yet taken, waiting up to wait_ms for one. It stays valid until the next take
+      std::uint8_t* take(std::uint32_t wait_ms) {
+        std::unique_lock<std::mutex> lock(mutex);
+        if (!fresh) {
+          ready.wait_for(lock, std::chrono::milliseconds(wait_ms), [this] { return fresh || !running; });
+        }
+        if (!fresh || latest < 0) {
+          return nullptr;
+        }
+        fresh = false;
+        reading = latest;
+        return buffers[reading].data();
+      }
+
+      void run(MD_SCR_t* scr) {
+        while (running) {
+          auto start = std::chrono::steady_clock::now();
+          std::uint8_t* frame = MD_SCR_read(scr);
+          if (!frame) {
+            // no frame within the read's timeout, or the capture failed: the encoder repeats the last one meanwhile
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            continue;
+          }
+          std::size_t size = (std::size_t)scr->Geometry.LineSize * scr->Geometry.Resolution.y;
+          int target;
+          {
+            std::lock_guard<std::mutex> lock(mutex);
+            target = writing;
+          }
+          auto& buffer = buffers[target];
+          if (buffer.size() != size) {
+            buffer.resize(size);
+          }
+          std::memcpy(buffer.data(), frame, size);
+          std::uint64_t took = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count();
+          {
+            std::lock_guard<std::mutex> lock(mutex);
+            latest = target;
+            fresh = true;
+            // the next one goes where neither the newest nor the one being encoded is
+            for (int i = 0; i < 3; ++i) {
+              if (i != latest && i != reading) {
+                writing = i;
+                break;
+              }
+            }
+          }
+          frames.fetch_add(1, std::memory_order_relaxed);
+          read_ns.fetch_add(took, std::memory_order_relaxed);
+          last_read_ns.store(took, std::memory_order_relaxed);
+          ready.notify_one();
+        }
+      }
+
+      std::thread thread;
+      std::atomic<bool> running = false;
+      std::mutex mutex;
+      std::condition_variable ready;
+      std::vector<std::uint8_t> buffers[3];
+      int writing = 0, latest = -1, reading = -1;
+      bool fresh = false;
+      // frames the compositor gave and the time their reads took (waiting included), for the perf log
+      std::atomic<std::uint64_t> frames = 0;
+      std::atomic<std::uint64_t> read_ns = 0;
+      std::atomic<std::uint64_t> last_read_ns = 0;
+    };
+  #endif
+
     struct screen_encode_t {
       bool update_scaling_quality(codec_config_t::scaling_quality_e new_quality) {
         config_.scaling_quality = new_quality;
@@ -259,13 +357,19 @@ export namespace fan {
         }
       #if !defined(_WIN32)
         if (!mdscr_initialized_) return;
+        capture_thread_.stop();
         MD_SCR_close(&mdscr);
         screen_buffer = nullptr;
         mdscr_initialized_ = false;
       #endif
       }
 
-      ~screen_encode_t() { encoder_.close(); }
+      ~screen_encode_t() {
+      #if !defined(_WIN32)
+        capture_thread_.stop();
+      #endif
+        encoder_.close();
+      }
       bool is_initialized() const { return encoder_.is_initialized();
 
       }
@@ -327,6 +431,7 @@ export namespace fan {
           screen_geometry_ = mdscr.Geometry;
           screen_open_ = true;
         #else
+          capture_thread_.stop();
           MD_SCR_close(&mdscr);
         #endif
         }
@@ -369,12 +474,15 @@ export namespace fan {
         return read_desktop();
       #else
         auto now = std::chrono::steady_clock::now();
-        if (std::uint8_t* frame = MD_SCR_read(&mdscr)) {
-          // the read waits for the compositor's next frame and copies it: both are in here
-          std::uint64_t took = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - now).count();
-          capture_time_ns = took;
-          screen_wait_ns += took;
-          ++new_frames;
+        if (!capture_thread_.active()) {
+          capture_thread_.start(&mdscr);
+        }
+        // the capture thread's counts are the screen's, what this thread takes of them is the encoder's
+        new_frames = capture_thread_.frames.load(std::memory_order_relaxed);
+        screen_wait_ns = capture_thread_.read_ns.load(std::memory_order_relaxed);
+        capture_time_ns = capture_thread_.last_read_ns.load(std::memory_order_relaxed);
+        std::uint32_t wait_ms = (std::max)(1000 / (std::max)(config_.frame_rate, 1), 1);
+        if (std::uint8_t* frame = capture_thread_.take(wait_ms)) {
           screen_buffer = frame;
           last_read = now;
           return true;
@@ -426,6 +534,9 @@ export namespace fan {
       libav_encoder_t encoder_;
       screen_capture_t mdscr;
       std::uint8_t* screen_buffer = nullptr;
+    #if !defined(_WIN32)
+      capture_thread_t capture_thread_;
+    #endif
       camera_capture_t camera;
       bool camera_active_ = false;
       std::string camera_id_;
