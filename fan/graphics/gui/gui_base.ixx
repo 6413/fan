@@ -58,13 +58,18 @@ export namespace fan::graphics::gui {
   }
 
   inline auto& get_font_paths() {
-    static const char* paths[font::count] = {
+    static std::array<std::string, font::count> paths = {
       "fonts/Inter/Inter_18pt-Regular.ttf",
       "fonts/Inter/Inter_18pt-Bold.ttf",
       "fonts/JetBrainsMono/JetBrainsMono-Regular.ttf"
     };
     return paths;
   }
+
+  // custom font files, picked by the app and loaded at the next init_fonts
+  void set_font_path(font::type_t type, const std::string& path);
+  f32_t get_font_scale();
+  void set_font_scale(f32_t scale);
 
   topmost_window_data_t& topmost_data();
   void enforce_topmost();

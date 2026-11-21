@@ -322,6 +322,7 @@ export namespace fan {
       // starts from the fixed defaults below, the capture's own size replaces them at the first read
       bool open() {
         mdscr_initialized_ = false;
+        capture_open_failed = false;
 
         config_.frame_rate = 30;
         config_.codec = codec_config_t::H264;
@@ -364,7 +365,7 @@ export namespace fan {
         #if defined(_WIN32)
           if (!screen_open_ && !mdscr.open()) {
             fan::print_impl("failed to open screen");
-
+            capture_open_failed = true;
             return false;
           }
           screen_open_ = false;
@@ -378,7 +379,8 @@ export namespace fan {
         #endif
           if (int ret = capture_thread_.open(&mdscr); ret != 0) {
             fan::print_impl("failed to open screen:" + std::to_string(ret));
-
+            // a cancelled portal dialog must not be opened again on the next read
+            capture_open_failed = true;
             return false;
           }
         #if defined(MD_SCR_HAS_RESTORE_TOKEN)
@@ -404,6 +406,7 @@ export namespace fan {
         }
 
         mdscr_initialized_ = true;
+        capture_open_failed = false;
         return true;
 
       }
@@ -605,6 +608,10 @@ export namespace fan {
       bool user_set_resolution = false;
       std::uint32_t user_width = 0, user_height = 0;
       bool mdscr_initialized_ = false;
+      std::atomic<bool> capture_open_failed{false};
+
+      // read and clear by the cli after a failed screen_read: the portal was cancelled or the capture could not open
+      bool take_capture_open_failed() { return capture_open_failed.exchange(false); }
 
       resolution_manager_t resolution_manager;
 

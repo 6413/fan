@@ -1857,8 +1857,28 @@ namespace fan::graphics::gui {
     return fonts;
   }
 
+  static f32_t font_scale = 1.f;
+
+  f32_t get_font_scale() { return font_scale; }
+  void set_font_scale(f32_t scale) {
+    font_scale = std::clamp(scale, 0.5f, 3.f);
+    if (get_io().FontDefault) {
+      std::size_t index = 0;
+      f32_t wanted = font_sizes[default_font_size_index] * font_scale;
+      for (std::size_t i = 0; i < std::size(font_sizes); ++i) {
+        if (font_sizes[i] < wanted) index = i;
+      }
+      get_io().FontDefault = get_font_array()[font::regular][index];
+    }
+  }
+  void set_font_path(font::type_t type, const std::string& path) {
+    if (type >= 0 && type < font::count) {
+      get_font_paths()[type] = path;
+    }
+  }
+
   font_t* get_font(f32_t font_size, font::type_t type) {
-    font_size /= 2.f;
+    font_size = font_size / 2.f * font_scale;
     std::size_t best_index = 0;
     f32_t best_diff = std::numeric_limits<f32_t>::max();
     for (std::size_t i = 0; i < std::size(font_sizes); ++i) {
@@ -1964,8 +1984,8 @@ namespace fan::graphics::gui {
       cfg.PixelSnapH = true;
 
       for (int t = 0; t < font::count; ++t) {
-        if (paths[t] && paths[t][0] != '\0') {
-          fonts[t][i] = io.Fonts->AddFontFromFileTTF(paths[t], font_size, &cfg);
+        if (!paths[t].empty()) {
+          fonts[t][i] = io.Fonts->AddFontFromFileTTF(paths[t].c_str(), font_size, &cfg);
           // merge mode targets the most recently added font; regular text only, and only up
           // to size 36 to keep the atlas small
           if (emojis_enabled && t == font::regular && font_sizes[i] <= 36) {
@@ -1977,7 +1997,14 @@ namespace fan::graphics::gui {
     }
 
     build_fonts();
-    io.FontDefault = fonts[font::regular][default_font_size_index];
+    std::size_t default_index = default_font_size_index;
+    f32_t wanted = font_sizes[default_font_size_index] * font_scale;
+    for (std::size_t i = 0; i < std::size(font_sizes); ++i) {
+      if (font_sizes[i] < wanted) {
+        default_index = i;
+      }
+    }
+    io.FontDefault = fonts[font::regular][default_index];
   }
 
   void init_fonts() {
