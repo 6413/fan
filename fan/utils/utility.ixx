@@ -14,7 +14,42 @@ namespace raii_build {
 }
 
 export namespace fan {
-  
+
+  // An optional server feature is asked for until the answer shows up in the state. The caller supplies what counts
+  // as done and whether this tick may send; no transport or app state is kept here.
+  template <typename Key, typename Request>
+  struct retry_until_known_t {
+    struct entry_t {
+      Request request;
+      int tries = 0;
+      int max_tries = 10;
+    };
+    std::unordered_map<Key, entry_t> entries;
+
+    void set(const Key& key, Request request, int max_tries = 10) {
+      entries[key] = entry_t{std::move(request), 0, max_tries};
+    }
+    void erase(const Key& key) { entries.erase(key); }
+
+    template <typename Done, typename Ready>
+    std::vector<Key> due(Done&& done, Ready&& ready) {
+      std::vector<Key> out;
+      for (auto it = entries.begin(); it != entries.end();) {
+        auto& [key, entry] = *it;
+        if (done(key, entry.request) || entry.tries >= entry.max_tries) {
+          it = entries.erase(it);
+          continue;
+        }
+        if (ready(key, entry.request)) {
+          ++entry.tries;
+          out.push_back(key);
+        }
+        ++it;
+      }
+      return out;
+    }
+  };
+
   inline constexpr auto tab = "  ";
 
   template<typename It>

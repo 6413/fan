@@ -1296,6 +1296,283 @@ export namespace fan::graphics::gui {
     }
     return selected_index != prev;
   }
+  // ---- small reusable widgets ---------------------------------------------------------------------------------
+
+  // a title cut to fit width pixels, so a long one doesn't push its neighbours around
+  inline std::string fit_title(std::string title, f32_t width) {
+    if (gui::calc_text_size(title).x <= width) {
+      return title;
+    }
+    while (title.size() > 1 && gui::calc_text_size(title + "...").x > width) {
+      // a whole UTF-8 character at a time: its continuation bytes, then the byte that starts it
+      unsigned char c;
+      do {
+        c = (unsigned char)title.back();
+        title.pop_back();
+      } while (!title.empty() && (c & 0xC0) == 0x80);
+    }
+    return title + "...";
+  }
+
+  inline f32_t pill_button_width(std::string_view text) {
+    f32_t height = gui::get_frame_height();
+    return height * 0.62f + 8.f + gui::calc_text_size(text).x + 30.f;
+  }
+
+  // a small rounded label, like HOST or LIVE, on the current line
+  inline void badge(std::string_view text, std::uint32_t fill, std::uint32_t ink) {
+    std::string label(text);
+    fan::vec2 size = gui::calc_text_size(label);
+    fan::vec2 at = gui::get_cursor_screen_pos() + fan::vec2(0, -1.f);
+    fan::vec2 box = size + fan::vec2(14.f, 2.f);
+    gui::get_window_draw_list()->AddRectFilled(at, at + box, fill, box.y * 0.5f);
+    gui::get_window_draw_list()->AddText(at + fan::vec2(7.f, 1.f), ink, label.c_str());
+    gui::dummy(box - fan::vec2(0, 2.f));
+  }
+
+  // a badge whose fill is a level meter: level (0..1) of its width is filled with the meter colour
+  inline void level_badge(std::string_view text, f32_t level, std::uint32_t fill, std::uint32_t meter, std::uint32_t ink) {
+    std::string label(text);
+    fan::vec2 size = gui::calc_text_size(label);
+    fan::vec2 at = gui::get_cursor_screen_pos() + fan::vec2(0, -1.f);
+    fan::vec2 box = size + fan::vec2(14.f, 2.f);
+    auto* list = gui::get_window_draw_list();
+    list->AddRectFilled(at, at + box, fill, box.y * 0.5f);
+    if (level > 0.f) {
+      list->PushClipRect(at, at + fan::vec2(box.x * std::min(level, 1.f), box.y), true);
+      list->AddRectFilled(at, at + box, meter, box.y * 0.5f);
+      list->PopClipRect();
+    }
+    list->AddText(at + fan::vec2(7.f, 1.f), ink, label.c_str());
+    gui::dummy(box - fan::vec2(0, 2.f));
+  }
+
+  // a section title: small, blue, with a thin line under it
+  inline void settings_section(const char* title) {
+    gui::dummy(fan::vec2(0, 6.f));
+    gui::text(fan::color(0.2f, 0.45f, 1.f, 1.f), title);
+    fan::vec2 at = gui::get_cursor_screen_pos() - fan::vec2(0, 4.f);
+    gui::get_window_draw_list()->AddLine(at, at + fan::vec2(gui::get_content_region_avail().x, 0), 0x50ff5919u, 1.f);
+    gui::dummy(fan::vec2(0, 1.f));
+  }
+
+  // One setting: its name at the left, the control filling the rest of the row. A narrow panel puts the name above
+  template <typename F>
+  void settings_row(const char* label, F&& control) {
+    f32_t start = gui::get_cursor_pos_x();
+    f32_t width = gui::get_content_region_avail().x;
+    f32_t label_width = gui::calc_text_size("Resolution").x + 14.f;
+    gui::push_id(label);
+    if (width - label_width < 190.f) {
+      gui::text(fan::color(0.6f, 0.6f, 0.66f, 1.f), label);
+    }
+    else {
+      gui::align_text_to_frame_padding();
+      gui::text(fan::color(0.6f, 0.6f, 0.66f, 1.f), label);
+      gui::same_line();
+      gui::set_cursor_pos_x(start + label_width);
+    }
+    gui::push_item_width(-1);
+    control();
+    gui::pop_item_width();
+    gui::pop_id();
+  }
+
+  // grey text that breaks at the edge of its panel, a long hint must not run out of it
+  inline void text_wrapped_disabled(const std::string& text) {
+    gui::push_text_wrap_pos(0.f);
+    gui::text_disabled(text);
+    gui::pop_text_wrap_pos();
+  }
+
+  inline void render_vertical_splitter(const char* id, f32_t content_height,
+    f32_t& unclamped_width, f32_t& clamped_width,
+    f32_t min_width, f32_t max_width, bool& is_resizing) {
+    gui::push_style_color(gui::col_button, fan::vec4(0.5f, 0.5f, 0.5f, 0.3f));
+    gui::push_style_color(gui::col_button_hovered, fan::vec4(0.7f, 0.7f, 0.7f, 0.5f));
+    gui::push_style_color(gui::col_button_active, fan::vec4(0.8f, 0.8f, 0.8f, 0.7f));
+
+    f32_t hitbox_width = 8.0f;
+    f32_t splitter_width = 2.0f;
+    f32_t visual_offset = (hitbox_width - splitter_width) * 0.5f;
+
+    if (gui::invisible_button(id, fan::vec2(hitbox_width, content_height))) {}
+
+    if (gui::is_item_active() && gui::is_mouse_dragging(0)) {
+      unclamped_width -= gui::get_io().MouseDelta.x;
+      clamped_width = std::clamp(unclamped_width, min_width, max_width);
+      is_resizing = true;
+      gui::set_mouse_cursor(gui::mouse_cursor_resize_ew);
+    }
+    else if (is_resizing && !gui::is_mouse_dragging(0)) {
+      is_resizing = false;
+    }
+
+    if (gui::is_item_hovered()) {
+      gui::set_mouse_cursor(gui::mouse_cursor_resize_ew);
+    }
+
+    fan::vec2 splitter_pos = gui::get_item_rect_min();
+    splitter_pos.x += visual_offset;
+    fan::vec2 splitter_max = fan::vec2(splitter_pos.x + splitter_width, splitter_pos.y + content_height);
+
+    gui::get_window_draw_list()->AddRectFilled(
+      splitter_pos, splitter_max,
+      gui::is_item_hovered() ? gui::get_color_u32(gui::col_button_hovered) : gui::get_color_u32(gui::col_button)
+    );
+
+    gui::pop_style_color(3);
+  }
+
+  // an on/off switch with its name at the left, the whole row is clickable
+  inline bool settings_switch(const char* label, bool* value, const char* tooltip = nullptr,
+    std::uint32_t accent = 0xffff5919u, std::uint32_t accent_hover = 0xffff7a33u) {
+    f32_t height = gui::get_frame_height();
+    f32_t width = gui::get_content_region_avail().x;
+    fan::vec2 at = gui::get_cursor_screen_pos();
+    gui::push_id(label);
+    bool clicked = gui::invisible_button("##switch", fan::vec2(width, height));
+    gui::pop_id();
+    bool hovered = gui::is_item_hovered();
+    if (clicked) {
+      *value = !*value;
+    }
+    if (hovered && tooltip) {
+      gui::set_tooltip(tooltip);
+    }
+    auto* list = gui::get_window_draw_list();
+    f32_t track_height = height * 0.62f;
+    f32_t track_width = track_height * 1.85f;
+    std::string shown = gui::fit_title(label, width - track_width - 14.f);
+    if (hovered && !tooltip && shown != label) {
+      gui::set_tooltip(label);
+    }
+    list->AddText(at + fan::vec2(0, (height - gui::get_font_size()) * 0.5f), hovered ? 0xffffffffu : 0xffc8c8c8u, shown.c_str());
+    fan::vec2 track = at + fan::vec2(width - track_width - 2.f, (height - track_height) * 0.5f);
+    std::uint32_t track_color = *value ? (hovered ? accent_hover : accent) : (hovered ? 0xff221f1eu : 0xff141312u);
+    list->AddRectFilled(track, track + fan::vec2(track_width, track_height), track_color, track_height * 0.5f);
+    f32_t knob_x = *value ? track_width - track_height * 0.5f : track_height * 0.5f;
+    list->AddCircleFilled(track + fan::vec2(knob_x, track_height * 0.5f), track_height * 0.5f - 2.5f, *value ? 0xffffffffu : 0xffb0b0b0u);
+    return clicked;
+  }
+
+  // a title with a separator under it, for panels that use the plain look
+  inline void simple_section(const char* title) {
+    gui::spacing();
+    gui::text(fan::color(0.6f, 0.8f, 1.f, 1.f), title);
+    gui::separator();
+  }
+
+  // the half-extent of a picture fitted into an area, keeping its aspect (16:9 until one is decoded)
+  inline fan::vec2 fit_size(fan::vec2 available_area, fan::vec2 decoded_size, f32_t default_aspect = 16.f / 9.f) {
+    f32_t aspect = decoded_size.x > 0 && decoded_size.y > 0 ? decoded_size.x / decoded_size.y : default_aspect;
+    fan::vec2 full = (available_area.x / available_area.y > aspect)
+      ? fan::vec2(available_area.y * aspect, available_area.y)
+      : fan::vec2(available_area.x, available_area.x / aspect);
+    return full / 2;
+  }
+
+  // a slider in a settings row that writes the value back when the edit ends
+  template <typename F>
+  void saved_slider(const char* label, const char* id, f32_t* value, f32_t max, F&& on_commit) {
+    gui::settings_row(label, [&] {
+      gui::slider(id, value, 0.f, max, gui::slider_flags_always_clamp);
+      if (gui::is_item_deactivated_after_edit()) {
+        on_commit();
+      }
+    });
+  }
+
+  // The tab strip drawn over a bar: labels, the selected index and a click callback. No app state is kept here.
+  template <typename Fade, typename Click>
+  void nav_tabs(gui::draw_list_t* list, std::initializer_list<const char*> labels, int selected,
+    f32_t frame_height, f32_t y_offset, std::uint32_t accent, Fade&& fade, Click&& click) {
+    int index = 0;
+    for (const char* label : labels) {
+      bool active = selected == index;
+      fan::vec2 text = gui::calc_text_size(label);
+      fan::vec2 at = gui::get_cursor_screen_pos();
+      bool clicked = gui::invisible_button(label, fan::vec2(text.x + 24.f, frame_height));
+      bool hovered = gui::is_item_hovered();
+      std::uint32_t color = active ? 0xffffffffu : hovered ? 0xffd0d0d0u : 0xff6e6e6eu;
+      list->AddText(at + fan::vec2(12.f, (frame_height - gui::get_font_size()) * 0.5f), fade(color), label);
+      if (active) {
+        list->AddRectFilled(at + fan::vec2(12.f, frame_height - 3.f), at + fan::vec2(text.x + 12.f, frame_height - 1.f), fade(accent), 1.f);
+      }
+      gui::same_line(0, 2.f);
+      if (clicked && !active) {
+        click(index);
+      }
+      ++index;
+    }
+  }
+
+  enum class icon_button_style_t { plain, danger, accent, overlay };
+
+  // A square or pill button whose icon is drawn by the caller, so the engine needs no app icons.
+  template <typename DrawIcon>
+  bool icon_button(const char* id, std::string_view tooltip, f32_t size, icon_button_style_t style, DrawIcon&& draw_icon) {
+    if (size <= 0.f) {
+      size = gui::get_frame_height();
+    }
+    fan::vec2 at = gui::get_cursor_screen_pos();
+    bool clicked = gui::invisible_button(id, fan::vec2(size, size));
+    bool hovered = gui::is_item_hovered();
+    bool held = gui::is_item_active();
+    auto* list = gui::get_window_draw_list();
+    fan::vec2 c = at + fan::vec2(size, size) * 0.5f;
+    std::uint32_t icon_color = hovered ? 0xffffffffu : 0xffff9e6au;
+    f32_t rounding = size * 0.28f;
+    switch (style) {
+      case icon_button_style_t::plain:
+        list->AddRectFilled(at, at + fan::vec2(size, size), held ? 0xff61210fu : hovered ? 0xff3a170cu : 0xff0f0907u, rounding);
+        break;
+      case icon_button_style_t::danger:
+        list->AddRectFilled(at, at + fan::vec2(size, size), held ? 0xff0c0c70u : hovered ? 0xff0a0a52u : 0xff05051au, rounding);
+        icon_color = hovered ? 0xffffffffu : 0xff6a6affu;
+        break;
+      case icon_button_style_t::accent:
+        list->AddRectFilled(at, at + fan::vec2(size, size), held ? 0xff61210fu : hovered ? 0xff4a1a0du : 0xff2a1009u, rounding);
+        icon_color = hovered ? 0xffffffffu : 0xffff7a33u;
+        break;
+      case icon_button_style_t::overlay:
+        list->AddCircleFilled(c, size * 0.5f, hovered ? 0xb4000000u : 0x64000000u, 24);
+        icon_color = hovered ? 0xffffffffu : 0xffe0e0e0u;
+        break;
+    }
+    draw_icon(list, c, size * (style == icon_button_style_t::overlay ? 0.56f : 0.56f), icon_color,
+      style == icon_button_style_t::overlay);
+    if (hovered && !tooltip.empty()) {
+      gui::set_tooltip(tooltip);
+    }
+    return clicked;
+  }
+
+  template <typename DrawIcon>
+  bool pill_button(const char* id, std::string_view text, std::uint32_t color, std::uint32_t hover_color,
+    bool enabled, f32_t width, f32_t height, DrawIcon&& draw_icon) {
+    if (height <= 0.f) {
+      height = gui::get_frame_height();
+    }
+    if (width <= 0.f) {
+      width = gui::pill_button_width(text);
+    }
+    fan::vec2 at = gui::get_cursor_screen_pos();
+    bool clicked = gui::invisible_button(id, fan::vec2(width, height));
+    bool hovered = gui::is_item_hovered(gui::hovered_flags_allow_when_disabled);
+    auto* list = gui::get_window_draw_list();
+    std::uint32_t fill = !enabled ? 0xff141414u : hovered ? hover_color : color;
+    list->AddRectFilled(at, at + fan::vec2(width, height), fill, height * 0.5f);
+    f32_t icon_size = height * 0.62f;
+    f32_t content = icon_size + 8.f + gui::calc_text_size(text).x;
+    fan::vec2 start = at + fan::vec2((width - content) * 0.5f, 0);
+    std::uint32_t ink = enabled ? 0xffffffffu : 0xff606060u;
+    draw_icon(list, start + fan::vec2(icon_size * 0.5f, height * 0.5f), icon_size * 0.8f, ink, false);
+    std::string label(text);
+    list->AddText(start + fan::vec2(icon_size + 8.f, (height - gui::get_font_size()) * 0.5f), ink, label.c_str());
+    return clicked && enabled;
+  }
+
 } // namespace fan::graphics::gui
 
 export namespace fan::graphics::gui::plot {

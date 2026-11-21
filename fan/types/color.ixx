@@ -19,6 +19,18 @@ import fan.types.vector;
 #pragma pack(push, 1)
 
 export namespace fan {
+  // the window is drawn through an sRGB swapchain, which brightens what it is given as if it were linear.
+  // Screen pixels are sRGB already, so they go in through this table, or the pictures look washed out.
+  inline const std::array<std::uint8_t, 256> srgb_to_linear = [] {
+    std::array<std::uint8_t, 256> table{};
+    for (int i = 0; i < 256; ++i) {
+      f64_t c = i / 255.0;
+      f64_t linear = c <= 0.04045 ? c / 12.92 : std::pow((c + 0.055) / 1.055, 2.4);
+      table[i] = (std::uint8_t)std::lround(linear * 255.0);
+    }
+    return table;
+  }();
+
   struct color {
     constexpr color() = default;
     template <typename T>

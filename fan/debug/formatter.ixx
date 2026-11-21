@@ -36,6 +36,24 @@ export namespace fan {
     else                                                                      return v.to_string();
   }
 
+  inline std::string number_text(double value, int decimals) {
+    char text[40];
+    std::snprintf(text, sizeof(text), "%.*f", decimals, value);
+    return std::string(text);
+  }
+
+  inline std::string bitrate_text(double kbps) {
+    return number_text(kbps / 1000.0, 1) + " Mb/s";
+  }
+
+  // an unset size holds garbage, an empty string says there is none yet
+  inline std::string size_text(long long width, long long height, const char* separator = "x") {
+    if (width <= 0 || height <= 0 || width > 16384 || height > 16384) {
+      return "";
+    }
+    return std::to_string(width) + separator + std::to_string(height);
+  }
+
   template <typename ...Args>
   std::string format_join(const char* sep, const Args&... args) {
     std::string result;

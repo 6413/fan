@@ -301,5 +301,41 @@ export {
 
       std::string buf;
     };
+
+    // One place owns a JSON config file: reading it, its schema version and every write back to disk.
+    struct config_store_t : json {
+      static constexpr int current_version = 1;
+
+      std::string path;
+
+      void load(const std::string& file) {
+        path = file;
+        if (fan::io::file::exists(path)) {
+          std::string data;
+          fan::io::file::read(path, &data);
+          json::operator=(json::parse(data));
+        }
+        else {
+          json::operator=(json::object());
+        }
+        if (!contains("config_version") || !(*this)["config_version"].is_number()) {
+          (*this)["config_version"] = 0;
+        }
+        migrate();
+      }
+
+      // old configs had no version: they already have the layout current_version expects
+      void migrate() {
+        if (value("config_version", 0) < current_version) {
+          (*this)["config_version"] = current_version;
+        }
+      }
+
+      void write(const std::string& key, json value) {
+        (*this)[key] = std::move(value);
+        (*this)["config_version"] = current_version;
+        fan::io::file::write(path, dump(2), std::ios_base::binary);
+      }
+    };
   }
 }
