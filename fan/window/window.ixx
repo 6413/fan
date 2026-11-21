@@ -332,6 +332,8 @@ export namespace fan {
       std::string name = default_window_name;
       std::uint64_t flags = 0;
       int open_mode = mode::windowed;
+      // windowed only: opens maximized, size and position are what un-maximizing gives
+      bool maximized = false;
       int opengl_major = 0; // 0 = auto-detect max supported via dummy window
       int opengl_minor = 0;
     };
@@ -359,6 +361,9 @@ export namespace fan {
     void set_size(const fan::vec2i& window_size);
     fan::vec2 get_position() const;
     void set_position(const fan::vec2& position);
+    bool is_maximized() const;
+    // minimized on Windows puts the window at -32000,-32000: not a position to remember
+    bool is_minimized() const;
     GLFWmonitor* get_current_monitor();
     fan::vec2 get_primary_monitor_resolution();
     fan::vec2 get_current_monitor_resolution();

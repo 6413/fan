@@ -611,6 +611,7 @@ export struct loco_t {
     bool vsync = true;
     fan::vec2 window_position = -1;
     fan::vec2 window_size = -1;
+    bool window_maximized = false;
     std::uint64_t window_flags = 0;
     int window_open_mode = fan::window_t::mode::windowed;
     std::uint8_t samples = 0;

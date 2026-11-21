@@ -63,6 +63,7 @@ namespace fan::graphics::gui {
       d.get_if("target_fps", display.target_fps);
       d.get_if("resolution_index", display.resolution_index);
       d.get_if("renderer", display.renderer);
+      d.get_if("maximized", display.maximized);
       if (d.contains("window_position")) {
         display.window_position.x = d["window_position"]["x"];
         display.window_position.y = d["window_position"]["y"];
@@ -157,6 +158,7 @@ namespace fan::graphics::gui {
     j["display"]["target_fps"] = display.target_fps;
     j["display"]["resolution_index"] = display.resolution_index;
     j["display"]["renderer"] = display.renderer;
+    j["display"]["maximized"] = display.maximized;
     j["display"]["window_position"]["x"] = display.window_position.x;
     j["display"]["window_position"]["y"] = display.window_position.y;
     j["display"]["custom_resolution"]["x"] = display.custom_resolution.x;
@@ -252,17 +254,33 @@ namespace fan::graphics::gui {
 
     resize_handle = gloco()->on_resize(
       [this](const fan::window_t::resize_data_t& r) {
-      on_window_resize(r.size);
-      if (gloco()->window.display_mode == fan::window_t::mode::windowed) {
-        config.display.custom_resolution = r.size;
-        config.display.resolution_index = -1;
+      auto& window = gloco()->window;
+      // minimizing resizes to 0x0, which must not become the size the next start opens with
+      if (window.is_minimized()) {
+        return;
+      }
+      if (window.display_mode != fan::window_t::mode::windowed) {
+        on_window_resize(r.size);
+        return;
+      }
+      // maximizing and restoring both resize: the size kept is the one restoring goes back to
+      bool maximized = window.is_maximized();
+      if (maximized != config.display.maximized) {
+        config.display.maximized = maximized;
         mark_dirty();
       }
+      if (maximized) {
+        return;
+      }
+      on_window_resize(r.size);
+      config.display.custom_resolution = r.size;
+      config.display.resolution_index = -1;
+      mark_dirty();
     }
     );
     move_handle = gloco()->window.add_move_callback(
       [this](const auto& d) {
-      if (d.window->display_mode == fan::window_t::mode::windowed) {
+      if (d.window->display_mode == fan::window_t::mode::windowed && !d.window->is_maximized() && !d.window->is_minimized()) {
         config.display.window_position = d.position;
         mark_dirty();
       }
@@ -746,6 +764,7 @@ namespace fan::graphics::gui {
       if (config.display.window_position.x != -1 && gloco()->open_props.window_position.x == -1) {
         gloco()->open_props.window_position = config.display.window_position;
       }
+      gloco()->open_props.window_maximized = config.display.maximized;
       gloco()->open_props.vsync = config.performance.vsync;
       if (config.display.custom_resolution.x != -1 && gloco()->open_props.window_size.x == -1) {
         gloco()->open_props.window_size = config.display.custom_resolution;

@@ -1240,6 +1240,7 @@ static void loco_load_settings_into_open_props(loco_t* l) {
     l->open_props.window_open_mode = sm->config.display.display_mode;
   if (sm->config.display.window_position.x != -1)
     l->open_props.window_position = sm->config.display.window_position;
+  l->open_props.window_maximized = sm->config.display.maximized;
 #endif
 }
 
@@ -1249,7 +1250,8 @@ static void loco_open_window(loco_t* l) {
     .size = l->open_props.window_size,
     .position = l->open_props.window_position,
     .flags = l->open_props.window_flags,
-    .open_mode = l->open_props.window_open_mode
+    .open_mode = l->open_props.window_open_mode,
+    .maximized = l->open_props.window_maximized
   });
   l->context.vk.enable_clear = !l->get_render_shapes_top();
   l->context.vk.shapes_top = l->get_render_shapes_top();

@@ -30,6 +30,8 @@ export namespace fan::graphics::gui {
       int resolution_index = -1;
       fan::vec2i window_position = -1;
       fan::vec2i custom_resolution = fan::vec2i(-1, -1);
+      // window_position and custom_resolution stay the un-maximized ones while this is set
+      bool maximized = false;
       int renderer = 0;
     };
     struct performance_settings_t {

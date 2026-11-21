@@ -325,22 +325,52 @@ namespace fan {
     GLFWmonitor* use_mon = nullptr;
 
     if (props.open_mode == mode::windowed) {
+      // kept inside the work area of the monitor the saved spot is on, so a window left on a second monitor opens
+      // there again. A spot on no monitor (one unplugged since) centres it on the primary
+      int ax = mx, ay = my, aw = mode->width, ah = mode->height;
+      glfwGetMonitorWorkarea(monitor, &ax, &ay, &aw, &ah);
+      bool placed = false;
       if (props.position.x != -1 && props.position.y != -1) {
+        int count = 0;
+        GLFWmonitor** monitors = glfwGetMonitors(&count);
+        // the window's middle decides, else its corner (a window hanging off its monitor)
+        fan::vec2i probes[] = {
+          fan::vec2i(props.position.x + w / 2, props.position.y + h / 2),
+          fan::vec2i(props.position.x, props.position.y),
+        };
+        for (const fan::vec2i& probe : probes) {
+          for (int i = 0; i < count && !placed; ++i) {
+            int wx, wy, ww, wh;
+            glfwGetMonitorWorkarea(monitors[i], &wx, &wy, &ww, &wh);
+            if (probe.x >= wx && probe.x < wx + ww && probe.y >= wy && probe.y < wy + wh) {
+              ax = wx; ay = wy; aw = ww; ah = wh;
+              placed = true;
+            }
+          }
+          if (placed) {
+            break;
+          }
+        }
+      }
+      if (placed) {
         x = props.position.x;
         y = props.position.y;
       }
       else {
-        x = mx + (mode->width - w) / 2;
-        y = my + (mode->height - h) / 2;
+        x = ax + (aw - w) / 2;
+        y = ay + (ah - h) / 2;
       }
 
+      // the position is the inside of the window: on Windows the title bar is above it
     #if defined(fan_platform_windows)
-      if (y < my + 31) {
-        y = my + 31;
-      }
+      int title = 31;
+    #else
+      int title = 0;
     #endif
-      x = std::min(std::max(x, mx), mx + mode->width - w);
-      y = std::min(std::max(y, my + 31), my + mode->height - h);
+      w = std::max(1, std::min(w, aw));
+      h = std::max(1, std::min(h, ah - title));
+      x = std::min(std::max(x, ax), ax + aw - w);
+      y = std::min(std::max(y, ay + title), ay + ah - h);
     }
     else if (props.open_mode == mode::fullscreen) {
       x = 0;
@@ -382,6 +412,10 @@ namespace fan {
 
     if (use_mon == nullptr) {
       glfwSetWindowPos(glfw_window, x, y);
+      // maximized on the monitor it was just put on; the size and spot above are what restoring it goes back to
+      if (props.open_mode == mode::windowed && props.maximized) {
+        glfwMaximizeWindow(glfw_window);
+      }
     }
 
     glfwSetWindowUserPointer(glfw_window, this);
@@ -672,6 +706,14 @@ namespace fan {
     int xpos, ypos;
     glfwGetWindowPos(glfw_window, &xpos, &ypos);
     return fan::vec2(xpos, ypos);
+  }
+
+  bool window_t::is_maximized() const {
+    return glfw_window && glfwGetWindowAttrib(glfw_window, GLFW_MAXIMIZED) == GLFW_TRUE;
+  }
+
+  bool window_t::is_minimized() const {
+    return glfw_window && glfwGetWindowAttrib(glfw_window, GLFW_ICONIFIED) == GLFW_TRUE;
   }
 
   void window_t::set_position(const fan::vec2& position) {
