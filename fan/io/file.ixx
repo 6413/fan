@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_platform_windows)
+#if defined(_WIN32)
 	#include <Windows.h>
 #elif defined(fan_platform_unix)
 	#include <unistd.h>

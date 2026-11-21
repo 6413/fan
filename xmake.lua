@@ -8,6 +8,10 @@ option_end()
 
 local compiler = get_config("compiler")
 local is_gcc = compiler == "gcc" or compiler == "g++"
+-- Windows builds use clang with the MSVC runtime and STL, and link the prebuilt libraries the Visual Studio build
+-- uses (fan_release_dir); the packages below are only built on the other platforms
+local is_win = is_plat("windows")
+option("fan_release_dir") set_default("C:/libs/fan_release") set_showmenu(true) option_end()
 
 if is_plat("wasm") then
   add_cxxflags("-pthread", "-DFAN_WASM", {force = true})
@@ -46,7 +50,15 @@ option("FAN_DEBUG_INFO") set_default(false) set_showmenu(true) option_end()
 -- module the features turn on
 option("FAN_ONLY") set_default("") set_showmenu(true) option_end()
 
-if is_mode("release") then
+if is_mode("release") and is_win then
+  set_optimize("fastest")
+  add_cxflags("-O3", {force = true})
+  -- clang emits the inline helpers of the Windows SDK headers (__ascii_tolower, ReadAcquire8, ...) in more than one module
+  -- object; the copies are the same, the linker keeps one
+  add_ldflags("-fuse-ld=lld", "-Wl,/OPT:REF", "-Wl,/OPT:ICF", "-Wl,/FORCE:MULTIPLE", "-Wl,/errorlimit:0", {force = true})
+  -- no _DEBUG at all: with the MSVC STL even _DEBUG=0 means the debug STL, which the release libraries don't match
+  add_defines("NDEBUG")
+elseif is_mode("release") then
   set_optimize("fastest")
   add_cxflags("-O3", "-ffunction-sections", "-fdata-sections", {force = true})
   if has_config("FAN_DEBUG_INFO") then
@@ -124,9 +136,11 @@ option_end()
 local static_req = {system = false, configs = {shared = false}}
 -- python is only a build-time tool for glslang/spirv-tools; use the system one instead of building from source
 add_requireconfs("**.python", {system = true, override = true})
-if has_config("FAN_FMT") then add_requires("fmt 10.2.1", static_req) end
+if has_config("FAN_FMT") and not is_win then add_requires("fmt 10.2.1", static_req) end
 if has_config("FAN_2D") then
   add_defines("VK_ENABLE_BETA_EXTENSIONS")
+end
+if has_config("FAN_2D") and not is_win then
   add_requires("vulkan-headers v1.4.335", {system = false})
   package("glslang")
     set_homepage("https://github.com/KhronosGroup/glslang/")
@@ -504,7 +518,7 @@ bool SpirvTools::Validate(const uint32_t* binary, const size_t binary_size,
   end
 end
 
-if not is_plat("wasm") then
+if not is_plat("wasm") and not is_win then
   add_requires("libuv 1.48.0", static_req)
   if has_config("FAN_WINDOW") then
     add_requires("zlib 1.3.1", static_req)
@@ -544,11 +558,20 @@ add_includedirs(".", {public = true})
 add_sysincludedirs("third_party/fan/include", {public = true})
 if has_config("FAN_2D") then add_sysincludedirs("third_party/fan/include/VulkanMemoryAllocator/include", {public = true}) end
 
-if not is_gcc and not is_plat("wasm") then add_cxxflags("-stdlib=libstdc++", {force = true}) end
+if not is_gcc and not is_plat("wasm") and not is_win then add_cxxflags("-stdlib=libstdc++", {force = true}) end
 
 set_policy("build.c++.modules.std", true)
 set_policy("build.c++.modules.reuse", true)
-add_cxxflags("-pthread", {force = true})
+if not is_win then add_cxxflags("-pthread", {force = true}) end
+if is_win then
+  local rel = get_config("fan_release_dir") or "C:/libs/fan_release"
+  set_runtimes("MT")
+  add_defines("NOMINMAX", "_WIN32_WINNT=0x0A00", "_CRT_SECURE_NO_WARNINGS", "_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS",
+    "_DISABLE_VECTOR_ANNOTATION", "GLEW_STATIC", "FAN_VULKAN", "FAN_INCLUDE_PATH=include", "VMA_ASSERT_LEAK(expr)=((void)0)")
+  add_cxflags("-fms-extensions", "-Wno-microsoft", "-Wno-unknown-pragmas", "-Wno-deprecated-declarations",
+    "-Wno-nonportable-include-path", "-Wno-language-extension-token", {force = true})
+  add_sysincludedirs("C:/VulkanSDK/1.4.350.0/Include", rel .. "/include", rel .. "/include/nvidia", rel .. "/include/fan/imgui", rel .. "/include/fan", {public = true})
+end
 
 local common_flags = {
   "-Wall", "-Wextra", "-Wno-unused-variable", "-Wno-unused-parameter", "-Wno-unused-function",
@@ -694,13 +717,13 @@ if has_config("FAN_GUI") then
       add_packages("vulkan-headers")
       if is_plat("linux") then add_syslinks("vulkan") end
     end
-    if not is_gcc and not is_plat("wasm") then
+    if not is_gcc and not is_plat("wasm") and not is_win then
       add_cxxflags("-stdlib=libstdc++", {force = true})
       add_ldflags("-stdlib=libstdc++", "-lstdc++", {force = true})
     end
     if is_plat("linux") then
       add_packages("freetype", "lunasvg", "zlib", "libpng")
-    else
+    elseif not is_win then
       add_linkdirs("third_party/fan/lib")
       add_links("freetype", "lunasvg")
       add_syslinks("png16", "z")
@@ -891,12 +914,22 @@ if has_config("FAN_2D") then
       add_links("wayland-client", "pipewire-0.3", "dbus-1", "avcodec", "avutil", "swscale")
     end
   elseif is_plat("windows") then
-    add_linkdirs("lib/GLFW", "lib/GLEW", "lib/libuv", "lib/libwebp", "lib/opus", "lib/openssl")
-    add_links("glfw3_mt", "glew32s", "uv_a", "libwebp", "opus", "libssl", "libcrypto")
-    if has_config("FAN_GUI") then add_linkdirs("lib/freetype", "lib/lunasvg") add_links("freetype", "lunasvg") end
-    if has_config("FAN_PHYSICS_2D") then add_linkdirs("lib/box2d") add_links("box2d") end
+    local rel = get_config("fan_release_dir") or "C:/libs/fan_release"
+    for _, dir in ipairs({"GLFW", "GLEW", "libuv", "libwebp", "opus", "openssl", "freetype", "lunasvg", "plutovg", "box2d",
+        "vulkan", "shaderc", "nvidia", "libav", "libx264", "openh264", "ogg", "curl"}) do
+      add_linkdirs(rel .. "/lib/" .. dir)
+    end
+    add_linkdirs("C:/VulkanSDK/1.4.350.0/Lib")
+    add_links("glfw3_mt", "uv_a", "libwebp", "opus", "libssl", "libcrypto")
+    if has_config("FAN_GUI") then add_links("freetype", "lunasvg") end
+    if has_config("FAN_PHYSICS_2D") then add_links("box2d") end
     if has_config("FAN_3D") then add_linkdirs("C:/Program Files/Assimp/lib/x64") add_links("assimp-vc143-mt") end
-    if has_config("FAN_2D") then add_packages("vulkansdk") end
+    if has_config("FAN_2D") then add_links("vulkan-1") end
+    if has_config("FAN_SHADERC") then add_links("shaderc_combined_mt") end
+    if has_config("FAN_VIDEO") then add_links("avcodec", "avformat", "avutil", "swscale", "cuda", "nvencodeapi", "nvcuvid") end
+    add_syslinks("gdi32", "winmm", "ntdll", "dxgi", "d3d11", "crypt32", "ws2_32", "advapi32", "psapi", "shell32", "ole32",
+      "oleaut32", "uuid", "user32", "comdlg32", "dwmapi", "imm32", "mfplat", "mf", "mfreadwrite", "mfuuid", "d3dcompiler",
+      "bcrypt", "iphlpapi", "userenv", "dbghelp", "avrt", "ksuser", "strmiids", "setupapi")
     if has_config("FAN_WAYLAND_SCREEN") then
       add_linkdirs("lib/libx264", "lib/openh264")
       add_links("DXGI", "D3D11", "libx264", "welsdcore", "welsecore", "WelsDecPlus", "WelsEncPlus", "WelsVP")
@@ -908,7 +941,7 @@ if has_config("FAN_2D") then
     local missing_base = not os.isfile("third_party/fan/.core.stamp")
     local missing_gfx  = is_gfx and not os.isfile("third_party/fan/.gfx.stamp")
 
-    if missing_base or missing_gfx then
+    if (missing_base or missing_gfx) and not target:is_plat("windows") then
       print("Missing third_party headers. Running install.sh...")
       local args = {}
       if target:is_plat("wasm") then table.insert(args, "--wasm") end

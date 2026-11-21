@@ -2,6 +2,11 @@ module;
 
 #include <fan/utils/utility.h>
 
+// Windows.h in the global fragment, like the interface (fan.io.file) has it: inside the module the two would clash
+#if defined(_WIN32)
+#include <Windows.h>
+#endif
+
 module fan.io.file;
 
 import std;
@@ -14,7 +19,7 @@ import fan.types.fstring;
 // see gcc_bug.txt) and in module purview (redeclares std::size_t).
 // POSIX headers (<unistd.h>, <Windows.h>) are safe after imports.
 #if defined(fan_platform_windows)
-#include <Windows.h>
+// Windows.h: in the global fragment above
 #elif defined(fan_platform_unix)
 #include <unistd.h>
 #include <limits.h>
