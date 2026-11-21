@@ -5,6 +5,7 @@ module;
 #include <fan/utils/utility.h>
 
 #if defined(FAN_GUI)
+#include <fan/nativefiledialog/nfd.h>
 #endif
 
 #endif
@@ -95,6 +96,14 @@ namespace fan::graphics::gui {
     if (j.contains("audio")) {
       j["audio"].get_if("volume", audio.volume);
     }
+    if (j.contains("fonts") && j["fonts"].is_object()) {
+      const auto& f = j["fonts"];
+      f.get_if("scale", interface_.font_scale);
+      static const char* names[] = {"regular", "bold", "mono"};
+      for (int t = 0; t < 3; ++t) {
+        f.get_if(names[t], interface_.font_paths[t]);
+      }
+    }
     if (j.contains("post_processing")) {
       const auto& pp = j["post_processing"];
       pp.get_if("mode", post_processing.mode);
@@ -178,6 +187,11 @@ namespace fan::graphics::gui {
     j["debug"]["culling_padding"]["y"] = debug.culling_padding.y;
 
     j["audio"]["volume"] = audio.volume;
+
+    j["fonts"]["scale"] = interface_.font_scale;
+    j["fonts"]["regular"] = interface_.font_paths[0];
+    j["fonts"]["bold"] = interface_.font_paths[1];
+    j["fonts"]["mono"] = interface_.font_paths[2];
 
     j["post_processing"]["mode"] = (int)gloco()->open_props.post_process_mode;
     fan::color clear_color = post_processing.clear_color;
@@ -358,6 +372,10 @@ namespace fan::graphics::gui {
       }
       gui::end_table();
     }
+    gui::new_line();
+    gui::new_line();
+
+    menu->render_interface_settings();
     gui::new_line();
     gui::new_line();
 
@@ -759,6 +777,19 @@ namespace fan::graphics::gui {
   }
 
   void settings_menu_t::apply_config(bool construct, bool runtime) {
+    if (construct) {
+      // before the gui makes its fonts, so the saved ones are the ones it loads
+      for (int t = 0; t < 3; ++t) {
+        std::string& path = config.interface_.font_paths[t];
+        if (!path.empty() && !std::filesystem::exists(path)) {
+          path.clear();
+        }
+        if (!path.empty()) {
+          gui::set_font_path((gui::font::type_t)t, path);
+        }
+      }
+      gui::set_font_scale(config.interface_.font_scale);
+    }
     if (!runtime) {
       gloco()->open_props.window_open_mode = config.display.display_mode;
       if (config.display.window_position.x != -1 && gloco()->open_props.window_position.x == -1) {
@@ -879,6 +910,73 @@ namespace fan::graphics::gui {
       }
       gui::end_combo();
     }
+  }
+
+  void settings_menu_t::set_font_file(int type, const std::string& path) {
+    if (type < 0 || type >= 3) {
+      return;
+    }
+    config.interface_.font_paths[type] = path;
+    if (!path.empty()) {
+      gui::set_font_path((gui::font::type_t)type, path);
+    }
+    mark_dirty();
+  }
+
+  void settings_menu_t::render_interface_settings() {
+    gui::text(title_color, "INTERFACE");
+    gui::begin_table("settings_left_table_interface", 2, gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h);
+    font_drop_type = -1;
+
+    gui::table_next_row();
+    gui::table_next_column();
+    gui::align_text_to_frame_padding();
+    gui::text("Text size");
+    gui::table_next_column();
+    gui::slider("##font_scale", &config.interface_.font_scale, 0.75f, 2.f, gui::slider_flags_always_clamp);
+    // the fonts change on release, changing them while dragging moves the slider under the mouse
+    if (gui::is_item_deactivated_after_edit()) {
+      gui::set_font_scale(config.interface_.font_scale);
+      mark_dirty();
+    }
+
+    static const char* labels[] = {"Text font", "Bold font", "Mono font"};
+    for (int t = 0; t < 3; ++t) {
+      gui::table_next_row();
+      gui::table_next_column();
+      gui::align_text_to_frame_padding();
+      gui::text(labels[t]);
+      gui::table_next_column();
+      gui::push_id(t);
+      if (gui::button("Pick...")) {
+        nfdchar_t* picked = nullptr;
+        if (NFD_OpenDialog("ttf,otf", nullptr, &picked) == NFD_OKAY) {
+          set_font_file(t, picked);
+          std::free(picked);
+        }
+      }
+      if (gui::is_item_hovered()) {
+        font_drop_type = t;
+        gui::set_tooltip("Or drop a .ttf or .otf here");
+      }
+      std::string& path = config.interface_.font_paths[t];
+      gui::same_line();
+      if (path.empty()) {
+        gui::text_disabled("default");
+      }
+      else {
+        gui::text_disabled(std::filesystem::path(path).filename().string());
+        gui::same_line();
+        if (gui::button("Default")) {
+          path.clear();
+          gui::set_font_path((gui::font::type_t)t, std::string());
+          mark_dirty();
+        }
+      }
+      gui::pop_id();
+    }
+    gui::end_table();
+    gui::text_disabled("A picked font loads when the program starts again.");
   }
 
   void settings_menu_t::render_separator_full_width(f32_t y_offset) {
@@ -1076,6 +1174,20 @@ namespace fan::graphics::gui {
 #if defined(FAN_JSON)
     fan::json j = config.to_json();
     keybind_menu.save_to_settings_json(j);
+    // the app may keep its own keys in this file, they stay
+    std::string existing;
+    if (fan::io::file::read(config.config_save_path, &existing) == 0) {
+      try {
+        fan::json old = fan::json::parse(existing);
+        if (old.is_object()) {
+          for (auto it = j.begin(); it != j.end(); ++it) {
+            old[it.key()] = it.value();
+          }
+          j = old;
+        }
+      }
+      catch (...) {}
+    }
     fan::io::file::write(config.config_save_path, j.dump(2), std::ios_base::binary);
 #endif
   }

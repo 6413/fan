@@ -247,7 +247,8 @@ namespace fan::graphics::gui {
     gui::set_next_window_bg_alpha(0.99);
     gui::begin("##Keybinds Left", nullptr, wnd_flags);
 
-    if (menu->device_bindings.empty()) {
+    // actions the program adds after the saved keybinds loaded show up too
+    if (menu->device_bindings.size() != fan::graphics::ctx().input_action->input_actions.size()) {
       menu->refresh_input_actions();
     }
 

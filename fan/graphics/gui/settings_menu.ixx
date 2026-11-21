@@ -51,6 +51,11 @@ export namespace fan::graphics::gui {
     struct audio_settings_t {
       f32_t volume = 1.0f;
     };
+    // the gui text size and the font files, an empty path is the built-in font
+    struct interface_settings_t {
+      f32_t font_scale = 1.f;
+      std::string font_paths[3];
+    };
     struct post_processing_t {
       int mode = 0;
       fan::color clear_color = fan::color(0.f, 0.f, 0.f, 1.f);
@@ -83,6 +88,7 @@ export namespace fan::graphics::gui {
     performance_settings_t performance;
     debug_settings_t debug;
     audio_settings_t audio;
+    interface_settings_t interface_;
     post_processing_t post_processing;
   };
   struct settings_menu_t {
@@ -115,6 +121,9 @@ export namespace fan::graphics::gui {
     void render_target_fps();
     void render_resolution_dropdown();
     void render_separator_full_width(f32_t y_offset = 0.f);
+    void render_interface_settings();
+    // a font picked for one of the gui fonts, it loads on the next start
+    void set_font_file(int type, const std::string& path);
     void render_settings_left(const fan::vec2& pos, const fan::vec2& size);
     void render_settings_right(const fan::vec2& pos, const fan::vec2& size, f32_t min_x);
     fan::vec2 render_settings_top(f32_t min_x);
@@ -139,6 +148,8 @@ export namespace fan::graphics::gui {
     fan::time::timer save_timer;
     fan::window_t::resize_handle_t resize_handle;
     fan::window_t::move_handle_t move_handle;
+    // which font row the mouse is over this frame, -1 for none: a .ttf or .otf dropped on the window goes there
+    int font_drop_type = -1;
     int current_page = 0;
     int current_resolution = 0;
     f32_t min_x = 40.f;
