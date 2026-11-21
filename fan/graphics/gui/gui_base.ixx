@@ -1367,8 +1367,10 @@ export namespace fan::graphics::gui {
     f32_t start = gui::get_cursor_pos_x();
     f32_t width = gui::get_content_region_avail().x;
     f32_t label_width = gui::calc_text_size("Resolution").x + 14.f;
+    // a name longer than its column (Notification sounds) goes above the control, not under it
+    bool label_too_long = gui::calc_text_size(label).x + 10.f > label_width;
     gui::push_id(label);
-    if (width - label_width < 190.f) {
+    if (label_too_long || width - label_width < 190.f) {
       gui::text(fan::color(0.6f, 0.6f, 0.66f, 1.f), label);
     }
     else {
