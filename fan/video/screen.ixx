@@ -651,13 +651,14 @@ export namespace fan {
 
           return false;
         }
+        gpu_bridge_install();
         return true;
 
       }
 
       void close() { decoder_.close(); }
       ~screen_decode_t() { close();
-
+        gpu_bridge_destroy();
       }
 
       bool is_initialized() const { return decoder_.initialized_;
@@ -690,9 +691,26 @@ export namespace fan {
         fan::vec2ui image_size = { 0, 0 };
         std::uint8_t pixel_format = 0;
         std::uint8_t type = 0;
+        // the picture stayed on the GPU (zero copy): it is in this slot, data is empty. Shown with show_gpu_frame
+        int gpu_slot = -1;
+        std::uint64_t gpu_frame_id = 0;
 
         // 0 = success, >250 = error codes
       };
+
+      // ---- zero copy: an NVIDIA decoder's frames go from CUDA memory into memory Vulkan reads, both on the GPU,
+      // instead of down into system memory and up again. Off by itself where it can't work (no NVIDIA, CUDA on
+      // another GPU than the window, a driver without the Vulkan extension), the frames then download as before
+      std::atomic<bool> zero_copy {true};
+      // the last frames went this way
+      bool zero_copy_active() const { return zero_copy_used_.load(std::memory_order_relaxed); }
+      // on the render thread: the frame's planes into the renderer's images. False when the frame is gone
+      // (its slot was written again meanwhile), nothing is changed then
+      bool show_gpu_frame(const decode_data_t& frame, fan::graphics::shape_t& universal_image_renderer);
+      void gpu_bridge_install();
+      void gpu_bridge_destroy();
+      void* gpu_bridge_ = nullptr;
+      std::atomic<bool> zero_copy_used_ {false};
 
       decode_data_t decode(void* data, std::uintptr_t length, fan::graphics::shape_t& universal_image_renderer);
 

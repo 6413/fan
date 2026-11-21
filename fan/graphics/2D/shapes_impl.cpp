@@ -2137,6 +2137,17 @@ namespace fan::graphics{
     fan::graphics::ctx()->shader_compile(fan::graphics::ctx(), shader);
   }
   void shapes::shape_t::reload(std::uint8_t format, void** image_data, const fan::vec2& image_size) {
+    reload_planes(format, image_size, [image_data](fan::graphics::image_t image, std::uint32_t plane, const fan::vec2ui& plane_size,
+      const fan::graphics::image_load_properties_t& lp) {
+      fan::image::info_t image_info;
+      image_info.data = image_data[plane];
+      image_info.size = plane_size;
+      fan::graphics::ctx()->image_reload_image_info_props(fan::graphics::ctx(), image, image_info, lp);
+    });
+  }
+  void shapes::shape_t::reload_planes(std::uint8_t format, const fan::vec2& image_size,
+    const std::function<void(fan::graphics::image_t image, std::uint32_t plane, const fan::vec2ui& plane_size,
+      const fan::graphics::image_load_properties_t& lp)>& load) {
     fan::graphics::image_t current_image = get_image();
     std::uint32_t filter = fan::graphics::image_filter_e::linear;
     if (!current_image.iic()) {
@@ -2205,10 +2216,6 @@ namespace fan::graphics{
     }
 
     for (std::uint32_t i = 0; i < image_count_new; ++i) {
-      fan::image::info_t image_info;
-      image_info.data = image_data[i];
-      image_info.size = fan::graphics::get_image_sizes(format, image_size)[i];
-
       auto lp = fan::graphics::get_image_properties<image_load_properties_t>(format)[i];
       lp.min_filter = filter;
       if (filter == fan::graphics::image_filter_e::linear ||
@@ -2218,13 +2225,7 @@ namespace fan::graphics{
       else {
         lp.mag_filter = fan::graphics::image_filter_e::linear;
       }
-
-      fan::graphics::ctx()->image_reload_image_info_props(
-        fan::graphics::ctx(),
-        props.images[i],
-        image_info,
-        lp
-      );
+      load(props.images[i], i, fan::vec2ui(fan::graphics::get_image_sizes(format, image_size)[i]), lp);
     }
 
     if (!get_visual_id().iic()) {

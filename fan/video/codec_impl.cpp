@@ -365,9 +365,10 @@ namespace fan {
       return encoder->codec_ctx->hw_frames_ctx != nullptr;
     }
 
-    bool libav_encoder_t::open_codec(encoder_state_t* encoder, const codec_config_t& config, const std::string& name, bool use_gpu, bool low_power) {
+    bool libav_encoder_t::open_codec(encoder_state_t* encoder, const codec_config_t& config, const std::string& name, bool use_gpu, bool low_power, bool intra_refresh) {
       encoder->codec_ctx = avcodec_alloc_context3(encoder->codec);
       if (!encoder->codec_ctx) return false;
+      encoder->intra_refresh = false;
 
       encoder->codec_ctx->width = config.width;
       encoder->codec_ctx->height = config.height;
@@ -432,6 +433,14 @@ namespace fan {
         // without this a requested keyframe is an intra frame that a viewer can't start from
         av_opt_set_int(options, "forced-idr", 1, 0);
         av_opt_set_int(options, "no-scenecut", 1, 0);
+        // A keyframe every gop is several times a normal frame and comes out at once: a burst the upload paces out
+        // over the next frames, a short hitch every two seconds. Intra refresh renews the picture a part at a time
+        // over the gop instead, every frame about the same size. Keyframes then come only when asked for (a viewer
+        // starting, or one that lost a frame). Not every GPU has it, the open is tried again without
+        if (intra_refresh) {
+          av_opt_set_int(options, "intra-refresh", 1, 0);
+        }
+        encoder->intra_refresh = intra_refresh;
 
         switch (config.rate_control) {
         case codec_config_t::CBR: av_opt_set(options, "rc", "cbr", 0); break;
@@ -466,6 +475,11 @@ namespace fan {
       avcodec_free_context(&encoder->codec_ctx);
       if (encoder->hw_frames_ctx) av_buffer_unref(&encoder->hw_frames_ctx);
       destroy_gpu_state(encoder);
+      encoder->intra_refresh = false;
+      // a GPU without intra refresh refuses the whole open: the same encoder again, with keyframes as before
+      if (intra_refresh && name.find("nvenc") != std::string::npos) {
+        return open_codec(encoder, config, name, use_gpu, low_power, false);
+      }
       return false;
 
     }
@@ -874,6 +888,28 @@ namespace fan {
 
         std::uint32_t actual_width = target_frame->width;
         std::uint32_t actual_height = target_frame->height;
+
+        // A CUDA frame stays on the GPU when someone takes it as it is (copied there into memory the renderer can
+        // read): no download into system memory and no upload back. 8-bit 4:2:0 only, the rest downloads below
+        if (using_hardware_ && target_frame->format == AV_PIX_FMT_CUDA && gpu_frame_hook && target_frame->hw_frames_ctx) {
+          auto* frames = reinterpret_cast<AVHWFramesContext*>(target_frame->hw_frames_ctx->data);
+          if (frames->sw_format == AV_PIX_FMT_NV12) {
+            // AVCUDADeviceContext starts with the CUcontext the decoder's memory belongs to
+            void* cuda_context = *reinterpret_cast<void**>(frames->device_ctx->hwctx);
+            std::array<const std::uint8_t*, 2> planes {target_frame->data[0], target_frame->data[1]};
+            std::array<int, 2> pitches {target_frame->linesize[0], target_frame->linesize[1]};
+            int slot = gpu_frame_hook(cuda_context, planes, pitches, fan::vec2ui(target_frame->width, target_frame->height));
+            if (slot >= 0) {
+              result.image_size = {actual_width, actual_height};
+              result.pixel_format = AV_PIX_FMT_NV12;
+              result.gpu_slot = slot;
+              av_frame_unref(frame_);
+              av_frame_unref(hw_frame_);
+              results.push_back(std::move(result));
+              continue;
+            }
+          }
+        }
 
         if (using_hardware_ && target_frame->format == hw_pixel_format_) {
           av_frame_unref(frame_);

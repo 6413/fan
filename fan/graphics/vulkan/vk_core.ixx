@@ -311,7 +311,28 @@ export namespace fan {
       void image_unload(fan::graphics::image_nr_t nr);
 
       void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::vulkan::context_t::image_load_properties_t& p);
+      // the image filled from a buffer already on the GPU (no staging, no copy on the CPU), size.x * size.y texels
+      // tightly packed at offset. Waits until the copy is done: the buffer can be written again when it returns
+      void image_reload_from_buffer(fan::graphics::image_nr_t nr, VkBuffer buffer, VkDeviceSize offset, const fan::vec2ui& size, const fan::vulkan::context_t::image_load_properties_t& p);
+      // makes the image's VkImage, view and sampler for this size and these settings, keeping them when nothing
+      // changed. True when the image's contents are undefined (made new) and its layout starts from undefined
+      bool image_prepare_reload(fan::graphics::image_nr_t nr, const fan::vec2ui& size, const fan::vulkan::context_t::image_load_properties_t& p);
 
+      // ---- device memory another API on the same GPU can use (CUDA writes decoded video into it: zero copy) ------
+      // available when the driver has VK_KHR_external_memory_win32 (Windows) or _fd (Linux)
+      bool external_memory_supported = false;
+      // the GPU's id, to tell whether CUDA's device is the same one
+      std::array<std::uint8_t, VK_UUID_SIZE> device_uuid {};
+      struct external_buffer_t {
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VkDeviceMemory memory = VK_NULL_HANDLE;
+        // the size of the allocation, which the importer has to be told
+        VkDeviceSize size = 0;
+        // a Windows NT handle, or a file descriptor on Linux. Given to the importer, who closes it
+        std::intptr_t handle = -1;
+      };
+      bool external_buffer_create(VkDeviceSize size, external_buffer_t& out);
+      void external_buffer_destroy(external_buffer_t& buffer);
 
       void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info);
       void image_reload(fan::graphics::image_nr_t nr, fan::str_view_t path, const fan::vulkan::context_t::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
@@ -572,7 +593,7 @@ export namespace fan {
 }
 
 void fan::vulkan::image_create(const fan::vulkan::context_t& context, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VmaAllocation& allocation);
-namespace fan::graphics::format_converter {
+export namespace fan::graphics::format_converter {
   fan::vulkan::context_t::image_load_properties_t image_global_to_vulkan(const fan::graphics::image_load_properties_t& p);
   fan::graphics::image_load_properties_t image_vulkan_to_global(const fan::vulkan::context_t::image_load_properties_t& p);
 }

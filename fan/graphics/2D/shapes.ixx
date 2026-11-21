@@ -439,6 +439,11 @@ export namespace fan::graphics {
       std::uint32_t get_dynamic_flags() const;
       void set_dynamic_flags(std::uint32_t v);
       void reload(std::uint8_t format, void** image_data, const fan::vec2& image_size);
+      // like reload, with each plane's image filled by load (for pixels that are somewhere other than in memory
+      // here, a GPU buffer for example): it gets the plane's image, index, size and load properties
+      void reload_planes(std::uint8_t format, const fan::vec2& image_size,
+        const std::function<void(fan::graphics::image_t image, std::uint32_t plane, const fan::vec2ui& plane_size,
+          const fan::graphics::image_load_properties_t& lp)>& load);
       void reload(std::uint8_t format, const fan::vec2& image_size);
       // universal image specific
       void reload(std::uint8_t format, fan::graphics::image_t images[4]);

@@ -796,21 +796,14 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_load(fan::str_view_t pat
 void fan::vulkan::context_t::image_unload(fan::graphics::image_nr_t nr) {
   image_erase(nr);
 }
-void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::vulkan::context_t::image_load_properties_t& p) {
-  auto format_channels = get_format_channel_count(p.format);
-  auto src_channels = image_info.channels <= 0 ? format_channels : image_info.channels;
-  VkDeviceSize image_size = image_info.size.multiply() * format_channels;
-
+bool fan::vulkan::context_t::image_prepare_reload(fan::graphics::image_nr_t nr, const fan::vec2ui& size, const fan::vulkan::context_t::image_load_properties_t& p) {
   fan::vulkan::context_t::image_t& image = image_get(nr);
   auto& image_data = __fan_internal_image_list[nr];
-
-  // the staging buffer below is in use until the previous copy finishes
-  wait_for_image_upload(*this, image);
 
   auto new_settings = fan::graphics::format_converter::image_vulkan_to_global(p);
   bool image_was_null = image.image_index == VK_NULL_HANDLE;
   bool recreate_image = image.image_index != VK_NULL_HANDLE && (
-    image_data.size != image_info.size ||
+    image_data.size != fan::vec2(size) ||
     image_data.image_settings.format != new_settings.format ||
     image_data.image_settings.min_filter != new_settings.min_filter ||
     image_data.image_settings.mag_filter != new_settings.mag_filter ||
@@ -847,10 +840,37 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
     image.image_allocation = VK_NULL_HANDLE;
   }
 
-  image_data.size = image_info.size;
+  image_data.size = size;
   image_data.image_settings = new_settings;
 
-  VkDeviceSize image_size_bytes = image_size;
+  if (image.image_index == VK_NULL_HANDLE) {
+    fan::vulkan::image_create(
+      *this,
+      size,
+      p.format,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+      image.image_index,
+      image.image_allocation
+    );
+
+    image.image_view = create_image_view(image.image_index, p.format, VK_IMAGE_ASPECT_COLOR_BIT);
+    create_texture_sampler(image.sampler, p);
+  }
+  return recreate_image || image_was_null;
+}
+void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::vulkan::context_t::image_load_properties_t& p) {
+  auto format_channels = get_format_channel_count(p.format);
+  auto src_channels = image_info.channels <= 0 ? format_channels : image_info.channels;
+  VkDeviceSize image_size_bytes = image_info.size.multiply() * format_channels;
+
+  fan::vulkan::context_t::image_t& image = image_get(nr);
+
+  // the staging buffer below is in use until the previous copy finishes
+  wait_for_image_upload(*this, image);
+
+  bool contents_undefined = image_prepare_reload(nr, image_info.size, p);
 
   if (image.staging_buffer == VK_NULL_HANDLE || image.staging_size < image_size_bytes) {
     if (image.staging_buffer != VK_NULL_HANDLE) {
@@ -864,22 +884,6 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
       image.staging_allocation
     );
     image.staging_size = image_size_bytes;
-  }
-
-  if (image.image_index == VK_NULL_HANDLE) {
-    fan::vulkan::image_create(
-      *this,
-      image_info.size,
-      p.format,
-      VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-      image.image_index,
-      image.image_allocation
-    );
-
-    image.image_view = create_image_view(image.image_index, p.format, VK_IMAGE_ASPECT_COLOR_BIT);
-    create_texture_sampler(image.sampler, p);
   }
 
   vmaMapMemory(allocator, image.staging_allocation, &image.data);
@@ -903,13 +907,32 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
     cmd,
     image.image_index,
     p.format,
-    (recreate_image || image_was_null) ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    contents_undefined ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
   );
   copy_buffer_to_image_cmd(cmd, image.staging_buffer, image.image_index, p.format, image_info.size);
   transition_image_layout_cmd(cmd, image.image_index, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
   end_async_transfer_commands(cmd, image.upload_fence);
   image.upload_pending = true;
+}
+void fan::vulkan::context_t::image_reload_from_buffer(fan::graphics::image_nr_t nr, VkBuffer buffer, VkDeviceSize offset, const fan::vec2ui& size, const fan::vulkan::context_t::image_load_properties_t& p) {
+  fan::vulkan::context_t::image_t& image = image_get(nr);
+  // a copy from the staging path may still be writing the image
+  wait_for_image_upload(*this, image);
+  bool contents_undefined = image_prepare_reload(nr, size, p);
+
+  // waited for: the caller writes the buffer again as soon as this returns. A copy of a few MB inside the GPU
+  VkCommandBuffer cmd = begin_single_time_commands();
+  transition_image_layout_cmd(
+    cmd,
+    image.image_index,
+    p.format,
+    contents_undefined ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+  );
+  copy_buffer_to_image_cmd(cmd, buffer, image.image_index, p.format, size, offset);
+  transition_image_layout_cmd(cmd, image.image_index, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  end_single_time_commands(cmd);
 }
 void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info) {
   image_reload(nr, image_info, fan::vulkan::context_t::image_load_properties_t());

@@ -56,6 +56,11 @@ if is_mode("release") and is_win then
   -- clang emits the inline helpers of the Windows SDK headers (__ascii_tolower, ReadAcquire8, ...) in more than one module
   -- object; the copies are the same, the linker keeps one
   add_ldflags("-fuse-ld=lld", "-Wl,/OPT:REF", "-Wl,/OPT:ICF", "-Wl,/FORCE:MULTIPLE", "-Wl,/errorlimit:0", {force = true})
+  if has_config("FAN_DEBUG_INFO") then
+    -- a .pdb next to the exe, so crash stacks and debuggers show function names and lines
+    add_cxflags("-g", "-gcodeview", {force = true})
+    add_ldflags("-Wl,/DEBUG", {force = true})
+  end
   -- no _DEBUG at all: with the MSVC STL even _DEBUG=0 means the debug STL, which the release libraries don't match
   add_defines("NDEBUG")
 elseif is_mode("release") then
