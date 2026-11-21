@@ -19,7 +19,12 @@ extern "C" {
   #include <dxgi1_6.h>
   #include <d3dcompiler.h>
   #pragma comment(lib, "d3dcompiler.lib")
+  #define VK_USE_PLATFORM_WIN32_KHR
+#else
+  #include <dlfcn.h>
+  #include <unistd.h>
 #endif
+#include <vulkan/vulkan.h>
 #endif
 
 #if defined(_WIN32)
@@ -39,6 +44,10 @@ extern "C" {
 #endif
 
 module fan.graphics.video.screen;
+
+#if defined (FAN_WINDOW) && defined(FAN_VIDEO) && defined(FAN_2D)
+import fan.graphics.vulkan.core;
+#endif
 
 #if defined (FAN_WINDOW) && defined(FAN_VIDEO)
 
@@ -1166,6 +1175,344 @@ void fan::graphics::screen_encode_t::sleep_thread() {
   }
 }
 
+// ---- zero copy between the NVIDIA decoder and the renderer ------------------------------------------------------
+// The CUDA driver is loaded when it is there (nvcuda.dll, libcuda.so.1): an AMD or Intel computer has none and
+// must still start, so nothing is linked against it. The few types are the driver API's own, by value
+namespace {
+  using cu_result_t = int;
+  using cu_context_t = void*;
+  using cu_device_t = int;
+  using cu_deviceptr_t = unsigned long long;
+  using cu_external_memory_t = void*;
+  using cu_stream_t = void*;
+
+  struct cu_external_memory_handle_desc_t {
+    int type; // 1 opaque fd, 2 opaque win32
+    union {
+      int fd;
+      struct {
+        void* handle;
+        const void* name;
+      } win32;
+      const void* nv_sci_buf_object;
+    } handle;
+    unsigned long long size;
+    unsigned int flags; // 1 = dedicated
+    unsigned int reserved[16];
+  };
+  struct cu_external_memory_buffer_desc_t {
+    unsigned long long offset;
+    unsigned long long size;
+    unsigned int flags;
+    unsigned int reserved[16];
+  };
+  struct cu_memcpy_2d_t {
+    std::size_t src_x_in_bytes, src_y;
+    int src_memory_type;
+    const void* src_host;
+    cu_deviceptr_t src_device;
+    void* src_array;
+    std::size_t src_pitch;
+    std::size_t dst_x_in_bytes, dst_y;
+    int dst_memory_type;
+    void* dst_host;
+    cu_deviceptr_t dst_device;
+    void* dst_array;
+    std::size_t dst_pitch;
+    std::size_t width_in_bytes, height;
+  };
+  constexpr int cu_memorytype_device = 2;
+
+  struct cuda_api_t {
+    cu_result_t (*ctx_push_current)(cu_context_t) = nullptr;
+    cu_result_t (*ctx_pop_current)(cu_context_t*) = nullptr;
+    cu_result_t (*ctx_get_device)(cu_device_t*) = nullptr;
+    cu_result_t (*device_get_uuid)(unsigned char*, cu_device_t) = nullptr;
+    cu_result_t (*import_external_memory)(cu_external_memory_t*, const cu_external_memory_handle_desc_t*) = nullptr;
+    cu_result_t (*external_memory_get_mapped_buffer)(cu_deviceptr_t*, cu_external_memory_t, const cu_external_memory_buffer_desc_t*) = nullptr;
+    cu_result_t (*destroy_external_memory)(cu_external_memory_t) = nullptr;
+    cu_result_t (*mem_free)(cu_deviceptr_t) = nullptr;
+    cu_result_t (*memcpy_2d_async)(const cu_memcpy_2d_t*, cu_stream_t) = nullptr;
+    cu_result_t (*stream_synchronize)(cu_stream_t) = nullptr;
+
+    bool load() {
+    #if defined(_WIN32)
+      HMODULE library = LoadLibraryA("nvcuda.dll");
+      auto find = [&](const char* name) { return library ? (void*)GetProcAddress(library, name) : nullptr; };
+    #else
+      void* library = dlopen("libcuda.so.1", RTLD_NOW | RTLD_LOCAL);
+      auto find = [&](const char* name) { return library ? dlsym(library, name) : nullptr; };
+    #endif
+      if (!library) {
+        return false;
+      }
+      ctx_push_current = (decltype(ctx_push_current))find("cuCtxPushCurrent_v2");
+      ctx_pop_current = (decltype(ctx_pop_current))find("cuCtxPopCurrent_v2");
+      ctx_get_device = (decltype(ctx_get_device))find("cuCtxGetDevice");
+      device_get_uuid = (decltype(device_get_uuid))find("cuDeviceGetUuid");
+      import_external_memory = (decltype(import_external_memory))find("cuImportExternalMemory");
+      external_memory_get_mapped_buffer = (decltype(external_memory_get_mapped_buffer))find("cuExternalMemoryGetMappedBuffer");
+      destroy_external_memory = (decltype(destroy_external_memory))find("cuDestroyExternalMemory");
+      mem_free = (decltype(mem_free))find("cuMemFree_v2");
+      memcpy_2d_async = (decltype(memcpy_2d_async))find("cuMemcpy2DAsync_v2");
+      stream_synchronize = (decltype(stream_synchronize))find("cuStreamSynchronize");
+      return ctx_push_current && ctx_pop_current && ctx_get_device && device_get_uuid && import_external_memory &&
+        external_memory_get_mapped_buffer && destroy_external_memory && mem_free && memcpy_2d_async && stream_synchronize;
+    }
+  };
+
+  // Frames go round through a few slots. Each slot is one Vulkan buffer (the Y plane, then the UV plane, both
+  // tightly packed) that CUDA sees as device memory. The decoder writes a slot and the render thread copies it
+  // into the picture's images, both under the mutex, so a slot is never written while it is read. Only the newest
+  // few frames wait to be shown, so a slot comes round again after its frame was shown or dropped; its id tells a
+  // frame that was written over anyway
+  struct gpu_bridge_t {
+    static constexpr std::size_t slot_count = 6;
+    struct slot_t {
+      fan::vulkan::context_t::external_buffer_t vk;
+      cu_external_memory_t cuda_memory = nullptr;
+      cu_deviceptr_t pointer = 0;
+      std::uint64_t frame_id = 0;
+    };
+
+    cuda_api_t cuda;
+    bool cuda_loaded = false;
+    std::mutex mutex;
+    std::array<slot_t, slot_count> slots;
+    cu_context_t cuda_context = nullptr;
+    fan::vec2ui size {0, 0};
+    std::size_t next = 0;
+    std::uint64_t next_id = 0;
+    // a CUDA context that can't be used (another GPU than the window's, an import that failed): not tried again
+    cu_context_t refused_context = nullptr;
+    bool told = false;
+    int copy_failures = 0;
+
+    void release_slots(bool context_alive) {
+      auto& vk = fan::graphics::get_vk_context();
+      for (auto& slot : slots) {
+        if (context_alive && cuda_context && slot.cuda_memory) {
+          cuda.ctx_push_current(cuda_context);
+          if (slot.pointer) {
+            cuda.mem_free(slot.pointer);
+          }
+          cuda.destroy_external_memory(slot.cuda_memory);
+          cu_context_t popped = nullptr;
+          cuda.ctx_pop_current(&popped);
+        }
+        if (slot.vk.buffer != VK_NULL_HANDLE) {
+          vk.external_buffer_destroy(slot.vk);
+        }
+        slot = {};
+      }
+      size = {0, 0};
+    }
+
+    // the slots for frames of this size in this CUDA context, made again when either changed
+    bool ensure(cu_context_t context, const fan::vec2ui& frame_size) {
+      if (context == refused_context) {
+        return false;
+      }
+      if (context == cuda_context && frame_size == size) {
+        return true;
+      }
+      auto& vk = fan::graphics::get_vk_context();
+      // memory imported into a context belongs to it: a new context (the decoder was opened again, its old
+      // context is gone with everything in it) gets new buffers
+      release_slots(context == cuda_context);
+      cuda_context = context;
+
+      // the same GPU, or CUDA's pointers mean nothing to Vulkan
+      cu_device_t device = 0;
+      unsigned char uuid[16] {};
+      cuda.ctx_push_current(context);
+      bool same_gpu = cuda.ctx_get_device(&device) == 0 && cuda.device_get_uuid(uuid, device) == 0 &&
+        std::memcmp(uuid, vk.device_uuid.data(), 16) == 0;
+      if (!same_gpu) {
+        cu_context_t popped = nullptr;
+        cuda.ctx_pop_current(&popped);
+        refused_context = context;
+        if (!told) {
+          told = true;
+          fan::print("video: zero copy off, the decoding GPU is not the one drawing the window");
+        }
+        return false;
+      }
+
+      std::uint64_t y_bytes = (std::uint64_t)frame_size.x * frame_size.y;
+      std::uint64_t uv_bytes = (std::uint64_t)frame_size.x * ((frame_size.y + 1) / 2);
+      bool ok = true;
+      for (auto& slot : slots) {
+        if (!vk.external_buffer_create(y_bytes + uv_bytes, slot.vk)) {
+          ok = false;
+          break;
+        }
+        cu_external_memory_handle_desc_t handle_desc {};
+      #if defined(_WIN32)
+        handle_desc.type = 2;
+        handle_desc.handle.win32.handle = (void*)slot.vk.handle;
+      #else
+        handle_desc.type = 1;
+        handle_desc.handle.fd = (int)slot.vk.handle;
+      #endif
+        handle_desc.size = slot.vk.size;
+        handle_desc.flags = 1;
+        bool imported = cuda.import_external_memory(&slot.cuda_memory, &handle_desc) == 0;
+      #if defined(_WIN32)
+        // the NT handle stays ours to close, CUDA holds the memory now
+        CloseHandle((HANDLE)slot.vk.handle);
+      #else
+        // the fd is CUDA's after an import, closed here only when the import failed
+        if (!imported) {
+          close((int)slot.vk.handle);
+        }
+      #endif
+        slot.vk.handle = -1;
+        if (!imported) {
+          slot.cuda_memory = nullptr;
+          ok = false;
+          break;
+        }
+        cu_external_memory_buffer_desc_t buffer_desc {};
+        buffer_desc.size = y_bytes + uv_bytes;
+        if (cuda.external_memory_get_mapped_buffer(&slot.pointer, slot.cuda_memory, &buffer_desc) != 0) {
+          slot.pointer = 0;
+          ok = false;
+          break;
+        }
+      }
+      cu_context_t popped = nullptr;
+      cuda.ctx_pop_current(&popped);
+      if (!ok) {
+        release_slots(true);
+        refused_context = context;
+        if (!told) {
+          told = true;
+          fan::print("video: zero copy off, CUDA could not use Vulkan's memory");
+        }
+        return false;
+      }
+      size = frame_size;
+      return true;
+    }
+
+    // on the decoding thread: the CUDA frame into the next slot, on the GPU. The slot, or -1
+    int write(cu_context_t context, const std::array<const std::uint8_t*, 2>& planes, const std::array<int, 2>& pitches,
+      const fan::vec2ui& frame_size) {
+      std::lock_guard<std::mutex> lock(mutex);
+      if (!ensure(context, frame_size)) {
+        return -1;
+      }
+      std::size_t index = next;
+      next = (next + 1) % slot_count;
+      auto& slot = slots[index];
+      std::uint64_t y_bytes = (std::uint64_t)frame_size.x * frame_size.y;
+
+      cuda.ctx_push_current(context);
+      auto copy = [&](const std::uint8_t* source, int pitch, cu_deviceptr_t destination, std::size_t rows) {
+        cu_memcpy_2d_t c {};
+        c.src_memory_type = cu_memorytype_device;
+        c.src_device = (cu_deviceptr_t)(std::uintptr_t)source;
+        c.src_pitch = (std::size_t)pitch;
+        c.dst_memory_type = cu_memorytype_device;
+        c.dst_device = destination;
+        c.dst_pitch = frame_size.x;
+        c.width_in_bytes = frame_size.x;
+        c.height = rows;
+        return cuda.memcpy_2d_async(&c, nullptr) == 0;
+      };
+      bool ok = copy(planes[0], pitches[0], slot.pointer, frame_size.y) &&
+        copy(planes[1], pitches[1], slot.pointer + y_bytes, (frame_size.y + 1) / 2);
+      // finished before the frame is handed on: Vulkan reads it next, and the decoder reuses its surface
+      ok = cuda.stream_synchronize(nullptr) == 0 && ok;
+      cu_context_t popped = nullptr;
+      cuda.ctx_pop_current(&popped);
+      if (!ok) {
+        // whatever the slot had is not a whole frame now. Made again from the start next time (the context may be
+        // a new one at the old address), and after a few failures in a row not tried again for this context
+        slot.frame_id = 0;
+        release_slots(false);
+        if (++copy_failures >= 3) {
+          refused_context = context;
+          if (!told) {
+            told = true;
+            fan::print("video: zero copy off, copying the frames failed");
+          }
+        }
+        cuda_context = nullptr;
+        return -1;
+      }
+      copy_failures = 0;
+      slot.frame_id = ++next_id;
+      return (int)index;
+    }
+  };
+}
+
+void fan::graphics::screen_decode_t::gpu_bridge_install() {
+  if (gpu_bridge_) {
+    return;
+  }
+  auto* bridge = new gpu_bridge_t;
+  bool cuda_found = bridge->cuda.load();
+  bool vulkan_ready = fan::graphics::get_vk_context().external_memory_supported;
+  bridge->cuda_loaded = cuda_found && vulkan_ready;
+  gpu_bridge_ = bridge;
+  if (!bridge->cuda_loaded) {
+    // an NVIDIA driver is there but something is missing: said once, the frames download as before
+    if (cuda_found) {
+      fan::print("video: zero copy off, the Vulkan driver can't share memory");
+    }
+    return;
+  }
+  fan::print("video: zero copy available (NVIDIA decoding straight into the picture)");
+  decoder_.gpu_frame_hook = [this, bridge](void* context, const std::array<const std::uint8_t*, 2>& planes,
+    const std::array<int, 2>& pitches, fan::vec2ui size) -> int {
+    if (!zero_copy.load(std::memory_order_relaxed)) {
+      zero_copy_used_.store(false, std::memory_order_relaxed);
+      return -1;
+    }
+    int slot = bridge->write(context, planes, pitches, size);
+    zero_copy_used_.store(slot >= 0, std::memory_order_relaxed);
+    return slot;
+  };
+}
+
+void fan::graphics::screen_decode_t::gpu_bridge_destroy() {
+  auto* bridge = static_cast<gpu_bridge_t*>(gpu_bridge_);
+  if (!bridge) {
+    return;
+  }
+  decoder_.gpu_frame_hook = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(bridge->mutex);
+    // the decoder is closed: its CUDA context and what was imported into it are gone
+    bridge->release_slots(false);
+  }
+  delete bridge;
+  gpu_bridge_ = nullptr;
+}
+
+bool fan::graphics::screen_decode_t::show_gpu_frame(const decode_data_t& frame, fan::graphics::shape_t& universal_image_renderer) {
+  auto* bridge = static_cast<gpu_bridge_t*>(gpu_bridge_);
+  if (!bridge || frame.gpu_slot < 0 || frame.gpu_slot >= (int)gpu_bridge_t::slot_count) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lock(bridge->mutex);
+  auto& slot = bridge->slots[frame.gpu_slot];
+  if (slot.frame_id != frame.gpu_frame_id || slot.vk.buffer == VK_NULL_HANDLE || bridge->size != frame.image_size) {
+    return false;
+  }
+  VkBuffer buffer = slot.vk.buffer;
+  VkDeviceSize y_bytes = (VkDeviceSize)frame.image_size.x * frame.image_size.y;
+  universal_image_renderer.reload_planes(fan::graphics::image_format_e::nv12, fan::vec2(frame.image_size),
+    [&](fan::graphics::image_t image, std::uint32_t plane, const fan::vec2ui& plane_size, const fan::graphics::image_load_properties_t& lp) {
+      fan::graphics::get_vk_context().image_reload_from_buffer(image, buffer, plane == 0 ? 0 : y_bytes, plane_size,
+        fan::graphics::format_converter::image_global_to_vulkan(lp));
+    });
+  return true;
+}
+
 fan::graphics::screen_decode_t::decode_data_t fan::graphics::screen_decode_t::decode(void* data, std::uintptr_t length, fan::graphics::shape_t& universal_image_renderer) {
   decode_data_t ret;
 
@@ -1209,6 +1556,17 @@ fan::graphics::screen_decode_t::decode_data_t fan::graphics::screen_decode_t::de
 
   ret.image_size = frame.image_size;
   ret.type = 1;
+
+  // still on the GPU, in a slot of the zero copy bridge
+  if (frame.gpu_slot >= 0) {
+    ret.pixel_format = fan::graphics::image_format_e::nv12;
+    ret.gpu_slot = frame.gpu_slot;
+    ret.gpu_frame_id = static_cast<gpu_bridge_t*>(gpu_bridge_)->slots[frame.gpu_slot].frame_id;
+    ret.stride[0] = {frame.image_size.x, 0};
+    frame_size_ = frame.image_size;
+    decoded_size = frame.image_size;
+    return ret;
+  }
 
   switch (frame.pixel_format) {
   case AV_PIX_FMT_YUV420P: ret.pixel_format = fan::graphics::image_format_e::yuv420p; break;

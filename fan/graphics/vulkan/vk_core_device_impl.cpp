@@ -10,6 +10,14 @@ module;
 #elif defined(fan_platform_unix)
 #define VK_USE_PLATFORM_XLIB_KHR
 #endif
+// the Win32 parts of Vulkan (memory handles to share with CUDA). fan_platform_windows comes from fan's utility.h,
+// which isn't included yet here, so the compiler's own _WIN32 decides
+#if defined(_WIN32) && !defined(VK_USE_PLATFORM_WIN32_KHR)
+  #ifndef NOMINMAX
+    #define NOMINMAX
+  #endif
+  #define VK_USE_PLATFORM_WIN32_KHR
+#endif
 #if defined(FAN_GUI)
 #include <fan/imgui/imgui_impl_vulkan.h>
 #endif
@@ -683,7 +691,12 @@ void fan::vulkan::context_t::create_logical_device() {
   // -----------------------------
   VkPhysicalDeviceProperties2 deviceProperties {};
   deviceProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+  // the GPU's id: another API (CUDA) sharing memory with this device has to be on the same GPU
+  VkPhysicalDeviceIDProperties id_properties {};
+  id_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
+  deviceProperties.pNext = &id_properties;
   vkGetPhysicalDeviceProperties2(physical_device, &deviceProperties);
+  std::memcpy(device_uuid.data(), id_properties.deviceUUID, VK_UUID_SIZE);
 
   // -----------------------------
   // Check extension support
@@ -794,8 +807,28 @@ void fan::vulkan::context_t::create_logical_device() {
   createInfo.pNext = &features2;
   createInfo.pEnabledFeatures = nullptr;
 
-  createInfo.enabledExtensionCount = (std::uint32_t)deviceExtensions.size();
-  createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+  // memory that can be handed to another API (CUDA decodes video straight into it), when the driver has it
+  std::vector<const char*> enabled_extensions(deviceExtensions.begin(), deviceExtensions.end());
+  {
+  #if defined(_WIN32)
+    const char* external_memory_extension = VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME;
+  #else
+    const char* external_memory_extension = VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME;
+  #endif
+    std::uint32_t count = 0;
+    vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &count, nullptr);
+    std::vector<VkExtensionProperties> available(count);
+    vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &count, available.data());
+    for (const auto& extension : available) {
+      if (std::strcmp(extension.extensionName, external_memory_extension) == 0) {
+        enabled_extensions.push_back(external_memory_extension);
+        external_memory_supported = true;
+        break;
+      }
+    }
+  }
+  createInfo.enabledExtensionCount = (std::uint32_t)enabled_extensions.size();
+  createInfo.ppEnabledExtensionNames = enabled_extensions.data();
 
   // -----------------------------
   // Create device
@@ -1168,6 +1201,112 @@ void fan::vulkan::context_t::end_async_transfer_commands(VkCommandBuffer command
   get_current_deletion_queue().push_function([=]() {
     vkFreeCommandBuffers(device_handle, pool_handle, 1, &command_buffer);
   });
+}
+
+// Device memory with a handle another API can open (an NT handle on Windows, a file descriptor on Linux), bound
+// to a buffer that copies into images. Its own dedicated allocation, which is what CUDA's import expects
+bool fan::vulkan::context_t::external_buffer_create(VkDeviceSize size, external_buffer_t& out) {
+  out = {};
+  if (!external_memory_supported) {
+    return false;
+  }
+#if defined(_WIN32)
+  const VkExternalMemoryHandleTypeFlagBits handle_type = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+#else
+  const VkExternalMemoryHandleTypeFlagBits handle_type = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+#endif
+
+  VkExternalMemoryBufferCreateInfo external_info {};
+  external_info.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO;
+  external_info.handleTypes = handle_type;
+
+  VkBufferCreateInfo buffer_info {};
+  buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  buffer_info.pNext = &external_info;
+  buffer_info.size = size;
+  buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+  buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  if (vkCreateBuffer(device, &buffer_info, nullptr, &out.buffer) != VK_SUCCESS) {
+    out = {};
+    return false;
+  }
+
+  VkMemoryRequirements requirements;
+  vkGetBufferMemoryRequirements(device, out.buffer, &requirements);
+  VkPhysicalDeviceMemoryProperties memory_properties;
+  vkGetPhysicalDeviceMemoryProperties(physical_device, &memory_properties);
+  std::uint32_t memory_type = UINT32_MAX;
+  for (std::uint32_t i = 0; i < memory_properties.memoryTypeCount; ++i) {
+    if ((requirements.memoryTypeBits & (1u << i)) &&
+      (memory_properties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)) {
+      memory_type = i;
+      break;
+    }
+  }
+  if (memory_type == UINT32_MAX) {
+    vkDestroyBuffer(device, out.buffer, nullptr);
+    out = {};
+    return false;
+  }
+
+  VkMemoryDedicatedAllocateInfo dedicated {};
+  dedicated.sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO;
+  dedicated.buffer = out.buffer;
+  VkExportMemoryAllocateInfo export_info {};
+  export_info.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO;
+  export_info.pNext = &dedicated;
+  export_info.handleTypes = handle_type;
+  VkMemoryAllocateInfo allocate_info {};
+  allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  allocate_info.pNext = &export_info;
+  allocate_info.allocationSize = requirements.size;
+  allocate_info.memoryTypeIndex = memory_type;
+  if (vkAllocateMemory(device, &allocate_info, nullptr, &out.memory) != VK_SUCCESS) {
+    vkDestroyBuffer(device, out.buffer, nullptr);
+    out = {};
+    return false;
+  }
+  if (vkBindBufferMemory(device, out.buffer, out.memory, 0) != VK_SUCCESS) {
+    external_buffer_destroy(out);
+    return false;
+  }
+  out.size = requirements.size;
+
+#if defined(_WIN32)
+  auto get_handle = (PFN_vkGetMemoryWin32HandleKHR)vkGetDeviceProcAddr(device, "vkGetMemoryWin32HandleKHR");
+  VkMemoryGetWin32HandleInfoKHR handle_info {};
+  handle_info.sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
+  handle_info.memory = out.memory;
+  handle_info.handleType = handle_type;
+  HANDLE handle = nullptr;
+  if (!get_handle || get_handle(device, &handle_info, &handle) != VK_SUCCESS || !handle) {
+    external_buffer_destroy(out);
+    return false;
+  }
+  out.handle = (std::intptr_t)handle;
+#else
+  auto get_fd = (PFN_vkGetMemoryFdKHR)vkGetDeviceProcAddr(device, "vkGetMemoryFdKHR");
+  VkMemoryGetFdInfoKHR fd_info {};
+  fd_info.sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR;
+  fd_info.memory = out.memory;
+  fd_info.handleType = handle_type;
+  int fd = -1;
+  if (!get_fd || get_fd(device, &fd_info, &fd) != VK_SUCCESS || fd < 0) {
+    external_buffer_destroy(out);
+    return false;
+  }
+  out.handle = fd;
+#endif
+  return true;
+}
+void fan::vulkan::context_t::external_buffer_destroy(external_buffer_t& buffer) {
+  if (buffer.buffer != VK_NULL_HANDLE) {
+    vkDestroyBuffer(device, buffer.buffer, nullptr);
+  }
+  if (buffer.memory != VK_NULL_HANDLE) {
+    vkFreeMemory(device, buffer.memory, nullptr);
+  }
+  buffer = {};
 }
 
 void fan::vulkan::context_t::copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size) {

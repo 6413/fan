@@ -969,6 +969,9 @@ namespace fan {
     glfwShowWindow(*this);
   }
 
+  bool window_t::is_focused() {
+    return glfwGetWindowAttrib(*this, GLFW_FOCUSED) == GLFW_TRUE;
+  }
   void window_t::set_focus_on_show(bool focus) {
     glfwSetWindowAttrib(*this, GLFW_FOCUS_ON_SHOW, focus ? GLFW_TRUE : GLFW_FALSE);
   }

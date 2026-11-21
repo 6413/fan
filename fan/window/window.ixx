@@ -389,6 +389,8 @@ export namespace fan {
     void show();
     // false: showing the window (the engine does it at the first frame) doesn't take the focus from another program
     void set_focus_on_show(bool focus);
+    // the window has the keyboard focus (false while another program is in front)
+    bool is_focused();
     bool is_wayland() const;
 
 #if defined(fan_platform_windows)

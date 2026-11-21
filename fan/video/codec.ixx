@@ -162,6 +162,8 @@ export namespace fan {
         fan::vec2 screencap_res;
         codec_config_t config;
         gpu_state_t* gpu = nullptr;
+        // the picture is refreshed a column at a time over the gop instead of in one big keyframe
+        bool intra_refresh = false;
       };
 
       std::atomic<encoder_state_t*> active_encoder_ {nullptr};
@@ -269,7 +271,7 @@ export namespace fan {
       }
 
       bool find_and_init_codec(encoder_state_t* encoder, const codec_config_t& config);
-      bool open_codec(encoder_state_t* encoder, const codec_config_t& config, const std::string& name, bool use_gpu, bool low_power = false);
+      bool open_codec(encoder_state_t* encoder, const codec_config_t& config, const std::string& name, bool use_gpu, bool low_power = false, bool intra_refresh = true);
       static bool open_vaapi_frames(encoder_state_t* encoder, const codec_config_t& config);
       // the format the cpu writes into, the codec's own format is a gpu surface for vaapi
       static AVPixelFormat cpu_pixel_format(const encoder_state_t* encoder) {
@@ -372,6 +374,11 @@ export namespace fan {
       const std::string& get_codec_name() const {
         return codec_name_;
 
+      }
+      // the encoder renews the picture with intra refresh, it makes keyframes only when asked for one
+      bool uses_intra_refresh() const {
+        encoder_state_t* encoder = active_encoder_.load();
+        return encoder && encoder->intra_refresh;
       }
       bool is_initialized() const {
         return initialized_;
@@ -623,9 +630,16 @@ export namespace fan {
         AVPixelFormat pixel_format = AV_PIX_FMT_NONE;
         bool success = false;
         bool was_hardware_decoded = false;
+        // the frame stayed on the GPU: in the slot gpu_frame_hook gave, plane_data is empty
+        int gpu_slot = -1;
 
         std::int64_t pts = 0;
       };
+
+      // Takes a decoded CUDA NV12 frame as it is (planes and pitches are device pointers in cuda_context, valid
+      // during the call). Returns the slot it copied the frame into, or -1 to have it downloaded as usual
+      std::function<int(void* cuda_context, const std::array<const std::uint8_t*, 2>& planes,
+        const std::array<int, 2>& pitches, fan::vec2ui size)> gpu_frame_hook;
 
       std::vector<decode_result_t> decode_packet(
         const std::uint8_t* data,
