@@ -296,7 +296,19 @@ namespace fan::graphics::gui {
     }
     );
 
-    constexpr f32_t device_col_width = 200.f;
+    // the three device columns share one width, wide enough for the longest chord so none gets cut off
+    f32_t device_col_width = 200.f;
+    {
+      f32_t widest = 0.f;
+      for (auto& [action_name, bindings] : menu->device_bindings) {
+        for (const auto* combos : {&bindings.keyboard, &bindings.mouse, &bindings.gamepad}) {
+          combo_t combo = combos->empty() ? combo_t {} : (*combos)[0];
+          widest = std::max(widest, gui::calc_text_size(ia.combo_to_string(combo)).x);
+        }
+      }
+      // the cell padding on both sides, and a little air
+      device_col_width = std::max(device_col_width, widest + 16.f * 2.f + 12.f);
+    }
 
     int base_index = 0;
 

@@ -1488,6 +1488,16 @@ export namespace fan::graphics::gui {
     });
   }
 
+  // A colour for the draw list that follows the window's fade. Widgets drawn with the draw list don't get the style
+  // alpha by themselves, so a bar that fades out would leave them at full strength
+  inline std::uint32_t with_style_alpha(std::uint32_t color) {
+    f32_t alpha = gui::get_style().Alpha;
+    if (alpha >= 1.f) {
+      return color;
+    }
+    return (color & 0x00ffffffu) | ((std::uint32_t)((f32_t)(color >> 24) * std::max(alpha, 0.f)) << 24);
+  }
+
   // The tab strip drawn over a bar: labels, the selected index and a click callback. No app state is kept here.
   template <typename Fade, typename Click>
   void nav_tabs(gui::draw_list_t* list, std::initializer_list<const char*> labels, int selected,
@@ -1530,21 +1540,22 @@ export namespace fan::graphics::gui {
     f32_t rounding = size * 0.28f;
     switch (style) {
       case icon_button_style_t::plain:
-        list->AddRectFilled(at, at + fan::vec2(size, size), held ? 0xff61210fu : hovered ? 0xff3a170cu : 0xff0f0907u, rounding);
+        list->AddRectFilled(at, at + fan::vec2(size, size), with_style_alpha(held ? 0xff61210fu : hovered ? 0xff3a170cu : 0xff0f0907u), rounding);
         break;
       case icon_button_style_t::danger:
-        list->AddRectFilled(at, at + fan::vec2(size, size), held ? 0xff0c0c70u : hovered ? 0xff0a0a52u : 0xff05051au, rounding);
+        list->AddRectFilled(at, at + fan::vec2(size, size), with_style_alpha(held ? 0xff0c0c70u : hovered ? 0xff0a0a52u : 0xff05051au), rounding);
         icon_color = hovered ? 0xffffffffu : 0xff6a6affu;
         break;
       case icon_button_style_t::accent:
-        list->AddRectFilled(at, at + fan::vec2(size, size), held ? 0xff61210fu : hovered ? 0xff4a1a0du : 0xff2a1009u, rounding);
+        list->AddRectFilled(at, at + fan::vec2(size, size), with_style_alpha(held ? 0xff61210fu : hovered ? 0xff4a1a0du : 0xff2a1009u), rounding);
         icon_color = hovered ? 0xffffffffu : 0xffff7a33u;
         break;
       case icon_button_style_t::overlay:
-        list->AddCircleFilled(c, size * 0.5f, hovered ? 0xb4000000u : 0x64000000u, 24);
+        list->AddCircleFilled(c, size * 0.5f, with_style_alpha(hovered ? 0xb4000000u : 0x64000000u), 24);
         icon_color = hovered ? 0xffffffffu : 0xffe0e0e0u;
         break;
     }
+    icon_color = with_style_alpha(icon_color);
     draw_icon(list, c, size * (style == icon_button_style_t::overlay ? 0.56f : 0.56f), icon_color,
       style == icon_button_style_t::overlay);
     if (hovered && !tooltip.empty()) {
@@ -1566,12 +1577,12 @@ export namespace fan::graphics::gui {
     bool clicked = gui::invisible_button(id, fan::vec2(width, height));
     bool hovered = gui::is_item_hovered(gui::hovered_flags_allow_when_disabled);
     auto* list = gui::get_window_draw_list();
-    std::uint32_t fill = !enabled ? 0xff141414u : hovered ? hover_color : color;
+    std::uint32_t fill = with_style_alpha(!enabled ? 0xff141414u : hovered ? hover_color : color);
     list->AddRectFilled(at, at + fan::vec2(width, height), fill, height * 0.5f);
     f32_t icon_size = height * 0.62f;
     f32_t content = icon_size + 8.f + gui::calc_text_size(text).x;
     fan::vec2 start = at + fan::vec2((width - content) * 0.5f, 0);
-    std::uint32_t ink = enabled ? 0xffffffffu : 0xff606060u;
+    std::uint32_t ink = with_style_alpha(enabled ? 0xffffffffu : 0xff606060u);
     draw_icon(list, start + fan::vec2(icon_size * 0.5f, height * 0.5f), icon_size * 0.8f, ink, false);
     std::string label(text);
     list->AddText(start + fan::vec2(icon_size + 8.f, (height - gui::get_font_size()) * 0.5f), ink, label.c_str());
