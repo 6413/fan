@@ -2161,6 +2161,7 @@ void loco_t::loop(const std::function<void()>& cb) {
 
 void loco_t::loop(const std::function<void(f32_t delta_time)>& cb) {
   main_loop = cb;
+  runs_own_loop = true;
 g_loop:
 
   if (!timer_init) {
@@ -2298,6 +2299,13 @@ void loco_t::start_idle(bool start_idle) {
 
 // if target fps does not seem to be accurate/updating, use timeBeginPeriod to request the correct hz for libuv
 void loco_t::update_timer_interval(bool idle) {
+  if (target_fps > 0) {
+    timing.target_frame_time = 1.0 / target_fps;
+  }
+  // without loop() the app draws on its own thread and reads target_fps itself
+  if (!runs_own_loop) {
+    return;
+  }
   if (!timer_init) {
     fan::uv::timer_init((fan::uv::loop_t*)fan::event::get_loop(), (fan::uv::timer_t*)timer_handle);
     timer_init = true;

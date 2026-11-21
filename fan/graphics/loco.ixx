@@ -1032,6 +1032,9 @@ public:
   void* idle_handle = nullptr;
   bool timer_init = false;
   void* timer_handle = nullptr;
+  // set by loop(): only then do the timer and idle handles above drive the frames. An app that calls process_frame
+  // from its own thread (ECPS) leaves them alone, they would run frames on whatever thread runs the event loop
+  bool runs_own_loop = false;
 
   std::function<void(f32_t delta_time)> main_loop;
   // bad, but forced
