@@ -1862,6 +1862,10 @@ namespace fan::graphics::gui {
   f32_t get_font_scale() { return font_scale; }
   void set_font_scale(f32_t scale) {
     font_scale = std::clamp(scale, 0.5f, 3.f);
+    // the app sets the saved scale before the engine makes the ImGui context
+    if (!is_gui_initialized() || !get_context()) {
+      return;
+    }
     if (get_io().FontDefault) {
       std::size_t index = 0;
       f32_t wanted = font_sizes[default_font_size_index] * font_scale;
@@ -1984,7 +1988,8 @@ namespace fan::graphics::gui {
       cfg.PixelSnapH = true;
 
       for (int t = 0; t < font::count; ++t) {
-        if (!paths[t].empty()) {
+        std::error_code font_ec;
+        if (!paths[t].empty() && std::filesystem::is_regular_file(paths[t], font_ec)) {
           fonts[t][i] = io.Fonts->AddFontFromFileTTF(paths[t].c_str(), font_size, &cfg);
           // merge mode targets the most recently added font; regular text only, and only up
           // to size 36 to keep the atlas small
