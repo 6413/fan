@@ -12,6 +12,11 @@ module;
 
 #include <fan/utils/utility.h>
 
+// clang with the MSVC STL: std::convertible_to is not visible through import std here otherwise
+#if defined(_MSC_VER) && defined(__clang__)
+  #include <concepts>
+#endif
+
 #endif
 
 export module fan.graphics.gui.base;
@@ -475,7 +480,7 @@ export namespace fan::graphics::gui {
   );
 
   void init_fonts();
-  // merges fonts/seguiemj into the gui fonts; call before the engine creates its gui
+  // merges fonts/twemoji into the gui fonts; call before the engine creates its gui
   void load_emojis();
 
   void shutdown_graphics_context(VkDevice device);

@@ -1934,7 +1934,8 @@ namespace fan::graphics::gui {
       0x1F600, 0x1F64F, // emoticons
       0,
     };
-    static constexpr const char* emoji_font_path = "fonts/seguiemj/seguiemj.ttf";
+    // Twemoji (Mozilla twemoji-colr v0.7.0, CC-BY 4.0, see fonts/twemoji/LICENSE.md), cut to the ranges above
+    static constexpr const char* emoji_font_path = "fonts/twemoji/twemoji.ttf";
     if (!std::filesystem::exists(emoji_font_path)) {
       return;
     }

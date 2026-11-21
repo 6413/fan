@@ -206,7 +206,7 @@ namespace fan {
 #ifndef __clz32
   inline unsigned char __clz32(unsigned long p0)
   {
-  #if defined(__GNUC__)
+  #if defined(__GNUC__) || defined(__clang__)
     return __builtin_clz(p0);
   #elif defined(_MSC_VER)
     DWORD trailing_zero = 0;
@@ -225,7 +225,7 @@ namespace fan {
 
 #ifndef __clz64
 inline unsigned char __clz64(unsigned long long p0) {
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined(__clang__)
   return __builtin_clzll(p0);
 #elif defined(_WIN64)
 
