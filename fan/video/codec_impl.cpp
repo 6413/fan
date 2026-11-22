@@ -410,7 +410,9 @@ namespace fan {
         encoder->codec_ctx->rc_max_rate = config.bitrate;
         encoder->codec_ctx->rc_min_rate = config.bitrate;
 
-        av_opt_set(options, "preset", "p1", 0);
+        // p1 is the fastest and the blockiest. The encoder is its own chip with room to spare at these rates, so a
+        // slower preset costs no frames: p4 up to 60 fps, p3 up to 120, p2 above (4k at 144 still keeps up)
+        av_opt_set(options, "preset", config.frame_rate <= 60 ? "p4" : config.frame_rate <= 120 ? "p3" : "p2", 0);
         av_opt_set(options, "tune", "ll", 0);
 
         // frames come out as they are encoded. A delay of n holds n frames back, at 60 fps 2 of them were 33 ms
@@ -423,7 +425,9 @@ namespace fan {
         av_opt_set_int(options, "surfaces", config.frame_rate >= 144 ? 48 : config.frame_rate >= 120 ? 40 : 32, 0);
         av_opt_set_int(options, "bf", 0, 0);
 
-        av_opt_set(options, "spatial_aq", "0", 0);
+        // spatial AQ gives dark and flat parts (shade, sky, fog) more bits; without it they broke into squares first
+        av_opt_set(options, "spatial_aq", "1", 0);
+        av_opt_set_int(options, "aq-strength", 8, 0);
         av_opt_set(options, "temporal_aq", "0", 0);
         av_opt_set_int(options, "lookahead_depth", 0, 0);
         av_opt_set_int(options, "rc_lookahead", 0, 0);
