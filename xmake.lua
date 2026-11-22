@@ -885,8 +885,10 @@ if has_config("FAN_2D") then
     else
       add_files(get_config("main"))
     end
-    if get_config("extra_main") ~= "" then
-      for _, f in ipairs(string.split(get_config("extra_main"), ",")) do
+    -- nil, not "", in a config saved before the option existed: splitting nil failed and xmake rejected every option
+    local extra_main = get_config("extra_main")
+    if extra_main and extra_main ~= "" then
+      for _, f in ipairs(string.split(extra_main, ",")) do
         add_files(f)
       end
     end
