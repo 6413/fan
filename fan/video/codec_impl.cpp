@@ -342,6 +342,14 @@ namespace fan {
         encoder->codec = nullptr;
       }
 
+      // No encoder of this codec opened: AV1 or HEVC on a card without it, and this FFmpeg has no CPU encoder of
+      // either. H.264, which every card and x264 have, instead of no stream at all
+      if (config.codec != codec_config_t::H264) {
+        fan::print("no encoder for the chosen codec opened, using H.264");
+        codec_config_t fallback = config;
+        fallback.codec = codec_config_t::H264;
+        return find_and_init_codec(encoder, fallback);
+      }
       return false;
 
     }
@@ -418,7 +426,9 @@ namespace fan {
         // frames come out as they are encoded. A delay of n holds n frames back, at 60 fps 2 of them were 33 ms
         av_opt_set_int(options, "delay", 0, 0);
         // several slices let a software decoder use its threads inside one frame, see find_and_init_sw_decoder
-        encoder->codec_ctx->slices = 4;
+        if (config.codec != codec_config_t::AV1) {
+          encoder->codec_ctx->slices = 4;
+        }
         av_opt_set_int(options, "async_depth", 8, 0);
         av_opt_set_int(options, "zerolatency", 0, 0);
 
@@ -720,22 +730,38 @@ namespace fan {
       auto hw_decoders = get_hw_decoder_names();
       auto it = hw_decoders.find(codec_type);
       if (it == hw_decoders.end()) return false;
+      // the card failed on this codec before: the CPU this time, if it has a decoder for it (AV1 has none here)
+      if (codec_type == hw_failed_codec_ && avcodec_find_decoder_by_name(codec_type.c_str()) &&
+        (codec_type != "av1")) {
+        return false;
+      }
 
-      for (const auto& decoder_name : it->second) {
-        bool type_match = false;
+      // D3D11VA, DXVA2, VAAPI (and NVDEC after cuvid) decode through FFmpeg's own decoder of the codec with the card
+      // attached. There are no decoders named h264_d3d11va: AMD and Intel cards never decoded on the GPU, and AV1,
+      // which has no CPU decoder in this FFmpeg, didn't show at all
+      std::vector<std::string> names = it->second;
+      if (hw_type_ == AV_HWDEVICE_TYPE_D3D11VA || hw_type_ == AV_HWDEVICE_TYPE_DXVA2 || hw_type_ == AV_HWDEVICE_TYPE_VAAPI ||
+        hw_type_ == AV_HWDEVICE_TYPE_CUDA) {
+        names.push_back(codec_type);
+      }
 
-        switch (hw_type_) {
-        case AV_HWDEVICE_TYPE_CUDA: type_match = decoder_name.find("cuvid") != std::string::npos; break;
+      for (const auto& decoder_name : names) {
+        bool native = decoder_name == codec_type;
+        bool type_match = native;
 
-        case AV_HWDEVICE_TYPE_QSV: type_match = decoder_name.find("qsv") != std::string::npos; break;
-        case AV_HWDEVICE_TYPE_VAAPI: type_match = decoder_name.find("vaapi") != std::string::npos; break;
+        if (!native) {
+          switch (hw_type_) {
+          case AV_HWDEVICE_TYPE_CUDA: type_match = decoder_name.find("cuvid") != std::string::npos; break;
 
-        case AV_HWDEVICE_TYPE_DXVA2: type_match = decoder_name.find("dxva2") != std::string::npos; break;
-        case AV_HWDEVICE_TYPE_D3D11VA: type_match = decoder_name.find("d3d11va") != std::string::npos; break;
+          case AV_HWDEVICE_TYPE_QSV: type_match = decoder_name.find("qsv") != std::string::npos; break;
+          case AV_HWDEVICE_TYPE_VAAPI: type_match = decoder_name.find("vaapi") != std::string::npos; break;
 
-        case AV_HWDEVICE_TYPE_VIDEOTOOLBOX: type_match = decoder_name.find("videotoolbox") != std::string::npos; break;
-        default: continue;
+          case AV_HWDEVICE_TYPE_DXVA2: type_match = decoder_name.find("dxva2") != std::string::npos; break;
+          case AV_HWDEVICE_TYPE_D3D11VA: type_match = decoder_name.find("d3d11va") != std::string::npos; break;
 
+          case AV_HWDEVICE_TYPE_VIDEOTOOLBOX: type_match = decoder_name.find("videotoolbox") != std::string::npos; break;
+          default: break;
+          }
         }
 
         if (!type_match) continue;
@@ -773,6 +799,11 @@ namespace fan {
           av_opt_set_int(codec_ctx_->priv_data, "low_power", 1, 0);
 
           codec_ctx_->delay = 0;
+        }
+        else if (native) {
+          // a frame out as soon as it is decoded: frame threads would each hold one back
+          codec_ctx_->flags |= AV_CODEC_FLAG_LOW_DELAY;
+          codec_ctx_->thread_count = 1;
         }
 
         // a driver that hangs in the open leaves this thread running after the timeout below,
@@ -850,6 +881,7 @@ namespace fan {
         }
 
         sliced_stream_ = detected_codec == "h264" && count_h264_slices(data, size) > 1;
+        current_codec_ = detected_codec;
 
         bool hw_success = false;
         if (allow_hardware_) {
@@ -871,7 +903,10 @@ namespace fan {
 
       int ret = avcodec_send_packet(codec_ctx_, packet_);
       if (ret < 0 && ret != AVERROR(EAGAIN)) {
-        ++decode_failures_;
+        // the card keeps failing on this codec (no support for it): remembered, the reopen after 5 goes to the CPU
+        if (++decode_failures_ >= 5 && using_hardware_) {
+          hw_failed_codec_ = current_codec_;
+        }
         return results;
       }
 

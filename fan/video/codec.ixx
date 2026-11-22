@@ -420,6 +420,10 @@ export namespace fan {
       // false: the CPU decoder is used even when the graphics card could decode. Read when the codec opens
       bool allow_hardware_ = true;
       std::uint32_t decode_failures_ = 0;
+      // the codec of the open decoder ("h264", "hevc", "av1"), and the one the graphics card failed on: that one
+      // opens on the CPU next time (when there is a CPU decoder for it), not on the card again. Kept across close()
+      std::string current_codec_;
+      std::string hw_failed_codec_;
       // plane buffers given back by the caller, reused so frames don't reallocate
       std::vector<std::vector<std::uint8_t>> spare_planes_;
       // the stream's frames come in several slices, set from the first packet
@@ -466,8 +470,9 @@ export namespace fan {
 
       bool init_hardware_acceleration() {
         std::vector<std::pair<AVHWDeviceType, const char*>> hw_types = {
+          // D3D11VA before DXVA2: the newer one, and the one AV1 on AMD and Intel cards decodes best with
           {AV_HWDEVICE_TYPE_CUDA, "cuda"}, {AV_HWDEVICE_TYPE_QSV, "qsv"}, {AV_HWDEVICE_TYPE_VAAPI, "vaapi"},
-          {AV_HWDEVICE_TYPE_DXVA2, "dxva2"}, {AV_HWDEVICE_TYPE_D3D11VA, "d3d11va"}, {AV_HWDEVICE_TYPE_VIDEOTOOLBOX, "videotoolbox"}
+          {AV_HWDEVICE_TYPE_D3D11VA, "d3d11va"}, {AV_HWDEVICE_TYPE_DXVA2, "dxva2"}, {AV_HWDEVICE_TYPE_VIDEOTOOLBOX, "videotoolbox"}
         };
 
         for (const auto& [type, name] : hw_types) {
@@ -539,33 +544,38 @@ export namespace fan {
 
       }
 
+      // The codec of a stream from its first packet. H.264 and HEVC both start with a start code (00 00 01 or
+      // 00 00 00 01) and differ in the NAL header after it: HEVC's is two bytes, the second 01 (temporal id 1) with
+      // the forbidden and layer bits clear. All of it went to h264 before, so an HEVC stream never decoded. AV1 has
+      // no start code, it opens with an OBU header (a temporal delimiter, 0x12)
       std::string detect_codec_from_data(const std::uint8_t* data, std::size_t size) {
-        if (size < 4) return "h264";
-
-        if (data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01) {
-          if (size >= 5) {
-            std::uint8_t nal_type = data[4] & 0x1F;
-
-            if (nal_type <= 23) return "h264";
+        std::size_t header = 0;
+        if (size >= 4 && data[0] == 0 && data[1] == 0 && data[2] == 0 && data[3] == 1) {
+          header = 4;
+        }
+        else if (size >= 3 && data[0] == 0 && data[1] == 0 && data[2] == 1) {
+          header = 3;
+        }
+        if (header) {
+          if (size >= header + 2) {
+            std::uint8_t b0 = data[header];
+            std::uint8_t b1 = data[header + 1];
+            std::uint8_t hevc_type = (b0 >> 1) & 0x3F;
+            // only the types a stream starts with (keyframe slices 16-21, parameter sets, delimiter, SEI 32-40): an
+            // H.264 SEI (06 01) would pass the bit test alone
+            if ((b0 & 0x81) == 0 && b1 == 0x01 && ((hevc_type >= 16 && hevc_type <= 21) || (hevc_type >= 32 && hevc_type <= 40))) {
+              return "hevc";
+            }
           }
           return "h264";
-
         }
-
-        if (size >= 5 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01) {
-          std::uint8_t nal_type = (data[4] & 0x7E) >> 1;
-
-          if (nal_type >= 32 && nal_type <= 63) return "hevc";
-
-        }
-
         if (size >= 2) {
           std::uint8_t obu_type = (data[0] >> 3) & 0x0F;
-
-          if (obu_type >= 1 && obu_type <= 8) return "av1";
+          if ((data[0] & 0x80) == 0 && obu_type >= 1 && obu_type <= 8) {
+            return "av1";
+          }
         }
         return "h264";
-
       }
 
       libav_decoder_t() {
