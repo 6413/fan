@@ -18,6 +18,7 @@ extern "C" {
 #define NOMINMAX
 #endif
 #include <d3d11.h>
+#include <d3d11_4.h>
 #include <d3dcompiler.h>
 #include <wrl/client.h>
 #pragma comment(lib, "d3dcompiler.lib")
@@ -114,9 +115,18 @@ namespace fan {
     // nothing of the frame reaches system memory
     struct libav_encoder_t::gpu_state_t {
       ~gpu_state_t() {
+        if (fence_event) {
+          CloseHandle(fence_event);
+        }
         av_buffer_unref(&frames);
         av_buffer_unref(&device);
       }
+      // the wait for the conversion to finish: a fence the GPU sets, the thread asleep on its event. Without one
+      // (older Windows) the query below is polled
+      ComPtr<ID3D11Fence> fence;
+      ComPtr<ID3D11DeviceContext4> context4;
+      HANDLE fence_event = nullptr;
+      std::uint64_t fence_value = 0;
 
       struct surface_views_t {
         ComPtr<ID3D11RenderTargetView> luma;
@@ -178,6 +188,18 @@ namespace fan {
       D3D11_QUERY_DESC query_desc {};
       query_desc.Query = D3D11_QUERY_EVENT;
       if (FAILED(gpu_device_->CreateQuery(&query_desc, &gpu->blit_done))) return false;
+      {
+        ComPtr<ID3D11Device5> device5;
+        if (SUCCEEDED(gpu_device_->QueryInterface(IID_PPV_ARGS(&device5))) &&
+          SUCCEEDED(device5->CreateFence(0, D3D11_FENCE_FLAG_NONE, IID_PPV_ARGS(&gpu->fence))) &&
+          SUCCEEDED(gpu->context->QueryInterface(IID_PPV_ARGS(&gpu->context4)))) {
+          gpu->fence_event = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+        }
+        if (!gpu->fence_event) {
+          gpu->fence.Reset();
+          gpu->context4.Reset();
+        }
+      }
 
       auto vertex_code = compile_shader(fullscreen_vs, "vs_5_0");
       auto luma_code = compile_shader(luma_ps, "ps_5_0");
@@ -289,7 +311,17 @@ namespace fan {
       context->OMSetRenderTargets(1, &no_target, nullptr);
       context->PSSetShaderResources(0, 1, &no_input);
 
-      // the draws are only queued and nvenc doesn't wait for d3d11
+      // the draws are only queued and nvenc doesn't wait for d3d11. With a game on the GPU they finish late (several
+      // ms): polling for that in a loop kept a CPU core busy the whole time, now the thread sleeps until the GPU says
+      if (gpu->fence) {
+        ++gpu->fence_value;
+        if (SUCCEEDED(gpu->context4->Signal(gpu->fence.Get(), gpu->fence_value)) &&
+          SUCCEEDED(gpu->fence->SetEventOnCompletion(gpu->fence_value, gpu->fence_event))) {
+          gpu->context->Flush();
+          WaitForSingleObject(gpu->fence_event, 100);
+          return true;
+        }
+      }
       gpu->context->End(gpu->blit_done.Get());
       gpu->context->Flush();
       auto give_up = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
