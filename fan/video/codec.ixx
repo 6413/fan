@@ -64,6 +64,9 @@ export namespace fan {
 
       codec_type_e codec = H264;
       rate_control_e rate_control = CBR;
+      // colour at full resolution (4:4:4) instead of a quarter: sharp coloured text. NVENC with H.264 or HEVC only
+      // (no AV1 encoder or decoder has it); the viewer's card has to decode 4:4:4
+      bool chroma_444 = false;
 
       int bitrate = 2000000;
       int crf_value = 23;
@@ -117,6 +120,7 @@ export namespace fan {
     std::uint8_t convert_pixel_format(::AVPixelFormat fmt) {
       switch (fmt) {
       case AV_PIX_FMT_YUV420P: return fan::graphics::image_format_e::yuv420p;
+      case AV_PIX_FMT_YUV444P: return fan::graphics::image_format_e::yuv444p;
 
       case AV_PIX_FMT_NV12: return fan::graphics::image_format_e::nv12;
       case AV_PIX_FMT_BGRA: return fan::graphics::image_format_e::bgra;
@@ -424,6 +428,9 @@ export namespace fan {
       // opens on the CPU next time (when there is a CPU decoder for it), not on the card again. Kept across close()
       std::string current_codec_;
       std::string hw_failed_codec_;
+      // set when the stream's codec changed and the decoder was opened again: the caller asks for a keyframe, what
+      // came before one in the new codec can't be decoded
+      bool codec_switched_ = false;
       // plane buffers given back by the caller, reused so frames don't reallocate
       std::vector<std::vector<std::uint8_t>> spare_planes_;
       // the stream's frames come in several slices, set from the first packet

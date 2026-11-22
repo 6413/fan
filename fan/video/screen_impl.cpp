@@ -1654,6 +1654,8 @@ fan::graphics::screen_decode_t::decode_data_t fan::graphics::screen_decode_t::de
 
   switch (frame.pixel_format) {
   case AV_PIX_FMT_YUV420P: ret.pixel_format = fan::graphics::image_format_e::yuv420p; break;
+  case AV_PIX_FMT_YUV444P:
+  case AV_PIX_FMT_YUVJ444P: ret.pixel_format = fan::graphics::image_format_e::yuv444p; break;
 
   case AV_PIX_FMT_NV12: ret.pixel_format = fan::graphics::image_format_e::nv12; break;
   case AV_PIX_FMT_BGRA: ret.pixel_format = fan::graphics::image_format_e::bgra; break;

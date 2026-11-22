@@ -75,6 +75,8 @@ export namespace fan {
       __dme(yuv420p);
       __dme(nv12);
       __dme(rgba32f);
+      // 4:4:4 video: three planes at full size (the sharp text mode of a stream)
+      __dme(yuv444p);
 
       static constexpr std::uint8_t undefined = 255;
     }image_format;
@@ -84,7 +86,8 @@ export namespace fan {
       case image_format_e::undefined: {
         return 0;
       }
-      case image_format_e::yuv420p: {
+      case image_format_e::yuv420p:
+      case image_format_e::yuv444p: {
         return 3;
       }
       case image_format_e::nv12: {
@@ -324,6 +327,7 @@ export namespace fan {
       case image_format_e::nv12: return 2;
 
       case image_format_e::yuv420p: return 3;
+      case image_format_e::yuv444p: return 3;
 
       default:
         fan::throw_error_impl("Invalid format");
@@ -337,6 +341,10 @@ export namespace fan {
       case image_format_e::yuv420p:
       {
         return std::array<fan::vec2ui, 4>{image_size, image_size / 2, image_size / 2};
+      }
+      case image_format_e::yuv444p:
+      {
+        return std::array<fan::vec2ui, 4>{image_size, image_size, image_size};
       }
       case image_format_e::nv12:
       {
@@ -357,6 +365,7 @@ export namespace fan {
 
       switch (format) {
       case image_format_e::yuv420p:
+      case image_format_e::yuv444p:
         for (int i = 0; i < 3; ++i) {
           result[i].internal_format = fan::graphics::image_format_e::r8_unorm;
           result[i].format = fan::graphics::image_format_e::r8_unorm;

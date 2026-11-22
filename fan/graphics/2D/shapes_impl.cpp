@@ -2115,7 +2115,9 @@ namespace fan::graphics{
 
     std::string_view fs_path;
     switch (format) {
+      // the same shader: it samples each plane at the picture's own place, the planes' sizes don't matter to it
       case fan::graphics::image_format_e::yuv420p:
+      case fan::graphics::image_format_e::yuv444p:
         fs_path = "shaders/vulkan/2D/objects/yuv420p.frag";
         break;
       case fan::graphics::image_format_e::nv12:

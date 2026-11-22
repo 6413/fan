@@ -87,6 +87,16 @@ namespace fan {
       }
     )";
 
+    // 4:4:4: the picture copied as it is (scaled when the sizes differ), NVENC turns rgb into 4:4:4 itself with the
+    // same bt.601 limited range
+    static constexpr const char* copy_ps = R"(
+      Texture2D image : register(t0);
+      SamplerState image_sampler : register(s0);
+      float4 main(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target {
+        return float4(image.Sample(image_sampler, uv).rgb, 1);
+      }
+    )";
+
     static ComPtr<ID3DBlob> compile_shader(std::string_view source, const char* target) {
       ComPtr<ID3DBlob> code;
       ComPtr<ID3DBlob> errors;
@@ -111,7 +121,11 @@ namespace fan {
       struct surface_views_t {
         ComPtr<ID3D11RenderTargetView> luma;
         ComPtr<ID3D11RenderTargetView> chroma;
+        ComPtr<ID3D11RenderTargetView> rgb;
       };
+      // the surfaces are BGRA, for 4:4:4
+      bool rgb = false;
+      ComPtr<ID3D11PixelShader> copy_shader;
 
       AVBufferRef* device = nullptr;
       AVBufferRef* frames = nullptr;
@@ -151,7 +165,8 @@ namespace fan {
 
       auto* frames_ctx = reinterpret_cast<AVHWFramesContext*>(gpu->frames->data);
       frames_ctx->format = AV_PIX_FMT_D3D11;
-      frames_ctx->sw_format = AV_PIX_FMT_NV12;
+      gpu->rgb = config.chroma_444 && config.codec != codec_config_t::AV1;
+      frames_ctx->sw_format = gpu->rgb ? AV_PIX_FMT_BGRA : AV_PIX_FMT_NV12;
       frames_ctx->width = config.width;
       frames_ctx->height = config.height;
       frames_ctx->initial_pool_size = pool_size;
@@ -172,6 +187,10 @@ namespace fan {
       if (FAILED(gpu_device_->CreateVertexShader(vertex_code->GetBufferPointer(), vertex_code->GetBufferSize(), nullptr, &gpu->vertex_shader))) return false;
       if (FAILED(gpu_device_->CreatePixelShader(luma_code->GetBufferPointer(), luma_code->GetBufferSize(), nullptr, &gpu->luma_shader))) return false;
       if (FAILED(gpu_device_->CreatePixelShader(chroma_code->GetBufferPointer(), chroma_code->GetBufferSize(), nullptr, &gpu->chroma_shader))) return false;
+      if (gpu->rgb) {
+        auto copy_code = compile_shader(copy_ps, "ps_5_0");
+        if (!copy_code || FAILED(gpu_device_->CreatePixelShader(copy_code->GetBufferPointer(), copy_code->GetBufferSize(), nullptr, &gpu->copy_shader))) return false;
+      }
 
       D3D11_SAMPLER_DESC sampler_desc {};
       sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -201,7 +220,24 @@ namespace fan {
       auto slice = reinterpret_cast<std::intptr_t>(frame->data[1]);
 
       auto& views = gpu->outputs[{surface, slice}];
-      if (!views.luma) {
+      if (gpu->rgb && !views.rgb) {
+        D3D11_TEXTURE2D_DESC surface_desc;
+        surface->GetDesc(&surface_desc);
+        D3D11_RENDER_TARGET_VIEW_DESC desc {};
+        if (surface_desc.ArraySize > 1) {
+          desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+          desc.Texture2DArray.FirstArraySlice = (UINT)slice;
+          desc.Texture2DArray.ArraySize = 1;
+        }
+        else {
+          desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+        }
+        desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        if (FAILED(gpu->d3d_device->CreateRenderTargetView(surface, &desc, &views.rgb))) {
+          return false;
+        }
+      }
+      if (!gpu->rgb && !views.luma) {
         D3D11_TEXTURE2D_DESC surface_desc;
         surface->GetDesc(&surface_desc);
 
@@ -239,8 +275,13 @@ namespace fan {
         context->PSSetShader(shader, nullptr, 0);
         context->Draw(3, 0);
       };
-      draw_plane(views.luma.Get(), gpu->luma_shader.Get(), frame->width, frame->height);
-      draw_plane(views.chroma.Get(), gpu->chroma_shader.Get(), (frame->width + 1) / 2, (frame->height + 1) / 2);
+      if (gpu->rgb) {
+        draw_plane(views.rgb.Get(), gpu->copy_shader.Get(), frame->width, frame->height);
+      }
+      else {
+        draw_plane(views.luma.Get(), gpu->luma_shader.Get(), frame->width, frame->height);
+        draw_plane(views.chroma.Get(), gpu->chroma_shader.Get(), (frame->width + 1) / 2, (frame->height + 1) / 2);
+      }
 
       // the capture copies into the input and nvenc reads the surface next
       ID3D11RenderTargetView* no_target = nullptr;
@@ -290,6 +331,45 @@ namespace fan {
 #else
     void libav_encoder_t::destroy_gpu_state(encoder_state_t* encoder) {}
 #endif
+
+    // True when an AV1 packet holds a key frame: an OBU_FRAME or OBU_FRAME_HEADER that is shown and whose frame_type
+    // is KEY_FRAME (0). OBUs: a header byte (type in bits 6-3, an extension byte after it when bit 2, a size when bit
+    // 1), the size as leb128
+    static bool av1_has_key_frame(const std::uint8_t* data, std::size_t size) {
+      std::size_t at = 0;
+      while (at < size) {
+        std::uint8_t header = data[at++];
+        int type = (header >> 3) & 0x0F;
+        bool extension = (header & 0x04) != 0;
+        bool has_size = (header & 0x02) != 0;
+        if (extension) {
+          ++at;
+        }
+        std::size_t length = size - std::min(at, size);
+        if (has_size) {
+          length = 0;
+          for (int i = 0; i < 8 && at < size; ++i) {
+            std::uint8_t byte = data[at++];
+            length |= (std::size_t)(byte & 0x7F) << (i * 7);
+            if (!(byte & 0x80)) {
+              break;
+            }
+          }
+        }
+        if (at >= size) {
+          break;
+        }
+        // 3 frame header, 6 frame: show_existing_frame is the first bit, frame_type the next two
+        if (type == 3 || type == 6) {
+          std::uint8_t first = data[at];
+          if (!(first & 0x80) && ((first >> 5) & 0x03) == 0) {
+            return true;
+          }
+        }
+        at += length;
+      }
+      return false;
+    }
 
     bool libav_encoder_t::find_and_init_codec(encoder_state_t* encoder, const codec_config_t& config) {
       auto codec_names = get_codec_names();
@@ -422,6 +502,11 @@ namespace fan {
         // slower preset costs no frames: p4 up to 60 fps, p3 up to 120, p2 above (4k at 144 still keeps up)
         av_opt_set(options, "preset", config.frame_rate <= 60 ? "p4" : config.frame_rate <= 120 ? "p3" : "p2", 0);
         av_opt_set(options, "tune", "ll", 0);
+        // 4:4:4 from the BGRA surfaces (open_gpu_state): NVENC converts them itself, with the profile that carries it
+        if (config.chroma_444 && config.codec != codec_config_t::AV1 && use_gpu) {
+          av_opt_set(options, "rgb_mode", "yuv444", 0);
+          av_opt_set(options, "profile", config.codec == codec_config_t::H265 ? "rext" : "high444p", 0);
+        }
 
         // frames come out as they are encoded. A delay of n holds n frames back, at 60 fps 2 of them were 33 ms
         av_opt_set_int(options, "delay", 0, 0);
@@ -655,6 +740,12 @@ namespace fan {
 
         result.data.assign(encoder->packet->data, encoder->packet->data + encoder->packet->size);
         result.is_keyframe = (encoder->packet->flags & AV_PKT_FLAG_KEY) != 0;
+        // AV1 from NVENC: its key frames didn't all come out marked, viewers then waited 3 s for a keyframe that had
+        // come, gave up and decoded frames whose reference was missing (an old or black picture). The frame header
+        // says it for sure
+        if (!result.is_keyframe && encoder->codec_name.find("av1") != std::string::npos) {
+          result.is_keyframe = av1_has_key_frame(encoder->packet->data, (std::size_t)encoder->packet->size);
+        }
         result.pts = encoder->packet->pts;
         result.dts = encoder->packet->dts;
 
@@ -890,6 +981,7 @@ namespace fan {
           codec_ = nullptr;
           using_hardware_ = false;
           decode_failures_ = 0;
+          codec_switched_ = true;
           if (frame_) av_frame_unref(frame_);
           if (hw_frame_) av_frame_unref(hw_frame_);
         }
