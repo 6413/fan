@@ -3278,6 +3278,16 @@ bool ImGui::SliderScalar(const char* label, ImGuiDataType data_type, void* p_dat
     const char* value_buf_end = value_buf + DataTypeFormatString(value_buf, IM_ARRAYSIZE(value_buf), data_type, p_data, format);
     if (g.LogEnabled)
         LogSetNextTextDecoration("{", "}");
+    // a dark edge keeps the value readable when the grab moves under it
+    if (!g.LogEnabled)
+    {
+        PushStyleColor(ImGuiCol_Text, IM_COL32(0, 0, 0, 255));
+        for (int dx = -1; dx <= 1; ++dx)
+            for (int dy = -1; dy <= 1; ++dy)
+                if (dx != 0 || dy != 0)
+                    RenderTextClipped(frame_bb.Min + ImVec2((float)dx, (float)dy), frame_bb.Max + ImVec2((float)dx, (float)dy), value_buf, value_buf_end, NULL, ImVec2(0.5f, 0.5f));
+        PopStyleColor();
+    }
     RenderTextClipped(frame_bb.Min, frame_bb.Max, value_buf, value_buf_end, NULL, ImVec2(0.5f, 0.5f));
 
     if (label_size.x > 0.0f)
