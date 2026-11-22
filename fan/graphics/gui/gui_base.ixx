@@ -1352,12 +1352,34 @@ export namespace fan::graphics::gui {
     gui::dummy(box - fan::vec2(0, 2.f));
   }
 
-  // a section title: small, blue, with a thin line under it
+  // The colours of the hand-drawn widgets below (sections, rows, switches, icon buttons), in the gui's colour space
+  // like ImGui's own. A program with themes sets them; the defaults are a blue on dark
+  struct widget_palette_t {
+    std::uint32_t accent = 0xffff5919u;
+    std::uint32_t accent_hover = 0xffff7a33u;
+    std::uint32_t accent_text = 0xffff9e6au;     // an icon or a title in the accent, lighter so it reads on dark
+    std::uint32_t text = 0xffc8c8c8u;
+    std::uint32_t text_hot = 0xffffffffu;        // text under the mouse
+    std::uint32_t label = 0xffa89999u;           // a setting's name
+    std::uint32_t surface = 0xff0f0907u;         // a plain button
+    std::uint32_t surface_hover = 0xff3a170cu;
+    std::uint32_t surface_held = 0xff61210fu;
+    std::uint32_t accent_surface = 0xff2a1009u;  // a button that stands out
+    std::uint32_t accent_surface_hover = 0xff4a1a0du;
+    std::uint32_t track = 0xff141312u;           // a switch that is off
+    std::uint32_t track_hover = 0xff221f1eu;
+  };
+  inline widget_palette_t widget_palette;
+  inline fan::color palette_color(std::uint32_t c) {
+    return fan::color((c & 0xff) / 255.f, ((c >> 8) & 0xff) / 255.f, ((c >> 16) & 0xff) / 255.f, (c >> 24) / 255.f);
+  }
+
+  // a section title: small, in the accent, with a thin line under it
   inline void settings_section(const char* title) {
     gui::dummy(fan::vec2(0, 6.f));
-    gui::text(fan::color(0.2f, 0.45f, 1.f, 1.f), title);
+    gui::text(palette_color(widget_palette.accent_text), title);
     fan::vec2 at = gui::get_cursor_screen_pos() - fan::vec2(0, 4.f);
-    gui::get_window_draw_list()->AddLine(at, at + fan::vec2(gui::get_content_region_avail().x, 0), 0x50ff5919u, 1.f);
+    gui::get_window_draw_list()->AddLine(at, at + fan::vec2(gui::get_content_region_avail().x, 0), (widget_palette.accent & 0x00ffffffu) | 0x50000000u, 1.f);
     gui::dummy(fan::vec2(0, 1.f));
   }
 
@@ -1371,11 +1393,11 @@ export namespace fan::graphics::gui {
     bool label_too_long = gui::calc_text_size(label).x + 10.f > label_width;
     gui::push_id(label);
     if (label_too_long || width - label_width < 190.f) {
-      gui::text(fan::color(0.6f, 0.6f, 0.66f, 1.f), label);
+      gui::text(palette_color(widget_palette.label), label);
     }
     else {
       gui::align_text_to_frame_padding();
-      gui::text(fan::color(0.6f, 0.6f, 0.66f, 1.f), label);
+      gui::text(palette_color(widget_palette.label), label);
       gui::same_line();
       gui::set_cursor_pos_x(start + label_width);
     }
@@ -1433,7 +1455,10 @@ export namespace fan::graphics::gui {
 
   // an on/off switch with its name at the left, the whole row is clickable
   inline bool settings_switch(const char* label, bool* value, const char* tooltip = nullptr,
-    std::uint32_t accent = 0xffff5919u, std::uint32_t accent_hover = 0xffff7a33u) {
+    std::uint32_t accent = 0, std::uint32_t accent_hover = 0) {
+    // 0: the palette's
+    accent = accent ? accent : widget_palette.accent;
+    accent_hover = accent_hover ? accent_hover : widget_palette.accent_hover;
     f32_t height = gui::get_frame_height();
     f32_t width = gui::get_content_region_avail().x;
     fan::vec2 at = gui::get_cursor_screen_pos();
@@ -1454,9 +1479,9 @@ export namespace fan::graphics::gui {
     if (hovered && !tooltip && shown != label) {
       gui::set_tooltip(label);
     }
-    list->AddText(at + fan::vec2(0, (height - gui::get_font_size()) * 0.5f), hovered ? 0xffffffffu : 0xffc8c8c8u, shown.c_str());
+    list->AddText(at + fan::vec2(0, (height - gui::get_font_size()) * 0.5f), hovered ? widget_palette.text_hot : widget_palette.text, shown.c_str());
     fan::vec2 track = at + fan::vec2(width - track_width - 2.f, (height - track_height) * 0.5f);
-    std::uint32_t track_color = *value ? (hovered ? accent_hover : accent) : (hovered ? 0xff221f1eu : 0xff141312u);
+    std::uint32_t track_color = *value ? (hovered ? accent_hover : accent) : (hovered ? widget_palette.track_hover : widget_palette.track);
     list->AddRectFilled(track, track + fan::vec2(track_width, track_height), track_color, track_height * 0.5f);
     f32_t knob_x = *value ? track_width - track_height * 0.5f : track_height * 0.5f;
     list->AddCircleFilled(track + fan::vec2(knob_x, track_height * 0.5f), track_height * 0.5f - 2.5f, *value ? 0xffffffffu : 0xffb0b0b0u);
@@ -1466,7 +1491,7 @@ export namespace fan::graphics::gui {
   // a title with a separator under it, for panels that use the plain look
   inline void simple_section(const char* title) {
     gui::spacing();
-    gui::text(fan::color(0.6f, 0.8f, 1.f, 1.f), title);
+    gui::text(palette_color(widget_palette.accent_text), title);
     gui::separator();
   }
 
@@ -1538,19 +1563,20 @@ export namespace fan::graphics::gui {
     bool held = gui::is_item_active();
     auto* list = gui::get_window_draw_list();
     fan::vec2 c = at + fan::vec2(size, size) * 0.5f;
-    std::uint32_t icon_color = hovered ? 0xffffffffu : 0xffff9e6au;
+    const auto& p = widget_palette;
+    std::uint32_t icon_color = hovered ? p.text_hot : p.accent_text;
     f32_t rounding = size * 0.28f;
     switch (style) {
       case icon_button_style_t::plain:
-        list->AddRectFilled(at, at + fan::vec2(size, size), with_style_alpha(held ? 0xff61210fu : hovered ? 0xff3a170cu : 0xff0f0907u), rounding);
+        list->AddRectFilled(at, at + fan::vec2(size, size), with_style_alpha(held ? p.surface_held : hovered ? p.surface_hover : p.surface), rounding);
         break;
       case icon_button_style_t::danger:
         list->AddRectFilled(at, at + fan::vec2(size, size), with_style_alpha(held ? 0xff0c0c70u : hovered ? 0xff0a0a52u : 0xff05051au), rounding);
         icon_color = hovered ? 0xffffffffu : 0xff6a6affu;
         break;
       case icon_button_style_t::accent:
-        list->AddRectFilled(at, at + fan::vec2(size, size), with_style_alpha(held ? 0xff61210fu : hovered ? 0xff4a1a0du : 0xff2a1009u), rounding);
-        icon_color = hovered ? 0xffffffffu : 0xffff7a33u;
+        list->AddRectFilled(at, at + fan::vec2(size, size), with_style_alpha(held ? p.surface_held : hovered ? p.accent_surface_hover : p.accent_surface), rounding);
+        icon_color = hovered ? p.text_hot : p.accent_hover;
         break;
       case icon_button_style_t::overlay:
         list->AddCircleFilled(c, size * 0.5f, with_style_alpha(hovered ? 0xb4000000u : 0x64000000u), 24);
