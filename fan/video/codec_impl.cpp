@@ -530,6 +530,11 @@ namespace fan {
 
         // spatial AQ gives dark and flat parts (shade, sky, fog) more bits; without it they broke into squares first
         av_opt_set(options, "spatial_aq", "1", 0);
+        // HEVC and AV1: a quick look at the frame at quarter size first spreads the bits better (sharper text and
+        // edges for the same bitrate). On the encoder chip, a frame's encode takes a little longer, no frame later
+        if (config.codec != codec_config_t::H264) {
+          av_opt_set(options, "multipass", "qres", 0);
+        }
         av_opt_set_int(options, "aq-strength", 8, 0);
         av_opt_set(options, "temporal_aq", "0", 0);
         av_opt_set_int(options, "lookahead_depth", 0, 0);
