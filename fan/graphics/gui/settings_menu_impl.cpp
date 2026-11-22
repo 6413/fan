@@ -294,7 +294,9 @@ namespace fan::graphics::gui {
     );
     move_handle = gloco()->window.add_move_callback(
       [this](const auto& d) {
-      if (d.window->display_mode == fan::window_t::mode::windowed && !d.window->is_maximized() && !d.window->is_minimized()) {
+      // also while maximized: a maximized window moved to another monitor (Win+Shift+arrow) came back on the old
+      // one, only its place before maximizing was kept. Maximizing again opens it on the monitor at this place
+      if (d.window->display_mode == fan::window_t::mode::windowed && !d.window->is_minimized()) {
         config.display.window_position = d.position;
         mark_dirty();
       }
