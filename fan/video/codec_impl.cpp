@@ -345,7 +345,7 @@ namespace fan {
       // No encoder of this codec opened: AV1 or HEVC on a card without it, and this FFmpeg has no CPU encoder of
       // either. H.264, which every card and x264 have, instead of no stream at all
       if (config.codec != codec_config_t::H264) {
-        fan::print("no encoder for the chosen codec opened, using H.264");
+        fan::print_impl("no encoder for the chosen codec opened, using H.264\n");
         codec_config_t fallback = config;
         fallback.codec = codec_config_t::H264;
         return find_and_init_codec(encoder, fallback);
@@ -873,6 +873,27 @@ namespace fan {
       codec_config_t::scaling_quality_e quality) {
       std::vector<decode_result_t> results;
       if (!initialized_) return results;
+
+      // The sharer changed codec (H.264, HEVC, AV1): the open decoder gets the new one's packets. An H.264 decoder
+      // given AV1 finds nothing it knows in them and says nothing, so the picture froze for good. Only what a packet
+      // shows for sure switches: AV1 has no start code, HEVC is known by its keyframe's first NAL, H.264 by its SPS
+      if (codec_ctx_ && forced_codec == "auto-detect" && size >= 5) {
+        bool start_code = (data[0] == 0 && data[1] == 0 && data[2] == 1) || (data[0] == 0 && data[1] == 0 && data[2] == 0 && data[3] == 1);
+        std::string seen = detect_codec_from_data(data, size);
+        std::size_t nal = data[2] == 1 ? 3 : 4;
+        bool h264_sps = start_code && (data[nal] & 0x1F) == 7 && (data[nal] & 0x80) == 0;
+        bool sure = (seen == "av1" && !start_code) || seen == "hevc" || (seen == "h264" && (current_codec_ == "av1" ? start_code : h264_sps));
+        if (sure && seen != current_codec_) {
+          fan::print_impl("the stream changed codec: " + current_codec_ + " -> " + seen + "\n");
+          if (codec_ctx_->hw_device_ctx) av_buffer_unref(&codec_ctx_->hw_device_ctx);
+          avcodec_free_context(&codec_ctx_);
+          codec_ = nullptr;
+          using_hardware_ = false;
+          decode_failures_ = 0;
+          if (frame_) av_frame_unref(frame_);
+          if (hw_frame_) av_frame_unref(hw_frame_);
+        }
+      }
 
       if (!codec_ctx_) {
         std::string detected_codec = forced_codec;
