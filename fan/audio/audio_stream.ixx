@@ -27,6 +27,8 @@ export namespace fan::audio {
     std::string device_id;
     // records every app except discord's process tree (windows only), device_id is then unused
     bool exclude_discord = false;
+    // records only this process and its children (windows 10 2004 and later), before everything above. 0: off
+    std::uint32_t only_pid = 0;
     f32_t gain = 1.f;
   };
 
@@ -51,14 +53,18 @@ export namespace fan::audio {
     const std::string& get_error() const;
     // pid excluded by the running capture, 0 when recording a device mix
     std::uint32_t get_excluded_pid() const;
+    // pid whose audio alone the running capture records (options.only_pid), 0 otherwise
+    std::uint32_t get_included_pid() const;
     void on_data(const f32_t* pcm, std::uint32_t frame_count);
 
     bool start_device(const std::string& device_id);
-    bool start_process_exclude(std::uint32_t pid);
+    // include: only pid's process tree, else everything except it
+    bool start_process(std::uint32_t pid, bool include);
 
     void* device = nullptr;
     void* process_capture = nullptr;
     std::uint32_t excluded_pid = 0;
+    std::uint32_t included_pid = 0;
     callback_t callback;
     std::vector<f32_t> pending;
     std::string error;

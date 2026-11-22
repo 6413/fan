@@ -174,7 +174,8 @@ namespace fan::audio {
     }
 
     // runs on its own MTA thread; reports init through `ready`, then pumps packets until stop
-    void process_capture_thread(loopback_capture_t* owner, process_capture_t* state, std::uint32_t pid, std::promise<std::string>* ready) {
+    // include: only pid's process tree, else everything except it
+    void process_capture_thread(loopback_capture_t* owner, process_capture_t* state, std::uint32_t pid, bool include, std::promise<std::string>* ready) {
       CoInitializeEx(nullptr, COINIT_MULTITHREADED);
       IAudioClient* client = nullptr;
       IAudioCaptureClient* capture = nullptr;
@@ -184,7 +185,7 @@ namespace fan::audio {
         AUDIOCLIENT_ACTIVATION_PARAMS params = {};
         params.ActivationType = AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK;
         params.ProcessLoopbackParams.TargetProcessId = pid;
-        params.ProcessLoopbackParams.ProcessLoopbackMode = PROCESS_LOOPBACK_MODE_EXCLUDE_TARGET_PROCESS_TREE;
+        params.ProcessLoopbackParams.ProcessLoopbackMode = include ? PROCESS_LOOPBACK_MODE_INCLUDE_TARGET_PROCESS_TREE : PROCESS_LOOPBACK_MODE_EXCLUDE_TARGET_PROCESS_TREE;
         PROPVARIANT activate_params = {};
         activate_params.vt = VT_BLOB;
         activate_params.blob.cbSize = sizeof(params);
@@ -357,9 +358,18 @@ namespace fan::audio {
     pending.clear();
     error.clear();
     set_gain(options.gain);
+    if (options.only_pid && can_exclude_processes()) {
+      if (start_process(options.only_pid, true)) {
+        return true;
+      }
+      std::string reason = error;
+      bool ok = start_device(options.device_id);
+      error = "could not record only the shared app: " + reason;
+      return ok;
+    }
     if (options.exclude_discord && can_exclude_processes()) {
       if (std::uint32_t pid = find_discord_pid()) {
-        if (start_process_exclude(pid)) {
+        if (start_process(pid, false)) {
           return true;
         }
         // older windows has no process loopback; record the device instead
@@ -372,12 +382,12 @@ namespace fan::audio {
     return start_device(options.device_id);
   }
 
-  bool loopback_capture_t::start_process_exclude(std::uint32_t pid) {
+  bool loopback_capture_t::start_process(std::uint32_t pid, bool include) {
   #if defined(_WIN32)
     auto* state = new process_capture_t;
     std::promise<std::string> ready;
     auto result = ready.get_future();
-    state->thread = std::thread(process_capture_thread, this, state, pid, &ready);
+    state->thread = std::thread(process_capture_thread, this, state, pid, include, &ready);
     error = result.get();
     if (!error.empty()) {
       state->thread.join();
@@ -385,7 +395,7 @@ namespace fan::audio {
       return false;
     }
     process_capture = state;
-    excluded_pid = pid;
+    (include ? included_pid : excluded_pid) = pid;
     return true;
   #else
     error = "excluding processes is not supported on this platform";
@@ -469,6 +479,7 @@ namespace fan::audio {
     }
   #endif
     excluded_pid = 0;
+    included_pid = 0;
     pending.clear();
   }
 
@@ -486,6 +497,10 @@ namespace fan::audio {
 
   std::uint32_t loopback_capture_t::get_excluded_pid() const {
     return excluded_pid;
+  }
+
+  std::uint32_t loopback_capture_t::get_included_pid() const {
+    return included_pid;
   }
 
   void loopback_capture_t::on_data(const f32_t* pcm, std::uint32_t frame_count) {
