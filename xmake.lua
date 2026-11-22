@@ -132,6 +132,7 @@ end
 
 option("FAN_USE_STD_MODULE") set_default(false) set_showmenu(true) add_defines("FAN_USE_STD_MODULE") option_end()
 option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
+option("extra_main") set_default("") set_showmenu(true) set_description("Extra application sources beside main") option_end()
 option("FAN_PREBUILT_SHADER_LIBS")
   set_default(true)
   set_showmenu(true)
@@ -883,6 +884,11 @@ if has_config("FAN_2D") then
       add_files(get_config("main"), {cxxflags = "-freflection"})
     else
       add_files(get_config("main"))
+    end
+    if get_config("extra_main") ~= "" then
+      for _, f in ipairs(string.split(get_config("extra_main"), ",")) do
+        add_files(f)
+      end
     end
   end
 
