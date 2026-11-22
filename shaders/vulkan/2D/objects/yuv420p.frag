@@ -71,9 +71,44 @@ vec3 sample_rgb(vec2 tc) {
   return yuv_to_rgb(y, chroma_for(tc, y));
 }
 
+// Brightness at a place, scaled up with Catmull-Rom (bicubic) instead of bilinear: a 1080p stream shown at 1440p
+// spread every letter's edge over two screen pixels and small text looked fuzzy. Nine bilinear samples, the middle
+// ones placed so the hardware does part of the weighting
+float luma_sharp(vec2 tc) {
+  vec2 size = vec2(textureSize(textures[constants.texture_id], 0));
+  vec2 position = tc * size;
+  vec2 p1 = floor(position - 0.5) + 0.5;
+  vec2 f = position - p1;
+  vec2 w0 = f * (-0.5 + f * (1.0 - 0.5 * f));
+  vec2 w1 = 1.0 + f * f * (-2.5 + 1.5 * f);
+  vec2 w2 = f * (0.5 + f * (2.0 - 1.5 * f));
+  vec2 w3 = f * f * (-0.5 + 0.5 * f);
+  vec2 w12 = w1 + w2;
+  vec2 t0 = (p1 - 1.0) / size;
+  vec2 t3 = (p1 + 2.0) / size;
+  vec2 t12 = (p1 + w2 / w12) / size;
+  float r = 0.0;
+  r += luma_at(vec2(t0.x, t0.y)) * w0.x * w0.y;
+  r += luma_at(vec2(t12.x, t0.y)) * w12.x * w0.y;
+  r += luma_at(vec2(t3.x, t0.y)) * w3.x * w0.y;
+  r += luma_at(vec2(t0.x, t12.y)) * w0.x * w12.y;
+  r += luma_at(vec2(t12.x, t12.y)) * w12.x * w12.y;
+  r += luma_at(vec2(t3.x, t12.y)) * w3.x * w12.y;
+  r += luma_at(vec2(t0.x, t3.y)) * w0.x * w3.y;
+  r += luma_at(vec2(t12.x, t3.y)) * w12.x * w3.y;
+  r += luma_at(vec2(t3.x, t3.y)) * w3.x * w3.y;
+  return clamp(r, 0.0, 1.0);
+}
+
+// shown bigger than it is: the sharp brightness, the colour placed by it
+vec3 sample_rgb_up(vec2 tc) {
+  float y = luma_sharp(tc);
+  return yuv_to_rgb(y, chroma_for(tc, y));
+}
+
 // The picture drawn smaller than it is (a stream in a panel): one sample per screen pixel skips most of the
 // picture's pixels, thin text breaks up and shimmers. Then four samples spread over the pixel's footprint are
-// averaged. At its size or larger it is one sample
+// averaged. Bigger than it is, bicubic; at its own size, one sample
 void main() {
   vec2 step_uv = fwidth(texture_coordinate);
   vec2 texels = step_uv * vec2(textureSize(textures[constants.texture_id], 0));
@@ -82,6 +117,9 @@ void main() {
     vec2 d = step_uv * 0.25;
     rgb = (sample_rgb(texture_coordinate + vec2(-d.x, -d.y)) + sample_rgb(texture_coordinate + vec2(d.x, -d.y)) +
       sample_rgb(texture_coordinate + vec2(-d.x, d.y)) + sample_rgb(texture_coordinate + vec2(d.x, d.y))) * 0.25;
+  }
+  else if (max(texels.x, texels.y) < 0.95) {
+    rgb = sample_rgb_up(texture_coordinate);
   }
   else {
     rgb = sample_rgb(texture_coordinate);
