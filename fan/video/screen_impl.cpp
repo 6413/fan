@@ -109,21 +109,55 @@ void fan::graphics::desktop_capture_t::release_duplication() {
   next_reopen = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
 }
 
+// how well an output fits: 2 the monitor asked for, 1 the main display, 0 another one, -1 not on the desktop
+static int capture_output_score(IDXGIOutput* output, std::uintptr_t want, DXGI_OUTPUT_DESC& desc) {
+  if (output->GetDesc(&desc) != S_OK || !desc.AttachedToDesktop) {
+    return -1;
+  }
+  if (want && desc.Monitor == (HMONITOR)want) {
+    return 2;
+  }
+  MONITORINFO info {};
+  info.cbSize = sizeof(info);
+  return GetMonitorInfoW(desc.Monitor, &info) && (info.dwFlags & MONITORINFOF_PRIMARY) ? 1 : 0;
+}
+
 bool fan::graphics::desktop_capture_t::open() {
   IDXGIFactory1* factory = nullptr;
   if (CreateDXGIFactory1(IID_PPV_ARGS(&factory)) != S_OK) return false;
 
-  // the first output, on the adapter that drives it
+  // the monitor asked for (target_monitor), else the main display, else any, on the adapter that drives it. The first
+  // output of the first adapter was taken before, often not the main display
+  std::uintptr_t want = target_monitor.load();
   IDXGIAdapter1* adapter = nullptr;
   IDXGIOutput* first_output = nullptr;
-  for (UINT i = 0; !first_output && factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i) {
-    if (adapter->EnumOutputs(0, &first_output) != S_OK) {
-      first_output = nullptr;
-      release_com(adapter);
+  int best = -1;
+  IDXGIAdapter1* candidate = nullptr;
+  for (UINT i = 0; best < 2 && factory->EnumAdapters1(i, &candidate) != DXGI_ERROR_NOT_FOUND; ++i) {
+    IDXGIOutput* out = nullptr;
+    for (UINT j = 0; best < 2 && candidate->EnumOutputs(j, &out) != DXGI_ERROR_NOT_FOUND; ++j) {
+      DXGI_OUTPUT_DESC desc;
+      int score = capture_output_score(out, want, desc);
+      if (score > best) {
+        best = score;
+        release_com(first_output);
+        release_com(adapter);
+        first_output = out;
+        adapter = candidate;
+        adapter->AddRef();
+      }
+      else {
+        out->Release();
+      }
     }
+    candidate->Release();
   }
   factory->Release();
-  if (!first_output) return false;
+  if (!first_output) {
+    release_com(adapter);
+    return false;
+  }
+  opened_monitor = want;
 
   const D3D_FEATURE_LEVEL levels[] = {D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0};
   HRESULT result = D3D11CreateDevice(adapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr, D3D11_CREATE_DEVICE_VIDEO_SUPPORT,
@@ -142,6 +176,7 @@ bool fan::graphics::desktop_capture_t::open() {
   if (!ok) return false;
 
   auto& rect = output_desc.DesktopCoordinates;
+  monitor_origin = fan::vec2i(rect.left, rect.top);
   if (!create_textures(rect.right - rect.left, rect.bottom - rect.top)) return false;
 
   if (duplicate() != S_OK) {
@@ -445,10 +480,59 @@ bool fan::graphics::desktop_capture_t::tonemap_frame(ID3D11Texture2D* desktop, s
   return true;
 }
 
+// Another monitor on the same graphics card: only the output and its duplication change, the device stays (the
+// encoder holds it). A monitor on another card isn't found here, the capture stays where it is
+void fan::graphics::desktop_capture_t::switch_output(std::uintptr_t want) {
+  IDXGIDevice* dxgi_device = nullptr;
+  IDXGIAdapter* adapter = nullptr;
+  if (!device || device->QueryInterface(IID_PPV_ARGS(&dxgi_device)) != S_OK) {
+    return;
+  }
+  HRESULT result = dxgi_device->GetAdapter(&adapter);
+  dxgi_device->Release();
+  if (result != S_OK) {
+    return;
+  }
+  IDXGIOutput* best_output = nullptr;
+  DXGI_OUTPUT_DESC best_desc {};
+  int best = -1;
+  IDXGIOutput* out = nullptr;
+  for (UINT j = 0; adapter->EnumOutputs(j, &out) != DXGI_ERROR_NOT_FOUND; ++j) {
+    DXGI_OUTPUT_DESC desc;
+    int score = capture_output_score(out, want, desc);
+    if (score > best) {
+      release_com(best_output);
+      best_output = out;
+      best_desc = desc;
+      best = score;
+    }
+    else {
+      out->Release();
+    }
+  }
+  adapter->Release();
+  IDXGIOutput1* next = nullptr;
+  if (best_output && best_output->QueryInterface(IID_PPV_ARGS(&next)) == S_OK) {
+    release_com(duplication);
+    release_com(output);
+    output = next;
+    monitor_origin = fan::vec2i(best_desc.DesktopCoordinates.left, best_desc.DesktopCoordinates.top);
+    // duplicated again at once, and the textures follow the new size with the first frame
+    next_reopen = std::chrono::steady_clock::time_point {};
+  }
+  release_com(best_output);
+}
+
 bool fan::graphics::desktop_capture_t::acquire(std::uint32_t timeout_ms) {
   if (target_window.load() != 0) {
     release_com(duplication);
     return acquire_window(timeout_ms);
+  }
+  // the window capture moved it to the window, the monitor's own corner again
+  desktop_origin = monitor_origin;
+  if (std::uintptr_t want = target_monitor.load(); want != opened_monitor) {
+    opened_monitor = want;
+    switch_output(want);
   }
   if (!duplication) {
     // waiting out the retry delay must not push it further: re-arming it on every wait (a wait is shorter than the

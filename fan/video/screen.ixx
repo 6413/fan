@@ -51,6 +51,9 @@ export namespace fan {
       // 0: the whole monitor. Otherwise the top level window (an HWND) that is captured instead, also when other
       // windows cover it. Set from any thread, it takes effect at the next frame. Goes back to 0 when the window closes
       std::atomic<std::uintptr_t> target_window {0};
+      // the monitor captured while no window is, an HMONITOR; 0 is the main display. Set from any thread, a monitor
+      // on the capture's own graphics card is switched to at the next frame
+      std::atomic<std::uintptr_t> target_monitor {0};
 
       // true while the captured screen is in HDR and its frames are tone mapped. hdr_exposure darkens (< 1) or
       // brightens (> 1) them, set from any thread
@@ -72,6 +75,10 @@ export namespace fan {
       std::uint32_t mapped_index = 0;
       bool has_frame = false;
       std::chrono::steady_clock::time_point next_reopen;
+      // the target_monitor the output was picked for, and where that monitor sits on the virtual desktop
+      std::uintptr_t opened_monitor = 0;
+      fan::vec2i monitor_origin = 0;
+      void switch_output(std::uintptr_t monitor);
 
     private:
       bool acquire_window(std::uint32_t timeout_ms);
