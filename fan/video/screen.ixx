@@ -77,6 +77,8 @@ export namespace fan {
       std::chrono::steady_clock::time_point next_reopen;
       // the target_monitor the output was picked for, and where that monitor sits on the virtual desktop
       std::uintptr_t opened_monitor = 0;
+      // counts the capture textures made: a new one can sit at the old one's address, the encoder compares this
+      std::uint64_t texture_generation = 0;
       fan::vec2i monitor_origin = 0;
       void switch_output(std::uintptr_t monitor);
 
@@ -654,6 +656,8 @@ export namespace fan {
       std::mutex mutex;
 
       std::int64_t frame_timestamp_ = 0;
+      // the capture texture the encoder's view was made for (desktop_capture_t::texture_generation)
+      std::uint64_t encoded_texture_generation_ = 0;
       std::uint64_t encoder_start_time_ = fan::time::now();
       std::uint64_t frame_process_start_time_ = encoder_start_time_;
     };

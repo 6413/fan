@@ -300,6 +300,14 @@ namespace fan {
       return true;
     }
 
+    void libav_encoder_t::forget_input_texture() {
+      encoder_state_t* encoder = active_encoder_.load();
+      if (encoder && encoder->gpu) {
+        encoder->gpu->input.Reset();
+        encoder->gpu->input_texture = nullptr;
+      }
+    }
+
     void libav_encoder_t::fall_back_to_cpu() {
       fan::print_impl("gpu encoding failed, using the cpu path");
       gpu_device_ = nullptr;

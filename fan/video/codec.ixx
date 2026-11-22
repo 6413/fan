@@ -371,6 +371,8 @@ export namespace fan {
       bool submit_frame(encoder_state_t* encoder, AVFrame* frame, std::int64_t pts, bool force_keyframe, std::vector<encode_result_t>& results);
     #if defined(_WIN32)
       std::vector<encode_result_t> encode_texture(ID3D11Texture2D* texture, std::int64_t pts, bool force_keyframe);
+      // the view of the capture texture is made again with the next frame (the capture made a new texture)
+      void forget_input_texture();
     #endif
 
       bool update_config(const codec_config_t& new_config, std::uint8_t update_flags);

@@ -65,6 +65,7 @@ static void release_com(T*& p) {
 
 bool fan::graphics::desktop_capture_t::create_textures(std::uint32_t width, std::uint32_t height) {
   release_textures();
+  ++texture_generation;
 
   D3D11_TEXTURE2D_DESC desc {};
   desc.Width = width;
@@ -1182,6 +1183,14 @@ bool fan::graphics::screen_encode_t::encode_write() {
 
 #if defined(_WIN32)
   if (encoder_.uses_gpu_frames()) {
+    // The capture made its texture again (a game switching to fullscreen or HDR as a raid starts, the screen's mode
+    // changing): the new one can have the old one's address, and the encoder kept reading through its view of the
+    // gone one, a black picture until sharing was turned off and on. Its view is made again, and a keyframe sent
+    if (mdscr.texture_generation != encoded_texture_generation_) {
+      encoded_texture_generation_ = mdscr.texture_generation;
+      encoder_.forget_input_texture();
+      force_keyframe = true;
+    }
     results = encoder_.encode_texture(mdscr.texture, frame_timestamp_, force_keyframe);
   }
   else
