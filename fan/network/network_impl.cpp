@@ -82,7 +82,8 @@ namespace fan {
       auto result = uv_ip4_addr(ip.c_str(), port, &client_addr);
 
       if (result != 0) {
-        fan::throw_error("failed to resolve address");
+        data->status = result;
+        return;
       }
 
       data->status = uv_tcp_connect(&data->req, tcp.socket.get(), reinterpret_cast<sockaddr*>(&client_addr),
@@ -130,9 +131,6 @@ namespace fan {
     }
 
     int connector_t::await_resume() {
-      if (data->status != 0) {
-        fan::throw_error(std::string("connection failed with:") + uv_strerror(data->status));
-      }
       return data->status;
     }
 
@@ -148,7 +146,8 @@ namespace fan {
           self->co_handle();
         });
       if (r != 0) {
-        fan::throw_error("listen error:"_str + uv_strerror(r));
+        status = r;
+        ready = true;
       }
     }
 
@@ -235,8 +234,9 @@ namespace fan {
     }
 
     int raw_writer_t::write(buffer_t some_data) {
-      if (!uv_is_writable(data->stream.get())) { 
-        fan::throw_error("tcp write failed: socket not writable (not connected)");
+      if (!uv_is_writable(data->stream.get())) {
+        data->status = UV_ENOTCONN;
+        return UV_ENOTCONN;
       }
       if (secure && secure->ready) {
         some_data = secure->seal(some_data.data(), some_data.size());
@@ -254,8 +254,7 @@ namespace fan {
           }
         });
       if (r < 0) {
-        std::string msg = std::string("tcp write failed: ") + uv_err_name(r) + " (" + uv_strerror(r) + ")";
-        fan::throw_error(msg);
+        data->status = r;
       }
       return r;
     }
