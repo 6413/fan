@@ -4,10 +4,6 @@ module;
 
 #include <fan/utils/utility.h>
 
-#if defined(FAN_GUI)
-#include <fan/nativefiledialog/nfd.h>
-#endif
-
 #endif
 
 module fan.graphics.gui.settings_menu;
@@ -26,6 +22,7 @@ import fan.graphics.gui.keybinds_menu;
 #endif
 import fan.memory;
 import fan.io.file;
+import fan.file_dialog;
 import fan.graphics.loco;
 import fan.graphics.gui.base;
 import fan.graphics.culling;
@@ -951,11 +948,10 @@ namespace fan::graphics::gui {
       gui::table_next_column();
       gui::push_id(t);
       if (gui::button("Pick...")) {
-        nfdchar_t* picked = nullptr;
-        if (NFD_OpenDialog("ttf,otf", nullptr, &picked) == NFD_OKAY) {
-          set_font_file(t, picked);
-          std::free(picked);
-        }
+        // the dialog runs on its own thread: opening it on the render thread froze the window until it was closed
+        fan::graphics::open_file("ttf,otf", [this, t](std::string_view picked) {
+          set_font_file(t, std::string(picked));
+        });
       }
       if (gui::is_item_hovered()) {
         font_drop_type = t;

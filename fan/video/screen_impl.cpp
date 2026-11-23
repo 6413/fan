@@ -217,11 +217,13 @@ void fan::graphics::desktop_capture_t::release_window_buffer() {
 bool fan::graphics::desktop_capture_t::acquire_window(std::uint32_t timeout_ms) {
   HWND hwnd = (HWND)target_window.load();
   if (!IsWindow(hwnd)) {
-    // closed: back to the monitor
+    // closed: back to the monitor, and tell the app so a share of that window stops instead of showing the desktop
+    target_window_closed = true;
     target_window = 0;
     release_window_buffer();
     return false;
   }
+  target_window_closed = false;
   // no wait here: the encode loop paces the frames, a wait on top of it halved the rate
   (void)timeout_ms;
   RECT rect;

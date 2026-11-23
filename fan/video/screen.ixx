@@ -51,6 +51,10 @@ export namespace fan {
       // 0: the whole monitor. Otherwise the top level window (an HWND) that is captured instead, also when other
       // windows cover it. Set from any thread, it takes effect at the next frame. Goes back to 0 when the window closes
       std::atomic<std::uintptr_t> target_window {0};
+      // set when the window in target_window closed and the capture went back to the monitor; read and cleared by
+      // the app so it can stop a share that was showing that window
+      std::atomic<bool> target_window_closed {false};
+      bool take_target_window_closed() { return target_window_closed.exchange(false); }
       // the monitor captured while no window is, an HMONITOR; 0 is the main display. Set from any thread, a monitor
       // on the capture's own graphics card is switched to at the next frame
       std::atomic<std::uintptr_t> target_monitor {0};
