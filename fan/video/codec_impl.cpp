@@ -592,6 +592,10 @@ namespace fan {
         case codec_config_t::CRF:
           av_opt_set(options, "rc", "constqp", 0);
           av_opt_set_int(options, "qp", config.crf_value, 0);
+          // qp 0 is the lossless mode, but nvenc only honours it with the lossless tuning
+          if (config.crf_value == 0) {
+            av_opt_set(options, "tune", "lossless", 0);
+          }
           break;
         }
       }
@@ -606,9 +610,15 @@ namespace fan {
       else if (name == "libx264" || name == "libx265") {
         av_opt_set(options, "preset", "ultrafast", 0);
         av_opt_set(options, "tune", "zerolatency", 0);
-        // without a buffer limit one busy frame can be many times the average, and the viewer waits for all of it
-        encoder->codec_ctx->rc_max_rate = config.bitrate;
-        encoder->codec_ctx->rc_buffer_size = config.bitrate / 2;
+        if (config.rate_control == codec_config_t::CRF) {
+          // crf 0 is lossless in x264 and x265
+          av_opt_set_int(options, "crf", config.crf_value, 0);
+        }
+        else {
+          // without a buffer limit one busy frame can be many times the average, and the viewer waits for all of it
+          encoder->codec_ctx->rc_max_rate = config.bitrate;
+          encoder->codec_ctx->rc_buffer_size = config.bitrate / 2;
+        }
       }
 
       if (avcodec_open2(encoder->codec_ctx, encoder->codec, nullptr) == 0) {
