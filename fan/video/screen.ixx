@@ -58,6 +58,10 @@ export namespace fan {
       // the monitor captured while no window is, an HMONITOR; 0 is the main display. Set from any thread, a monitor
       // on the capture's own graphics card is switched to at the next frame
       std::atomic<std::uintptr_t> target_monitor {0};
+      // set when the source changed (window, monitor, or a reopened output): the encoder starts it with a keyframe
+      std::atomic<bool> source_changed {false};
+      // counts the capture devices made; the encoder reopens on the device of a new one
+      std::atomic<std::uint64_t> device_generation {0};
 
       // true while the captured screen is in HDR and its frames are tone mapped. hdr_exposure darkens (< 1) or
       // brightens (> 1) them, set from any thread
@@ -81,10 +85,17 @@ export namespace fan {
       std::chrono::steady_clock::time_point next_reopen;
       // the target_monitor the output was picked for, and where that monitor sits on the virtual desktop
       std::uintptr_t opened_monitor = 0;
+      bool captured_primary = true;
+      // the window being captured, so a change to another one shows as a source change
+      std::uintptr_t capturing_window = 0;
+      std::chrono::steady_clock::time_point next_switch_try;
+      std::chrono::steady_clock::time_point next_restart_try;
+      int failure_streak = 0;
+      std::atomic<bool> restart_requested {false};
       // counts the capture textures made: a new one can sit at the old one's address, the encoder compares this
       std::uint64_t texture_generation = 0;
       fan::vec2i monitor_origin = 0;
-      void switch_output(std::uintptr_t monitor);
+      bool switch_output(std::uintptr_t monitor);
 
     private:
       bool acquire_window(std::uint32_t timeout_ms);
@@ -383,6 +394,7 @@ export namespace fan {
           }
           screen_open_ = false;
           encoder_.gpu_device_ = mdscr.device;
+          encoded_device_generation_ = mdscr.device_generation;
         #else
           std::memset(&mdscr, 0, sizeof(mdscr));
         #if defined(MD_SCR_HAS_RESTORE_TOKEN)
@@ -662,6 +674,8 @@ export namespace fan {
       std::int64_t frame_timestamp_ = 0;
       // the capture texture the encoder's view was made for (desktop_capture_t::texture_generation)
       std::uint64_t encoded_texture_generation_ = 0;
+      // the capture device the encoder was opened on (desktop_capture_t::device_generation)
+      std::uint64_t encoded_device_generation_ = 0;
       std::uint64_t encoder_start_time_ = fan::time::now();
       std::uint64_t frame_process_start_time_ = encoder_start_time_;
     };

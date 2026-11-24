@@ -158,7 +158,6 @@ bool fan::graphics::desktop_capture_t::open() {
     release_com(adapter);
     return false;
   }
-  opened_monitor = want;
 
   const D3D_FEATURE_LEVEL levels[] = {D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0};
   HRESULT result = D3D11CreateDevice(adapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr, D3D11_CREATE_DEVICE_VIDEO_SUPPORT,
@@ -175,6 +174,14 @@ bool fan::graphics::desktop_capture_t::open() {
     first_output->QueryInterface(IID_PPV_ARGS(&output)) == S_OK;
   first_output->Release();
   if (!ok) return false;
+
+  ++device_generation;
+  opened_monitor = (std::uintptr_t)output_desc.Monitor;
+  {
+    MONITORINFO info {};
+    info.cbSize = sizeof(info);
+    captured_primary = GetMonitorInfoW(output_desc.Monitor, &info) && (info.dwFlags & MONITORINFOF_PRIMARY) != 0;
+  }
 
   auto& rect = output_desc.DesktopCoordinates;
   monitor_origin = fan::vec2i(rect.left, rect.top);
@@ -484,17 +491,23 @@ bool fan::graphics::desktop_capture_t::tonemap_frame(ID3D11Texture2D* desktop, s
 }
 
 // Another monitor on the same graphics card: only the output and its duplication change, the device stays (the
-// encoder holds it). A monitor on another card isn't found here, the capture stays where it is
-void fan::graphics::desktop_capture_t::switch_output(std::uintptr_t want) {
+// encoder holds it). One on another card asks for a full reopen, which makes the device for that card
+bool fan::graphics::desktop_capture_t::switch_output(std::uintptr_t want) {
+  if (!device) {
+    restart_requested = true;
+    return false;
+  }
   IDXGIDevice* dxgi_device = nullptr;
   IDXGIAdapter* adapter = nullptr;
-  if (!device || device->QueryInterface(IID_PPV_ARGS(&dxgi_device)) != S_OK) {
-    return;
+  if (device->QueryInterface(IID_PPV_ARGS(&dxgi_device)) != S_OK) {
+    restart_requested = true;
+    return false;
   }
   HRESULT result = dxgi_device->GetAdapter(&adapter);
   dxgi_device->Release();
   if (result != S_OK) {
-    return;
+    restart_requested = true;
+    return false;
   }
   IDXGIOutput* best_output = nullptr;
   DXGI_OUTPUT_DESC best_desc {};
@@ -514,28 +527,77 @@ void fan::graphics::desktop_capture_t::switch_output(std::uintptr_t want) {
     }
   }
   adapter->Release();
-  IDXGIOutput1* next = nullptr;
-  if (best_output && best_output->QueryInterface(IID_PPV_ARGS(&next)) == S_OK) {
-    release_com(duplication);
-    release_com(output);
-    output = next;
-    monitor_origin = fan::vec2i(best_desc.DesktopCoordinates.left, best_desc.DesktopCoordinates.top);
-    // duplicated again at once, and the textures follow the new size with the first frame
-    next_reopen = std::chrono::steady_clock::time_point {};
+  // the monitor asked for is not on this card: the capture has to open the other card's device
+  if (!best_output || (want != 0 && best != 2)) {
+    release_com(best_output);
+    restart_requested = true;
+    return false;
   }
+  IDXGIOutput1* next = nullptr;
+  if (best_output->QueryInterface(IID_PPV_ARGS(&next)) != S_OK) {
+    release_com(best_output);
+    restart_requested = true;
+    return false;
+  }
+  release_com(duplication);
+  release_com(output);
+  output = next;
+  opened_monitor = (std::uintptr_t)best_desc.Monitor;
+  {
+    MONITORINFO info {};
+    info.cbSize = sizeof(info);
+    captured_primary = GetMonitorInfoW(best_desc.Monitor, &info) && (info.dwFlags & MONITORINFOF_PRIMARY) != 0;
+  }
+  monitor_origin = fan::vec2i(best_desc.DesktopCoordinates.left, best_desc.DesktopCoordinates.top);
+  // duplicated again at once, and the textures follow the new size with the first frame
+  next_reopen = std::chrono::steady_clock::time_point {};
+  source_changed = true;
   release_com(best_output);
+  return true;
 }
 
 bool fan::graphics::desktop_capture_t::acquire(std::uint32_t timeout_ms) {
-  if (target_window.load() != 0) {
+  std::uintptr_t window = target_window.load();
+  if (window != 0) {
+    if (window != capturing_window) {
+      capturing_window = window;
+      source_changed = true;
+    }
     release_com(duplication);
     return acquire_window(timeout_ms);
   }
+  if (capturing_window != 0) {
+    capturing_window = 0;
+    source_changed = true;
+  }
   // the window capture moved it to the window, the monitor's own corner again
   desktop_origin = monitor_origin;
-  if (std::uintptr_t want = target_monitor.load(); want != opened_monitor) {
-    opened_monitor = want;
+
+  auto now = std::chrono::steady_clock::now();
+  if (now >= next_restart_try && restart_requested.exchange(false)) {
+    next_restart_try = now + std::chrono::seconds(2);
+    close();
+    if (!open()) {
+      release_duplication();
+      std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
+      return false;
+    }
+    source_changed = true;
+    return false; // the next frame comes from the new device
+  }
+
+  std::uintptr_t want = target_monitor.load();
+  bool want_primary = want == 0;
+  bool matches = want_primary ? captured_primary : (opened_monitor == want);
+  if (!matches && now >= next_switch_try) {
+    next_switch_try = now + std::chrono::milliseconds(500);
     switch_output(want);
+  }
+
+  if (!output) {
+    restart_requested = true;
+    std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
+    return false;
   }
   if (!duplication) {
     // waiting out the retry delay must not push it further: re-arming it on every wait (a wait is shorter than the
@@ -547,9 +609,16 @@ bool fan::graphics::desktop_capture_t::acquire(std::uint32_t timeout_ms) {
     if (duplicate() != S_OK) {
       // still on the secure desktop (administrator prompt, lock screen): try again shortly
       release_duplication();
+      if (++failure_streak >= 30 && now >= next_switch_try) {
+        failure_streak = 0;
+        next_switch_try = now + std::chrono::milliseconds(500);
+        // a monitor turned off and on again can leave the output stale: pick it again
+        switch_output(want);
+      }
       std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
       return false;
     }
+    failure_streak = 0;
   }
 
   DXGI_OUTDUPL_FRAME_INFO info;
@@ -561,8 +630,14 @@ bool fan::graphics::desktop_capture_t::acquire(std::uint32_t timeout_ms) {
   if (result != S_OK) {
     // mode changes, fullscreen switches and the secure desktop end up here
     release_duplication();
+    if (++failure_streak >= 30 && now >= next_switch_try) {
+      failure_streak = 0;
+      next_switch_try = now + std::chrono::milliseconds(500);
+      switch_output(want);
+    }
     return false;
   }
+  failure_streak = 0;
 
   bool new_frame = false;
   ID3D11Texture2D* desktop = nullptr;
@@ -1129,6 +1204,20 @@ std::uint8_t* fan::graphics::camera_capture_t::read(std::uint32_t) {
 bool fan::graphics::screen_encode_t::encode_write() {
   if (!ensure_mdscr_initialized()) return false;
 
+  bool capture_source_changed = mdscr.source_changed.exchange(false);
+  if (mdscr.device_generation != encoded_device_generation_) {
+    // the capture moved to another graphics card: the encoder has to open on the new device
+    encoded_device_generation_ = mdscr.device_generation;
+    encoder_.gpu_device_ = mdscr.device;
+    if (!encoder_.open(config_, fan::vec2(mdscr.Geometry.Resolution.x, mdscr.Geometry.Resolution.y))) return false;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      update_flags = 0;
+    }
+    encoded_texture_generation_ = mdscr.texture_generation;
+    capture_source_changed = true;
+  }
+
   bool follow_capture_size = !user_set_resolution &&
     (config_.width != mdscr.Geometry.Resolution.x || config_.height != mdscr.Geometry.Resolution.y);
 
@@ -1173,7 +1262,8 @@ bool fan::graphics::screen_encode_t::encode_write() {
   }
 
   // taken in one step, a request that arrives during the encode stays set for the next frame
-  bool force_keyframe = (encode_write_flags.fetch_and((std::uint8_t)~codec_update_e::force_keyframe) & codec_update_e::force_keyframe) != 0;
+  bool force_keyframe = capture_source_changed ||
+    (encode_write_flags.fetch_and((std::uint8_t)~codec_update_e::force_keyframe) & codec_update_e::force_keyframe) != 0;
   // a frame that never reaches the encoder must not use the request up
   auto keep_keyframe_request = [&] {
     if (force_keyframe) {
