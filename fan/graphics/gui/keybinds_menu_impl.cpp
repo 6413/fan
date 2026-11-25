@@ -88,7 +88,8 @@ namespace fan::graphics::gui {
     fan::device_type_e device,
     const combo_t& combo
   ) {
-    static constexpr f32_t key_button_height = 26.f;
+    // rows also have to grow with the text size: 26 px is right only for the default font
+    f32_t key_button_height = std::max(26.f, gui::get_text_line_height() + 10.f);
 
     bool is_listening = listening_states[listening_index];
     std::string label = is_listening ? label_press_keys : fan::graphics::ctx().input_action->combo_to_string(combo);
@@ -210,7 +211,8 @@ namespace fan::graphics::gui {
 
     auto& bindings = it->second;
 
-    static constexpr f32_t key_button_height = 26.f;
+    // rows also have to grow with the text size: 26 px is right only for the default font
+    f32_t key_button_height = std::max(26.f, gui::get_text_line_height() + 10.f);
 
     gui::table_next_row(gui::table_row_flags_none, gui::get_style().CellPadding.y * 2.f);
     gui::table_next_column();
