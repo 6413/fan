@@ -310,6 +310,15 @@ namespace fan::graphics::gui {
       device_col_width = std::max(device_col_width, widest + 16.f * 2.f + 12.f);
     }
 
+    // the action column gets its own width: stretching it into what is left made long names run into the first
+    // keybind column. The table scrolls sideways when all four columns don't fit
+    f32_t action_col_width = 180.f;
+    for (const auto& [group_name, actions] : grouped) {
+      for (const auto& action_name : actions) {
+        action_col_width = std::max(action_col_width, gui::calc_text_size(action_name).x + 16.f * 2.f + 12.f);
+      }
+    }
+
     int base_index = 0;
 
     for (std::size_t group_idx = 0; group_idx < group_order.size(); ++group_idx) {
@@ -323,20 +332,6 @@ namespace fan::graphics::gui {
     gui::push_font(gui::get_font(28, gui::font::bold));
       std::string display_name = group_name.empty() ? label_other : group_name;
       gui::text(title_color, display_name.c_str());
-
-      if (group_idx == 0) {
-        f32_t cell_width = gui::table_get_cell_width(device_col_width);
-        f32_t action_width = gui::get_content_region_avail().x - cell_width * 3.f;
-
-        const char* labels[] = {device_name_keyboard, device_name_mouse, device_name_gamepad};
-
-        for (int i = 0; i < 3; i++) {
-          gui::same_line();
-          f32_t tw = gui::get_text_size(labels[i]).x;
-          gui::set_cursor_pos_x(action_width + cell_width * (i + 0.5f) - tw * 0.5f);
-          gui::text(title_color, labels[i]);
-        }
-      }
 
       gui::pop_font();
 
@@ -365,10 +360,11 @@ namespace fan::graphics::gui {
         gui::table_flags_borders_inner_v |
         gui::table_flags_no_clip
       )) {
-        gui::table_setup_column(label_action, gui::table_column_flags_width_stretch);
+        gui::table_setup_column(label_action, gui::table_column_flags_width_fixed, action_col_width);
         gui::table_setup_column(device_name_keyboard, gui::table_column_flags_width_fixed, device_col_width);
         gui::table_setup_column(device_name_mouse, gui::table_column_flags_width_fixed, device_col_width);
         gui::table_setup_column(device_name_gamepad, gui::table_column_flags_width_fixed, device_col_width);
+        gui::table_headers_row();
 
         for (const auto& action_name : actions) {
           menu->render_action_row(base_index, action_name);

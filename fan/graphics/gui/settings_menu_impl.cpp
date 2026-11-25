@@ -932,8 +932,11 @@ namespace fan::graphics::gui {
     gui::align_text_to_frame_padding();
     gui::text("Text size");
     gui::table_next_column();
-    gui::slider("##font_scale", &config.interface_.font_scale, 0.5f, 3.f, gui::slider_flags_always_clamp);
-    // the fonts change on release, changing them while dragging moves the slider under the mouse
+    // apply while dragging: the text changes under the slider, and the value is saved when the mouse lets go
+    if (gui::slider("##font_scale", &config.interface_.font_scale, 0.5f, 3.f, gui::slider_flags_always_clamp)) {
+      gui::set_font_scale(config.interface_.font_scale);
+      mark_dirty();
+    }
     if (gui::is_item_deactivated_after_edit()) {
       gui::set_font_scale(config.interface_.font_scale);
       mark_dirty();
