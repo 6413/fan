@@ -1204,6 +1204,7 @@ std::uint8_t* fan::graphics::camera_capture_t::read(std::uint32_t) {
 bool fan::graphics::screen_encode_t::encode_write() {
   if (!ensure_mdscr_initialized()) return false;
 
+#if defined(_WIN32)
   bool capture_source_changed = mdscr.source_changed.exchange(false);
   if (mdscr.device_generation != encoded_device_generation_) {
     // the capture moved to another graphics card: the encoder has to open on the new device
@@ -1217,6 +1218,9 @@ bool fan::graphics::screen_encode_t::encode_write() {
     encoded_texture_generation_ = mdscr.texture_generation;
     capture_source_changed = true;
   }
+#else
+  bool capture_source_changed = false;
+#endif
 
   bool follow_capture_size = !user_set_resolution &&
     (config_.width != mdscr.Geometry.Resolution.x || config_.height != mdscr.Geometry.Resolution.y);
