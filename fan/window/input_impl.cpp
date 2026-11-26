@@ -456,6 +456,19 @@ const char* fan::get_key_name(int key) {
   }
 }
 
+const char* fan::get_key_symbol(int key) {
+#if defined(fan_platform_windows) || defined(fan_platform_unix)
+  if (key < 0) {
+    return nullptr;
+  }
+  // GLFW's key codes are physical US-layout positions; its name lookup follows the active layout, so a Finnish
+  // plus (the key where a US keyboard has -) is reported as "+" instead of "-"
+  return glfwGetKeyName(key, glfwGetKeyScancode(key));
+#else
+  return nullptr;
+#endif
+}
+
 int fan::key_name_to_code(const std::string& name) {
   std::string trimmed = fan::trim_ws(name);
   if (trimmed.empty()) return -1;

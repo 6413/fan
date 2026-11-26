@@ -236,6 +236,8 @@ export namespace fan {
   }
 
   const char* get_key_name(int key);
+  // the key's symbol in the current keyboard layout, unlike get_key_name's fixed US names
+  const char* get_key_symbol(int key);
 
   constexpr const char* get_mouse_name(int button) {
     if (button == -1) return "None";
