@@ -38,6 +38,7 @@ import fan.types.color;
 import fan.types.matrix;
 import fan.math;
 import fan.print.error;
+import fan.io.file;
 import fan.graphics.common_context;
 import fan.graphics.gui.types;
 import fan.window.input;
@@ -1872,7 +1873,13 @@ namespace fan::graphics::gui {
       for (std::size_t i = 0; i < std::size(font_sizes); ++i) {
         if (font_sizes[i] < wanted) index = i;
       }
+      get_io().FontGlobalScale = 1.f;
       get_io().FontDefault = get_font_array()[font::regular][index];
+    }
+    else {
+      // no font files were found: keep text scaling usable with ImGui's built-in font instead of silently doing
+      // nothing when the slider or Ctrl +/- changes the scale
+      get_io().FontGlobalScale = font_scale;
     }
   }
   void set_font_path(font::type_t type, const std::string& path) {
@@ -1960,14 +1967,15 @@ namespace fan::graphics::gui {
     };
     // Twemoji (Mozilla twemoji-colr v0.7.0, CC-BY 4.0, see fonts/twemoji/LICENSE.md), cut to the ranges above
     static constexpr const char* emoji_font_path = "fonts/twemoji/twemoji.ttf";
-    if (!std::filesystem::exists(emoji_font_path)) {
+    std::filesystem::path resolved_emoji_path = fan::io::file::find_relative_path(emoji_font_path);
+    if (resolved_emoji_path.empty()) {
       return;
     }
     ImFontConfig cfg;
     cfg.MergeMode = true;
     cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
     cfg.GlyphMinAdvanceX = font_size;
-    get_io().Fonts->AddFontFromFileTTF(emoji_font_path, font_size, &cfg, emoji_ranges);
+    get_io().Fonts->AddFontFromFileTTF(resolved_emoji_path.string().c_str(), font_size, &cfg, emoji_ranges);
   }
 
   void load_font_family(void (*custom_font_cb)(f32_t) = [](f32_t) {}) {
@@ -1979,6 +1987,15 @@ namespace fan::graphics::gui {
     auto& paths = get_font_paths();
     auto& fonts = get_font_array();
 
+    // resolve once: the app may be started from a folder other than the one holding fonts/ (a dev build run from
+    // the repository root, for example). find_relative_path also checks the executable's folder and its parents
+    std::array<std::filesystem::path, font::count> resolved_paths;
+    for (int t = 0; t < font::count; ++t) {
+      if (!paths[t].empty()) {
+        resolved_paths[t] = fan::io::file::find_relative_path(paths[t]);
+      }
+    }
+
     for (std::size_t i = 0; i < std::size(font_sizes); ++i) {
       f32_t font_size = font_sizes[i] * 2.f;
 
@@ -1989,8 +2006,8 @@ namespace fan::graphics::gui {
 
       for (int t = 0; t < font::count; ++t) {
         std::error_code font_ec;
-        if (!paths[t].empty() && std::filesystem::is_regular_file(paths[t], font_ec)) {
-          fonts[t][i] = io.Fonts->AddFontFromFileTTF(paths[t].c_str(), font_size, &cfg);
+        if (!resolved_paths[t].empty() && std::filesystem::is_regular_file(resolved_paths[t], font_ec)) {
+          fonts[t][i] = io.Fonts->AddFontFromFileTTF(resolved_paths[t].string().c_str(), font_size, &cfg);
           // merge mode targets the most recently added font; regular text only, and only up
           // to size 36 to keep the atlas small
           if (emojis_enabled && t == font::regular && font_sizes[i] <= 36) {
@@ -2010,6 +2027,10 @@ namespace fan::graphics::gui {
       }
     }
     io.FontDefault = fonts[font::regular][default_index];
+    if (!io.FontDefault) {
+      // the font files could not be found; ImGui's built-in font still lets the text size setting work
+      io.FontGlobalScale = font_scale;
+    }
   }
 
   void init_fonts() {

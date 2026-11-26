@@ -780,11 +780,16 @@ namespace fan::graphics::gui {
       // before the gui makes its fonts, so the saved ones are the ones it loads
       for (int t = 0; t < 3; ++t) {
         std::string& path = config.interface_.font_paths[t];
-        if (!path.empty() && !std::filesystem::exists(path)) {
-          path.clear();
-        }
         if (!path.empty()) {
-          gui::set_font_path((gui::font::type_t)t, path);
+          // a saved relative path may be relative to the executable, not to the folder the app was started from
+          std::filesystem::path resolved = fan::io::file::find_relative_path(path);
+          if (resolved.empty()) {
+            path.clear();
+          }
+          else {
+            path = resolved.string();
+            gui::set_font_path((gui::font::type_t)t, path);
+          }
         }
       }
       gui::set_font_scale(config.interface_.font_scale);
