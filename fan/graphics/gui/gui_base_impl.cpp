@@ -1956,15 +1956,42 @@ namespace fan::graphics::gui {
   // set by load_emojis(); load_font_family() then merges the emoji font into every font
   static bool emojis_enabled = false;
 
-  static void merge_emoji_font(f32_t font_size) {
-    // imgui 1.91 rasterizes every glyph of every size up front, so keep the set small:
-    // all emoji blocks at all sizes overflow the font atlas
-    static constexpr ImWchar emoji_ranges[] = {
+  // full: every emoji. imgui 1.91 rasterizes every glyph of every size up front, and all of them at every size
+  // overflow the atlas (about 120 MB): the full set goes to the sizes the text is drawn at (load_font_family), the
+  // rest get the small set
+  static void merge_emoji_font(f32_t font_size, bool full) {
+    static constexpr ImWchar small_ranges[] = {
+      0x200D, 0x200D,   // zero width joiner and the emoji variation selector: drawn as nothing, not as ?
+      0xFE0F, 0xFE0F,
       0x2600, 0x27BF,   // misc symbols, dingbats
       0x2B00, 0x2BFF,   // arrows, stars
+      0x1F44D, 0x1F44E, // thumbs
+      0x1F525, 0x1F525, // fire
       0x1F600, 0x1F64F, // emoticons
       0,
     };
+    static constexpr ImWchar full_ranges[] = {
+      0x200D, 0x200D,
+      0x203C, 0x2049,
+      0x2122, 0x2139,
+      0x2194, 0x21AA,
+      0x231A, 0x23FF,
+      0x24C2, 0x24C2,
+      0x25AA, 0x25FE,
+      0x2600, 0x27BF,
+      0x2934, 0x2935,
+      0x2B05, 0x2B55,
+      0x3030, 0x303D,
+      0x3297, 0x3299,
+      0xFE0F, 0xFE0F,
+      0x1F000, 0x1F2FF, // mahjong, cards, enclosed letters, flags' letters
+      0x1F300, 0x1F64F, // symbols and pictographs, emoticons
+      0x1F680, 0x1F6FF, // transport and map
+      0x1F900, 0x1F9FF, // supplemental symbols and pictographs
+      0x1FA70, 0x1FAFF, // symbols and pictographs extended
+      0,
+    };
+    const ImWchar* emoji_ranges = full ? full_ranges : small_ranges;
     // Twemoji (Mozilla twemoji-colr v0.7.0, CC-BY 4.0, see fonts/twemoji/LICENSE.md), cut to the ranges above
     static constexpr const char* emoji_font_path = "fonts/twemoji/twemoji.ttf";
     std::filesystem::path resolved_emoji_path = fan::io::file::find_relative_path(emoji_font_path);
@@ -1996,6 +2023,18 @@ namespace fan::graphics::gui {
       }
     }
 
+    // the size the text is drawn at (the default one with the text size setting), and two steps either way so the
+    // Ctrl +/- steps keep every emoji: those sizes get the full emoji set
+    std::size_t text_index = default_font_size_index;
+    {
+      f32_t wanted_size = font_sizes[default_font_size_index] * font_scale;
+      for (std::size_t i = 0; i < std::size(font_sizes); ++i) {
+        if (font_sizes[i] < wanted_size) {
+          text_index = i;
+        }
+      }
+    }
+
     for (std::size_t i = 0; i < std::size(font_sizes); ++i) {
       f32_t font_size = font_sizes[i] * 2.f;
 
@@ -2011,7 +2050,8 @@ namespace fan::graphics::gui {
           // merge mode targets the most recently added font; regular text only, and only up
           // to size 36 to keep the atlas small
           if (emojis_enabled && t == font::regular && font_sizes[i] <= 36) {
-            merge_emoji_font(font_size);
+            bool full = i + 2 >= text_index && i <= text_index + 2;
+            merge_emoji_font(font_size, full);
           }
         }
       }
@@ -2035,6 +2075,11 @@ namespace fan::graphics::gui {
 
   void init_fonts() {
     load_font_family();
+  }
+
+  bool has_glyph(std::uint32_t codepoint) {
+    ImFont* font = ImGui::GetFont();
+    return font && font->FindGlyphNoFallback((ImWchar)codepoint) != nullptr;
   }
 
   void load_emojis() {

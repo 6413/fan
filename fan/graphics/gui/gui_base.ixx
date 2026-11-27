@@ -486,6 +486,8 @@ export namespace fan::graphics::gui {
 
   void init_fonts();
   // merges fonts/twemoji into the gui fonts; call before the engine creates its gui
+  // the current font draws this character (an emoji the font was built with, for example)
+  bool has_glyph(std::uint32_t codepoint);
   void load_emojis();
 
   void shutdown_graphics_context(VkDevice device);
