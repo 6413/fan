@@ -367,9 +367,7 @@ bool fan::graphics::desktop_capture_t::acquire_window(std::uint32_t timeout_ms) 
         ok = create_textures(width, height);
       }
       if (ok) {
-        D3D11_TEXTURE2D_DESC frame_desc;
-        frame->GetDesc(&frame_desc);
-        if (frame_desc.Format == DXGI_FORMAT_R16G16B16A16_FLOAT) {
+        if (fan::graphics::wgc::is_hdr((fan::graphics::wgc::session_t*)wgc_session)) {
           // linear 16 bit float, 1.0 = 80 nits: tone mapped to the 8 bit picture the rest takes
           ok = tonemap_frame(frame, width, height);
           hdr_active = ok;

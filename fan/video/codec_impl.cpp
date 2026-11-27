@@ -161,17 +161,22 @@ namespace fan {
       // the encoder can hold a few frames, a full pool only skips a frame
       constexpr int pool_size = 12;
 
+      auto fail = [](const char* step, int result = 0) {
+        fan::print_impl("gpu input: " + std::string(step) + (result ? " (" + std::to_string(result) + ")" : "") + "\n");
+        return false;
+      };
       auto gpu = std::make_unique<gpu_state_t>();
       gpu->device = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
-      if (!gpu->device) return false;
+      if (!gpu->device) return fail("no d3d11 device context");
 
       auto* device_ctx = static_cast<AVD3D11VADeviceContext*>(reinterpret_cast<AVHWDeviceContext*>(gpu->device->data)->hwctx);
       gpu_device_->AddRef();
       device_ctx->device = gpu_device_;
-      if (av_hwdevice_ctx_init(gpu->device) < 0) return false;
+      int result = av_hwdevice_ctx_init(gpu->device);
+      if (result < 0) return fail("d3d11 device init failed", result);
 
       gpu->frames = av_hwframe_ctx_alloc(gpu->device);
-      if (!gpu->frames) return false;
+      if (!gpu->frames) return fail("no d3d11 frame context");
 
       auto* frames_ctx = reinterpret_cast<AVHWFramesContext*>(gpu->frames->data);
       frames_ctx->format = AV_PIX_FMT_D3D11;
@@ -181,13 +186,14 @@ namespace fan {
       frames_ctx->height = config.height;
       frames_ctx->initial_pool_size = pool_size;
       static_cast<AVD3D11VAFramesContext*>(frames_ctx->hwctx)->BindFlags = D3D11_BIND_RENDER_TARGET;
-      if (av_hwframe_ctx_init(gpu->frames) < 0) return false;
+      result = av_hwframe_ctx_init(gpu->frames);
+      if (result < 0) return fail("d3d11 frame init failed", result);
 
       gpu->d3d_device = gpu_device_;
       gpu->context = device_ctx->device_context;
       D3D11_QUERY_DESC query_desc {};
       query_desc.Query = D3D11_QUERY_EVENT;
-      if (FAILED(gpu_device_->CreateQuery(&query_desc, &gpu->blit_done))) return false;
+      if (FAILED(gpu_device_->CreateQuery(&query_desc, &gpu->blit_done))) return fail("d3d11 query failed");
       {
         ComPtr<ID3D11Device5> device5;
         if (SUCCEEDED(gpu_device_->QueryInterface(IID_PPV_ARGS(&device5))) &&
@@ -204,14 +210,14 @@ namespace fan {
       auto vertex_code = compile_shader(fullscreen_vs, "vs_5_0");
       auto luma_code = compile_shader(luma_ps, "ps_5_0");
       auto chroma_code = compile_shader(chroma_ps, "ps_5_0");
-      if (!vertex_code || !luma_code || !chroma_code) return false;
+      if (!vertex_code || !luma_code || !chroma_code) return fail("shader compile failed");
 
-      if (FAILED(gpu_device_->CreateVertexShader(vertex_code->GetBufferPointer(), vertex_code->GetBufferSize(), nullptr, &gpu->vertex_shader))) return false;
-      if (FAILED(gpu_device_->CreatePixelShader(luma_code->GetBufferPointer(), luma_code->GetBufferSize(), nullptr, &gpu->luma_shader))) return false;
-      if (FAILED(gpu_device_->CreatePixelShader(chroma_code->GetBufferPointer(), chroma_code->GetBufferSize(), nullptr, &gpu->chroma_shader))) return false;
+      if (FAILED(gpu_device_->CreateVertexShader(vertex_code->GetBufferPointer(), vertex_code->GetBufferSize(), nullptr, &gpu->vertex_shader))) return fail("vertex shader create failed");
+      if (FAILED(gpu_device_->CreatePixelShader(luma_code->GetBufferPointer(), luma_code->GetBufferSize(), nullptr, &gpu->luma_shader))) return fail("luma shader create failed");
+      if (FAILED(gpu_device_->CreatePixelShader(chroma_code->GetBufferPointer(), chroma_code->GetBufferSize(), nullptr, &gpu->chroma_shader))) return fail("chroma shader create failed");
       if (gpu->rgb) {
         auto copy_code = compile_shader(copy_ps, "ps_5_0");
-        if (!copy_code || FAILED(gpu_device_->CreatePixelShader(copy_code->GetBufferPointer(), copy_code->GetBufferSize(), nullptr, &gpu->copy_shader))) return false;
+        if (!copy_code || FAILED(gpu_device_->CreatePixelShader(copy_code->GetBufferPointer(), copy_code->GetBufferSize(), nullptr, &gpu->copy_shader))) return fail("copy shader create failed");
       }
 
       D3D11_SAMPLER_DESC sampler_desc {};
@@ -220,7 +226,7 @@ namespace fan {
       sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
       sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
       sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
-      if (FAILED(gpu_device_->CreateSamplerState(&sampler_desc, &gpu->sampler))) return false;
+      if (FAILED(gpu_device_->CreateSamplerState(&sampler_desc, &gpu->sampler))) return fail("sampler create failed");
 
       encoder->gpu = gpu.release();
       return true;
@@ -640,13 +646,15 @@ namespace fan {
       encoder->codec_ctx->color_trc = AVCOL_TRC_BT709;
       encoder->codec_ctx->color_range = AVCOL_RANGE_MPEG;
 
-      if (avcodec_open2(encoder->codec_ctx, encoder->codec, nullptr) == 0) {
+      int open_result = avcodec_open2(encoder->codec_ctx, encoder->codec, nullptr);
+      if (open_result == 0) {
         if (name.find("nvenc") != std::string::npos) {
           fan::print_impl("encoder: " + name + (encoder->gpu ? " (gpu frames)" : " (cpu frames)") + "\n");
         }
         return true;
 
       }
+      fan::print_impl("encoder open failed: " + name + (use_gpu ? " gpu" : " cpu") + " (" + std::to_string(open_result) + ")\n");
 
       avcodec_free_context(&encoder->codec_ctx);
       if (encoder->hw_frames_ctx) av_buffer_unref(&encoder->hw_frames_ctx);

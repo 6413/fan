@@ -718,7 +718,12 @@ namespace fan::graphics::gui {
   }
 
   void set_tooltip(std::string_view tooltip) {
-    ImGui::SetTooltip("%.*s", (int)tooltip.size(), tooltip.data());
+    // one long line (the phone upload hint, an update notice) ran off the screen: wrap it before it gets there
+    ImGui::BeginTooltip();
+    ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 700.f);
+    ImGui::TextUnformatted(tooltip.data(), tooltip.data() + tooltip.size());
+    ImGui::PopTextWrapPos();
+    ImGui::EndTooltip();
   }
 
   void tooltip_on_hover(std::string_view text, const fan::color& color) {
