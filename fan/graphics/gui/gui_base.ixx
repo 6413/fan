@@ -432,6 +432,7 @@ export namespace fan::graphics::gui {
   void close_current_popup();
 
   bool is_popup_open(str_view_t id);
+  bool is_any_popup_open();
 
   void begin_disabled(bool disabled = true);
   void end_disabled();

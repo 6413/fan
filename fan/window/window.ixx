@@ -370,6 +370,10 @@ export namespace fan {
     void set_windowed();
     void set_fullscreen();
     void set_borderless();
+    // mini player: a small undecorated window kept above other windows, in the work area's bottom right corner.
+    // Turning it off goes back to the window as it was. display_mode stays windowed meanwhile
+    void set_compact(bool on, fan::vec2i size = fan::vec2i(480, 270));
+    bool compact = false;
     void set_cursor(int flag);
     void toggle_cursor();
     bool is_cursor_enabled() const;

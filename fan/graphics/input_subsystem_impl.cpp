@@ -35,6 +35,40 @@ namespace fan::graphics {
     );
 #endif
 
+    add_game_actions();
+
+#if defined(FAN_2D)
+    buttons_handle = window.add_buttons_callback([](const fan::window_t::buttons_data_t& d) {
+      fan::graphics::g_shapes->vfi.feed_mouse_button(d.button, d.state);
+    });
+#endif
+
+    keys_handle = window.add_keys_callback([&window, windowed = true](const fan::window_t::keys_data_t& d) mutable {
+#if defined(FAN_2D)
+      fan::graphics::g_shapes->vfi.feed_keyboard(d.key, d.state);
+#endif
+      if (d.key == fan::key_enter && d.state == fan::keyboard_state::press &&
+          window.key_pressed(fan::key_left_alt)) {
+        windowed = !windowed;
+        d.window->set_display_mode(windowed
+          ? fan::window_t::mode::windowed
+          : fan::window_t::mode::borderless);
+      }
+    });
+
+#if defined(FAN_2D)
+    mouse_move_handle = window.add_mouse_move_callback([](const fan::window_t::mouse_move_data_t& d) {
+      fan::graphics::g_shapes->vfi.feed_mouse_move(d.position);
+    });
+    text_callback_handle = window.add_text_callback([](const fan::window_t::text_data_t& d) {
+      fan::graphics::g_shapes->vfi.feed_text(d.character);
+    });
+#endif
+  }
+
+  // the movement, combat and debug keys a game wants. Programs that aren't games remove them: they only fill the
+  // keybinds menu, and some (Ctrl+4, Ctrl+Shift+R) would fire there
+  void input_subsystem_t::add_game_actions() {
     input_action.insert_or_assign(
       {fan::key_a, fan::gamepad_left_thumb},
       fan::actions::move_left,
@@ -79,34 +113,12 @@ namespace fan::graphics {
       fan::actions::recompile_shaders,
       fan::actions::groups::debug
     );
+  }
 
-#if defined(FAN_2D)
-    buttons_handle = window.add_buttons_callback([](const fan::window_t::buttons_data_t& d) {
-      fan::graphics::g_shapes->vfi.feed_mouse_button(d.button, d.state);
-    });
-#endif
-
-    keys_handle = window.add_keys_callback([&window, windowed = true](const fan::window_t::keys_data_t& d) mutable {
-#if defined(FAN_2D)
-      fan::graphics::g_shapes->vfi.feed_keyboard(d.key, d.state);
-#endif
-      if (d.key == fan::key_enter && d.state == fan::keyboard_state::press &&
-          window.key_pressed(fan::key_left_alt)) {
-        windowed = !windowed;
-        d.window->set_display_mode(windowed
-          ? fan::window_t::mode::windowed
-          : fan::window_t::mode::borderless);
-      }
-    });
-
-#if defined(FAN_2D)
-    mouse_move_handle = window.add_mouse_move_callback([](const fan::window_t::mouse_move_data_t& d) {
-      fan::graphics::g_shapes->vfi.feed_mouse_move(d.position);
-    });
-    text_callback_handle = window.add_text_callback([](const fan::window_t::text_data_t& d) {
-      fan::graphics::g_shapes->vfi.feed_text(d.character);
-    });
-#endif
+  void input_subsystem_t::remove_game_actions() {
+    for (const char* name : game_actions) {
+      input_action.remove(name);
+    }
   }
 
   void input_subsystem_t::destroy() {

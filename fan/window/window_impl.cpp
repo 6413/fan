@@ -784,6 +784,10 @@ namespace fan {
   }
 
   void window_t::set_windowed() {
+    if (compact) {
+      set_compact(false);
+      return;
+    }
     // back to the window as it was before borderless or full screen: its place, its size, maximized or not. It was
     // given its current size (the whole monitor) before
     if (windowed_saved && display_mode != (std::uint8_t)mode::windowed) {
@@ -834,10 +838,45 @@ namespace fan {
     display_mode = mode::windowed;
   }
 
+  void window_t::set_compact(bool on, fan::vec2i size) {
+    if (on == compact) {
+      return;
+    }
+    if (on) {
+      if (display_mode != (std::uint8_t)mode::windowed) {
+        set_windowed();
+      }
+      save_windowed_state();
+      if (windowed_maximized) {
+        glfwRestoreWindow(glfw_window);
+      }
+      compact = true;
+      glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, GLFW_FALSE);
+      glfwSetWindowAttrib(glfw_window, GLFW_FLOATING, GLFW_TRUE);
+      int wx = 0, wy = 0, ww = 0, wh = 0;
+      glfwGetMonitorWorkarea(get_current_monitor(), &wx, &wy, &ww, &wh);
+      size.x = std::min(size.x, ww);
+      size.y = std::min(size.y, wh);
+      int margin = 16;
+      glfwSetWindowMonitor(glfw_window, nullptr, wx + ww - size.x - margin, wy + wh - size.y - margin, size.x, size.y, GLFW_DONT_CARE);
+      return;
+    }
+    compact = false;
+    glfwSetWindowAttrib(glfw_window, GLFW_FLOATING, GLFW_FALSE);
+    glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, GLFW_TRUE);
+    if (windowed_saved) {
+      glfwSetWindowMonitor(glfw_window, nullptr, windowed_position.x, windowed_position.y, windowed_size.x, windowed_size.y, GLFW_DONT_CARE);
+      if (windowed_maximized) {
+        glfwMaximizeWindow(glfw_window);
+      }
+    }
+  }
+
   void window_t::set_fullscreen() {
     if (display_mode == (std::uint8_t)mode::fullscreen) {
       return;
     }
+    set_compact(false);
 
     save_windowed_state();
     GLFWmonitor* monitor = get_current_monitor();
@@ -862,6 +901,7 @@ namespace fan {
     if (display_mode == (std::uint8_t)mode::borderless) {
       return;
     }
+    set_compact(false);
 
     save_windowed_state();
     GLFWmonitor* monitor = get_current_monitor();

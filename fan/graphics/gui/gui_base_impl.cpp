@@ -1735,6 +1735,9 @@ namespace fan::graphics::gui {
   bool is_popup_open(str_view_t id) {
     return ImGui::IsPopupOpen(fan::ct_string(id));
   }
+  bool is_any_popup_open() {
+    return ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+  }
 
   void begin_disabled(bool disabled) { ImGui::BeginDisabled(disabled); }
   void end_disabled() { ImGui::EndDisabled(); }

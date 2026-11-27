@@ -435,6 +435,16 @@ namespace fan::graphics::gui {
   void keybind_menu_t::sync_from_input_action() {
     auto& actions = fan::graphics::ctx().input_action->input_actions;
 
+    // actions the program removed (a non-game dropping the game keys) leave the menu, and its saved keybinds
+    for (auto it = device_bindings.begin(); it != device_bindings.end();) {
+      if (actions.find(it->first) == actions.end()) {
+        it = device_bindings.erase(it);
+      }
+      else {
+        ++it;
+      }
+    }
+
     for (auto& [action_name, action_data] : actions) {
       if (device_bindings.find(action_name) != device_bindings.end()) continue;
 

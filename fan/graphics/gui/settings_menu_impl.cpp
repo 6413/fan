@@ -270,7 +270,7 @@ namespace fan::graphics::gui {
       if (window.is_minimized()) {
         return;
       }
-      if (window.display_mode != fan::window_t::mode::windowed) {
+      if (window.display_mode != fan::window_t::mode::windowed || window.compact) {
         on_window_resize(r.size);
         return;
       }
@@ -293,7 +293,7 @@ namespace fan::graphics::gui {
       [this](const auto& d) {
       // also while maximized: a maximized window moved to another monitor (Win+Shift+arrow) came back on the old
       // one, only its place before maximizing was kept. Maximizing again opens it on the monitor at this place
-      if (d.window->display_mode == fan::window_t::mode::windowed && !d.window->is_minimized()) {
+      if (d.window->display_mode == fan::window_t::mode::windowed && !d.window->compact && !d.window->is_minimized()) {
         config.display.window_position = d.position;
         mark_dirty();
       }
