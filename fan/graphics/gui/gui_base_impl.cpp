@@ -2068,6 +2068,21 @@ namespace fan::graphics::gui {
 
   void end_frame() {
     ImGui::EndFrame();
+    // two items with the same id (the red "conflicting ID" box): the window they are in goes to the log once per id,
+    // so a report says where to fix it
+    ImGuiContext& g = *GImGui;
+    if (g.FanConflictId != 0) {
+      static std::vector<ImGuiID> reported;
+      if (std::find(reported.begin(), reported.end(), g.FanConflictId) == reported.end()) {
+        reported.push_back(g.FanConflictId);
+        // to stdout: the app's log takes it from there
+        std::string line = std::string("gui: items with the same id ") + std::to_string(g.FanConflictId) + " in window \"" +
+          g.FanConflictWindow + "\"\n";
+        std::fputs(line.c_str(), stdout);
+        std::fflush(stdout);
+      }
+      g.FanConflictId = 0;
+    }
   }
 
   void render(

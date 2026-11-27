@@ -2298,6 +2298,9 @@ struct ImGuiContext
 
     // Item/widgets state and tracking information
     ImGuiID                 DebugDrawIdConflicts;               // Set when we detect multiple items with the same identifier
+    // [fan] the window the last conflicting items were added in, for a log line naming it (ImGui keeps only the id)
+    ImGuiID                 FanConflictId = 0;
+    char                    FanConflictWindow[256] = {};
     ImGuiID                 DebugHookIdInfo;                    // Will call core hooks: DebugHookIdInfo() from GetID functions, used by ID Stack Tool [next HoveredId/ActiveId to not pull in an extra cache-line]
     ImGuiID                 HoveredId;                          // Hovered widget, filled during the frame
     ImGuiID                 HoveredIdPreviousFrame;

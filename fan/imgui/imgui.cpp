@@ -4704,6 +4704,12 @@ bool ImGui::ItemHoverable(const ImRect& bb, ImGuiID id, ImGuiItemFlags item_flag
     if (id != 0 && g.HoveredIdPreviousFrame == id && (item_flags & ImGuiItemFlags_AllowDuplicateId) == 0)
     {
         g.HoveredIdPreviousFrameItemCount++;
+        // [fan] where the second item with this id was added
+        if (g.HoveredIdPreviousFrameItemCount >= 2 && g.FanConflictId != id)
+        {
+            g.FanConflictId = id;
+            ImStrncpy(g.FanConflictWindow, window->Name, IM_ARRAYSIZE(g.FanConflictWindow));
+        }
         if (g.DebugDrawIdConflicts == id)
             window->DrawList->AddRect(bb.Min - ImVec2(1,1), bb.Max + ImVec2(1,1), IM_COL32(255, 0, 0, 255), 0.0f, ImDrawFlags_None, 2.0f);
     }
