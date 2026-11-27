@@ -175,19 +175,53 @@ namespace fan {
       int result = av_hwdevice_ctx_init(gpu->device);
       if (result < 0) return fail("d3d11 device init failed", result);
 
-      gpu->frames = av_hwframe_ctx_alloc(gpu->device);
-      if (!gpu->frames) return fail("no d3d11 frame context");
-
-      auto* frames_ctx = reinterpret_cast<AVHWFramesContext*>(gpu->frames->data);
-      frames_ctx->format = AV_PIX_FMT_D3D11;
+      gpu->frames = nullptr;
       gpu->rgb = config.chroma_444 && config.codec != codec_config_t::AV1;
-      frames_ctx->sw_format = gpu->rgb ? AV_PIX_FMT_BGRA : AV_PIX_FMT_NV12;
-      frames_ctx->width = config.width;
-      frames_ctx->height = config.height;
-      frames_ctx->initial_pool_size = pool_size;
-      static_cast<AVD3D11VAFramesContext*>(frames_ctx->hwctx)->BindFlags = D3D11_BIND_RENDER_TARGET;
-      result = av_hwframe_ctx_init(gpu->frames);
-      if (result < 0) return fail("d3d11 frame init failed", result);
+      UINT nv12_support = 0, bgra_support = 0;
+      gpu_device_->CheckFormatSupport(DXGI_FORMAT_NV12, &nv12_support);
+      gpu_device_->CheckFormatSupport(DXGI_FORMAT_B8G8R8A8_UNORM, &bgra_support);
+      fan::print_impl("gpu input: format support NV12 " + std::to_string(nv12_support) +
+        ", BGRA " + std::to_string(bgra_support) + "\n");
+      // FFmpeg's D3D11 frame pool makes one array texture for all the surfaces. NV12 as a render target is what
+      // the video processor writes into, but some drivers only create it with other bind flags: try the combinations
+      auto try_frames = [&](UINT bind_flags, int pool_size, int& result) {
+        av_buffer_unref(&gpu->frames);
+        gpu->frames = av_hwframe_ctx_alloc(gpu->device);
+        if (!gpu->frames) {
+          result = -1;
+          return false;
+        }
+        auto* frames_ctx = reinterpret_cast<AVHWFramesContext*>(gpu->frames->data);
+        frames_ctx->format = AV_PIX_FMT_D3D11;
+        frames_ctx->sw_format = gpu->rgb ? AV_PIX_FMT_BGRA : AV_PIX_FMT_NV12;
+        frames_ctx->width = config.width;
+        frames_ctx->height = config.height;
+        frames_ctx->initial_pool_size = pool_size;
+        static_cast<AVD3D11VAFramesContext*>(frames_ctx->hwctx)->BindFlags = bind_flags;
+        result = av_hwframe_ctx_init(gpu->frames);
+        return result >= 0;
+      };
+      const UINT bind_options[] = {
+        D3D11_BIND_RENDER_TARGET | D3D11_BIND_DECODER,
+        D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,
+        D3D11_BIND_RENDER_TARGET,
+        0
+      };
+      bool frames_ok = false;
+      for (int pool : {pool_size, 8, 4}) {
+        for (UINT bind_flags : bind_options) {
+          if (try_frames(bind_flags, pool, result)) {
+            frames_ok = true;
+            break;
+          }
+          fan::print_impl("gpu input: frame init failed (bind " + std::to_string(bind_flags) +
+            ", pool " + std::to_string(pool) + ", " + std::to_string(result) + ")\n");
+        }
+        if (frames_ok) {
+          break;
+        }
+      }
+      if (!frames_ok) return fail("d3d11 frame init failed", result);
 
       gpu->d3d_device = gpu_device_;
       gpu->context = device_ctx->device_context;
