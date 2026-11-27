@@ -1462,7 +1462,9 @@ export namespace fan::graphics::gui {
     accent = accent ? accent : widget_palette.accent;
     accent_hover = accent_hover ? accent_hover : widget_palette.accent_hover;
     f32_t height = gui::get_frame_height();
-    f32_t width = gui::get_content_region_avail().x;
+    // a popup is 0 wide on the frame it opens: a 0 wide button is an ImGui assert, the crash on opening Phone upload.
+    // At least the label and the switch, the popup then grows to fit it
+    f32_t width = std::max(gui::get_content_region_avail().x, gui::calc_text_size(label).x + height * 2.f + 24.f);
     fan::vec2 at = gui::get_cursor_screen_pos();
     gui::push_id(label);
     bool clicked = gui::invisible_button("##switch", fan::vec2(width, height));
