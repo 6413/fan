@@ -36,6 +36,8 @@ namespace fan::graphics::wgc {
     capture::Direct3D11CaptureFramePool pool {nullptr};
     capture::GraphicsCaptureSession session {nullptr};
     winrt::Windows::Graphics::SizeInt32 pool_size {};
+    // the format the pool was made with: 16 bit float on an HDR monitor, 8 bit otherwise
+    winrt::Windows::Graphics::DirectX::DirectXPixelFormat format = winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized;
     // the frame last handed out: kept until the next take, so the pool doesn't write a new picture into its buffer
     // while the copy from it is still waiting on the GPU
     capture::Direct3D11CaptureFrame held {nullptr};
@@ -49,7 +51,7 @@ namespace fan::graphics::wgc {
     return texture;
   }
 
-  session_t* open(ID3D11Device* device, void* hwnd) {
+  session_t* open(ID3D11Device* device, void* hwnd, bool hdr) {
     if (!device || !hwnd) {
       return nullptr;
     }
@@ -75,8 +77,24 @@ namespace fan::graphics::wgc {
         winrt::put_abi(out->item)));
 
       out->pool_size = out->item.Size();
-      out->pool = capture::Direct3D11CaptureFramePool::CreateFreeThreaded(out->device,
-        winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized, 3, out->pool_size);
+      auto create_pool = [&](winrt::Windows::Graphics::DirectX::DirectXPixelFormat format) {
+        out->pool = capture::Direct3D11CaptureFramePool::CreateFreeThreaded(out->device, format, 3, out->pool_size);
+        out->format = format;
+      };
+      // an HDR window comes as linear 16 bit float (scRGB, 1.0 = 80 nits). Asking for 8 bit clips everything
+      // bright to white, which is what made window shares of HDR games look overexposed
+      if (hdr) {
+        try {
+          create_pool(winrt::Windows::Graphics::DirectX::DirectXPixelFormat::R16G16B16A16Float);
+        }
+        catch (...) {
+          out->pool = nullptr;
+          create_pool(winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized);
+        }
+      }
+      else {
+        create_pool(winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized);
+      }
       out->session = out->pool.CreateCaptureSession(out->item);
       // the sharer's pointer is drawn by the app itself, as with the whole screen; no yellow frame where Windows
       // lets it go (11 and later, the property is missing on older ones)
@@ -96,6 +114,10 @@ namespace fan::graphics::wgc {
     catch (...) {
       return nullptr;
     }
+  }
+
+  bool is_hdr(session_t* session) {
+    return session && session->format == winrt::Windows::Graphics::DirectX::DirectXPixelFormat::R16G16B16A16Float;
   }
 
   void close(session_t* session) {
@@ -170,8 +192,7 @@ namespace fan::graphics::wgc {
       // the window got another size: the pool makes its textures again, the next frames have it
       if (size.Width != session->pool_size.Width || size.Height != session->pool_size.Height) {
         session->pool_size = size;
-        session->pool.Recreate(session->device,
-          winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized, 3, size);
+        session->pool.Recreate(session->device, session->format, 3, size);
       }
       auto frame_texture = texture_of(newest.Surface());
       D3D11_TEXTURE2D_DESC desc;

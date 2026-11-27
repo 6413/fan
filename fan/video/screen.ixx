@@ -63,8 +63,8 @@ export namespace fan {
       // counts the capture devices made; the encoder reopens on the device of a new one
       std::atomic<std::uint64_t> device_generation {0};
 
-      // true while the captured screen is in HDR and its frames are tone mapped. hdr_exposure darkens (< 1) or
-      // brightens (> 1) them, set from any thread
+      // true while the captured screen or window is in HDR and its frames are tone mapped. hdr_exposure darkens
+      // (< 1) or brightens (> 1) them, set from any thread
       std::atomic<bool> hdr_active {false};
       std::atomic<f32_t> hdr_exposure {0.8f};
 
@@ -116,8 +116,8 @@ export namespace fan {
       void release_textures();
       void release_duplication();
 
-      // An HDR screen is captured in its own format (16 bit float, linear, 1.0 = 80 nits) and tone mapped on the gpu
-      // to the 8 bit picture the rest takes. The old way had Windows do it, which came out washed out
+      // An HDR screen or window is captured in its own format (16 bit float, linear, 1.0 = 80 nits) and tone mapped
+      // on the gpu to the 8 bit picture the rest takes. The old way had Windows do it, which came out washed out
       HRESULT duplicate();
       f32_t query_sdr_white_nits();
       bool create_tonemap();

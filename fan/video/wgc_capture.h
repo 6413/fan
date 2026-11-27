@@ -14,8 +14,12 @@ struct ID3D11Texture2D;
 namespace fan::graphics::wgc {
   struct session_t;
 
-  // capture of hwnd into textures of device, null when it can't be (old Windows, a window it refuses)
-  session_t* open(ID3D11Device* device, void* hwnd);
+  // capture of hwnd into textures of device, null when it can't be (old Windows, a window it refuses). hdr asks for
+  // 16 bit float frames (linear scRGB, 1.0 = 80 nits) for a window on an HDR monitor; where Windows can't give them
+  // it falls back to 8 bit, and is_hdr() is false
+  session_t* open(ID3D11Device* device, void* hwnd, bool hdr = false);
+  // the frames are 16 bit float and have to be tone mapped before they can be used as an 8 bit picture
+  bool is_hdr(session_t* session);
   void close(session_t* session);
   // the newest frame since the last call: its texture (a reference the caller releases) and the size of the
   // window's picture in it (the texture can be bigger). False when no new frame came

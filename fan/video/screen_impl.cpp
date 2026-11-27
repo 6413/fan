@@ -237,6 +237,80 @@ void fan::graphics::desktop_capture_t::release_window_buffer() {
   window_buffer_width = window_buffer_height = 0;
 }
 
+// How bright SDR white is on a monitor while it is in HDR (Settings > Display > HDR > SDR content brightness).
+// 1000 is 80 nits, so level / 1000 * 80 is the white the tone mapping puts at 1.0
+static f32_t query_sdr_white_nits_for_device(const wchar_t* device_name) {
+  UINT32 path_count = 0, mode_count = 0;
+  if (GetDisplayConfigBufferSizes(QDC_ONLY_ACTIVE_PATHS, &path_count, &mode_count) != ERROR_SUCCESS) {
+    return 200.f;
+  }
+  std::vector<DISPLAYCONFIG_PATH_INFO> paths(path_count);
+  std::vector<DISPLAYCONFIG_MODE_INFO> modes(mode_count);
+  if (QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS, &path_count, paths.data(), &mode_count, modes.data(), nullptr) != ERROR_SUCCESS) {
+    return 200.f;
+  }
+  // spelled out here, older SDK headers leave the SDR white level request out
+  struct sdr_white_level_t {
+    DISPLAYCONFIG_DEVICE_INFO_HEADER header;
+    ULONG level; // 1000 is 80 nits
+  };
+  for (UINT32 i = 0; i < path_count; ++i) {
+    DISPLAYCONFIG_SOURCE_DEVICE_NAME source {};
+    source.header.type = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME;
+    source.header.size = sizeof(source);
+    source.header.adapterId = paths[i].sourceInfo.adapterId;
+    source.header.id = paths[i].sourceInfo.id;
+    if (DisplayConfigGetDeviceInfo(&source.header) != ERROR_SUCCESS || std::wcscmp(source.viewGdiDeviceName, device_name) != 0) {
+      continue;
+    }
+    sdr_white_level_t white {};
+    white.header.type = (DISPLAYCONFIG_DEVICE_INFO_TYPE)11; // DISPLAYCONFIG_DEVICE_INFO_GET_SDR_WHITE_LEVEL
+    white.header.size = sizeof(white);
+    white.header.adapterId = paths[i].targetInfo.adapterId;
+    white.header.id = paths[i].targetInfo.id;
+    if (DisplayConfigGetDeviceInfo(&white.header) == ERROR_SUCCESS && white.level > 0) {
+      return white.level / 1000.f * 80.f;
+    }
+  }
+  return 200.f;
+}
+
+// Whether the monitor shows HDR, and the brightness range the tone mapping has to work with. A window on an HDR
+// monitor is captured in the monitor's own format, so unlike the whole screen there is no duplication to read it from
+static bool query_monitor_hdr(HMONITOR monitor, f32_t& sdr_white_nits, f32_t& peak_nits) {
+  IDXGIFactory1* factory = nullptr;
+  if (CreateDXGIFactory1(IID_PPV_ARGS(&factory)) != S_OK) {
+    return false;
+  }
+  bool hdr = false;
+  IDXGIAdapter1* adapter = nullptr;
+  for (UINT i = 0; !hdr && factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i) {
+    IDXGIOutput* out = nullptr;
+    for (UINT j = 0; !hdr && adapter->EnumOutputs(j, &out) != DXGI_ERROR_NOT_FOUND; ++j) {
+      DXGI_OUTPUT_DESC desc {};
+      if (out->GetDesc(&desc) == S_OK && desc.AttachedToDesktop && desc.Monitor == monitor) {
+        IDXGIOutput6* output6 = nullptr;
+        DXGI_OUTPUT_DESC1 desc1 {};
+        if (out->QueryInterface(IID_PPV_ARGS(&output6)) == S_OK) {
+          if (output6->GetDesc1(&desc1) == S_OK &&
+            (desc1.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 ||
+              desc1.ColorSpace == DXGI_COLOR_SPACE_RGB_STUDIO_G2084_NONE_P2020 ||
+              desc1.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709)) {
+            sdr_white_nits = query_sdr_white_nits_for_device(desc.DeviceName);
+            peak_nits = desc1.MaxLuminance > 100.f ? desc1.MaxLuminance : 1000.f;
+            hdr = true;
+          }
+          output6->Release();
+        }
+      }
+      out->Release();
+    }
+    adapter->Release();
+  }
+  factory->Release();
+  return hdr;
+}
+
 // One window instead of the monitor: PrintWindow asks the window itself to paint into a bitmap, so what covers it
 // doesn't show. The bitmap goes to the same texture the desktop frames use, the rest of the pipeline is the same
 bool fan::graphics::desktop_capture_t::acquire_window(std::uint32_t timeout_ms) {
@@ -256,11 +330,20 @@ bool fan::graphics::desktop_capture_t::acquire_window(std::uint32_t timeout_ms) 
   if ((std::uintptr_t)hwnd != wgc_refused_window) {
     if (!wgc_session || wgc_window != (std::uintptr_t)hwnd) {
       close_wgc();
-      wgc_session = fan::graphics::wgc::open(device, hwnd);
+      // an HDR monitor's window comes as 16 bit float (scRGB) and is tone mapped like the whole screen; asking
+      // Windows for 8 bit clips its highlights to white
+      f32_t white = 200.f, peak = 1000.f;
+      bool hdr = query_monitor_hdr(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), white, peak);
+      wgc_session = fan::graphics::wgc::open(device, hwnd, hdr);
       wgc_window = (std::uintptr_t)hwnd;
       if (!wgc_session) {
         wgc_refused_window = (std::uintptr_t)hwnd;
         fan::print_impl("window capture: Windows Graphics Capture can't take this window, using PrintWindow (slow for games)\n");
+      }
+      else if (fan::graphics::wgc::is_hdr((fan::graphics::wgc::session_t*)wgc_session)) {
+        sdr_white_nits = white;
+        peak_nits = peak;
+        fan::print_impl("window capture: Windows Graphics Capture (HDR, tone mapped)\n");
       }
       else {
         fan::print_impl("window capture: Windows Graphics Capture\n");
@@ -283,10 +366,19 @@ bool fan::graphics::desktop_capture_t::acquire_window(std::uint32_t timeout_ms) 
         ok = create_textures(width, height);
       }
       if (ok) {
-        D3D11_BOX box {0, 0, 0, width, height, 1};
-        context->CopySubresourceRegion(texture, 0, 0, 0, 0, frame, 0, &box);
-        hdr_active = false;
-        has_frame = true;
+        D3D11_TEXTURE2D_DESC frame_desc;
+        frame->GetDesc(&frame_desc);
+        if (frame_desc.Format == DXGI_FORMAT_R16G16B16A16_FLOAT) {
+          // linear 16 bit float, 1.0 = 80 nits: tone mapped to the 8 bit picture the rest takes
+          ok = tonemap_frame(frame, width, height);
+          hdr_active = ok;
+        }
+        else {
+          D3D11_BOX box {0, 0, 0, width, height, 1};
+          context->CopySubresourceRegion(texture, 0, 0, 0, 0, frame, 0, &box);
+          hdr_active = false;
+        }
+        has_frame |= ok;
       }
       frame->Release();
       return ok;
@@ -346,6 +438,7 @@ bool fan::graphics::desktop_capture_t::acquire_window(std::uint32_t timeout_ms) 
     }
   }
   context->UpdateSubresource(texture, 0, nullptr, window_bits, width * 4, 0);
+  hdr_active = false;
   has_frame = true;
   return true;
 }
@@ -390,39 +483,7 @@ f32_t fan::graphics::desktop_capture_t::query_sdr_white_nits() {
   if (output->GetDesc(&output_desc) != S_OK) {
     return 200.f;
   }
-  UINT32 path_count = 0, mode_count = 0;
-  if (GetDisplayConfigBufferSizes(QDC_ONLY_ACTIVE_PATHS, &path_count, &mode_count) != ERROR_SUCCESS) {
-    return 200.f;
-  }
-  std::vector<DISPLAYCONFIG_PATH_INFO> paths(path_count);
-  std::vector<DISPLAYCONFIG_MODE_INFO> modes(mode_count);
-  if (QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS, &path_count, paths.data(), &mode_count, modes.data(), nullptr) != ERROR_SUCCESS) {
-    return 200.f;
-  }
-  // spelled out here, older SDK headers leave the SDR white level request out
-  struct sdr_white_level_t {
-    DISPLAYCONFIG_DEVICE_INFO_HEADER header;
-    ULONG level; // 1000 is 80 nits
-  };
-  for (UINT32 i = 0; i < path_count; ++i) {
-    DISPLAYCONFIG_SOURCE_DEVICE_NAME source {};
-    source.header.type = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME;
-    source.header.size = sizeof(source);
-    source.header.adapterId = paths[i].sourceInfo.adapterId;
-    source.header.id = paths[i].sourceInfo.id;
-    if (DisplayConfigGetDeviceInfo(&source.header) != ERROR_SUCCESS || std::wcscmp(source.viewGdiDeviceName, output_desc.DeviceName) != 0) {
-      continue;
-    }
-    sdr_white_level_t white {};
-    white.header.type = (DISPLAYCONFIG_DEVICE_INFO_TYPE)11; // DISPLAYCONFIG_DEVICE_INFO_GET_SDR_WHITE_LEVEL
-    white.header.size = sizeof(white);
-    white.header.adapterId = paths[i].targetInfo.adapterId;
-    white.header.id = paths[i].targetInfo.id;
-    if (DisplayConfigGetDeviceInfo(&white.header) == ERROR_SUCCESS && white.level > 0) {
-      return white.level / 1000.f * 80.f;
-    }
-  }
-  return 200.f;
+  return query_sdr_white_nits_for_device(output_desc.DeviceName);
 }
 
 // one triangle over the whole picture. Each pixel: scaled so SDR white is 1.0, brighter parts rolled off softly
@@ -517,8 +578,10 @@ bool fan::graphics::desktop_capture_t::tonemap_frame(ID3D11Texture2D* desktop, s
     return false;
   }
 
-  // the duplicated frame can't be read by a shader, it is copied to one that can
-  context->CopyResource(hdr_texture, desktop);
+  // the duplicated frame can't be read by a shader, it is copied to one that can. A window's capture texture can be
+  // bigger than the window's picture, only its top left is the picture
+  D3D11_BOX box {0, 0, 0, width, height, 1};
+  context->CopySubresourceRegion(hdr_texture, 0, 0, 0, 0, desktop, 0, &box);
   f32_t exposure = std::clamp(hdr_exposure.load(), 0.2f, 2.f);
   f32_t white = std::max(sdr_white_nits, 1.f);
   const f32_t params[4] = {
