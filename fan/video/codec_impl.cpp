@@ -219,6 +219,24 @@ namespace fan {
           break;
         }
       }
+      // Some NVIDIA drivers refuse an NV12 texture array as a render target (E_INVALIDARG) while one texture of it is
+      // fine. A pool size of 0 makes FFmpeg skip the array and make a separate texture for each surface it hands out,
+      // the encoder registers each the same way
+      if (!frames_ok) {
+        for (UINT bind_flags : {(UINT)D3D11_BIND_RENDER_TARGET, (UINT)(D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE)}) {
+          if (try_frames(bind_flags, 0, result)) {
+            // the first surface is made on demand: one now shows whether the driver takes it
+            AVFrame* probe = av_frame_alloc();
+            bool made = probe && av_hwframe_get_buffer(gpu->frames, probe, 0) >= 0;
+            av_frame_free(&probe);
+            if (made) {
+              frames_ok = true;
+              fan::print_impl("gpu input: separate textures per frame (the driver refuses texture arrays)");
+              break;
+            }
+          }
+        }
+      }
       if (!frames_ok) {
         // FFmpeg only says "unknown": the driver's own answer for the same texture, and the size, say why
         D3D11_TEXTURE2D_DESC desc {};
