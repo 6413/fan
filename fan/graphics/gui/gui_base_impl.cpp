@@ -1891,8 +1891,10 @@ namespace fan::graphics::gui {
     }
   }
   void set_font_path(font::type_t type, const std::string& path) {
+    // empty: back to the font the engine ships (the paths' first values)
+    static const auto defaults = get_font_paths();
     if (type >= 0 && type < font::count) {
-      get_font_paths()[type] = path;
+      get_font_paths()[type] = path.empty() ? defaults[type] : path;
     }
   }
 
@@ -2085,6 +2087,15 @@ namespace fan::graphics::gui {
     load_font_family();
   }
 
+  static bool& fonts_reload_pending() {
+    static bool pending = false;
+    return pending;
+  }
+
+  void reload_fonts() {
+    fonts_reload_pending() = true;
+  }
+
   bool has_glyph(std::uint32_t codepoint) {
     ImFont* font = ImGui::GetFont();
     return font && font->FindGlyphNoFallback((ImWchar)codepoint) != nullptr;
@@ -2112,6 +2123,19 @@ namespace fan::graphics::gui {
   }
 
   void new_frame() {
+    // a font picked in the settings: the atlas is made again between frames (it can't change during one), and the
+    // Vulkan texture with it (that waits for the GPU to finish the frames still using the old one)
+    if (fonts_reload_pending()) {
+      fonts_reload_pending() = false;
+      auto& fonts = get_font_array();
+      for (auto& type : fonts) {
+        for (auto*& font : type) {
+          font = nullptr;   // the old ones go with the atlas; a font that fails to load must not point at them
+        }
+      }
+      load_font_family();
+      ImGui_ImplVulkan_CreateFontsTexture();
+    }
     ImGui_ImplGlfw_NewFrame();
     ImGui_ImplVulkan_NewFrame();
     ImGui::NewFrame();

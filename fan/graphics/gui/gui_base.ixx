@@ -68,6 +68,8 @@ export namespace fan::graphics::gui {
 
   // custom font files, picked by the app and loaded at the next init_fonts
   void set_font_path(font::type_t type, const std::string& path);
+  // loads the fonts again from the paths now set, before the next frame: a picked font shows at once
+  void reload_fonts();
   f32_t get_font_scale();
   void set_font_scale(f32_t scale);
 

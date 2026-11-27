@@ -923,6 +923,7 @@ namespace fan::graphics::gui {
     config.interface_.font_paths[type] = path;
     if (!path.empty()) {
       gui::set_font_path((gui::font::type_t)type, path);
+      gui::reload_fonts();
     }
     mark_dirty();
   }
@@ -976,13 +977,13 @@ namespace fan::graphics::gui {
         if (gui::button("Default")) {
           path.clear();
           gui::set_font_path((gui::font::type_t)t, std::string());
+          gui::reload_fonts();
           mark_dirty();
         }
       }
       gui::pop_id();
     }
     gui::end_table();
-    gui::text_disabled("A picked font loads when the program starts again.");
   }
 
   void settings_menu_t::render_separator_full_width(f32_t y_offset) {
