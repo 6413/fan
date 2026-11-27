@@ -485,6 +485,12 @@ export namespace fan {
 
     fan::vec2 drag_delta_start = -1;
     std::uint8_t display_mode = (std::uint8_t)mode::windowed;
+    // the window before borderless or full screen, what set_windowed() goes back to
+    bool windowed_saved = false;
+    bool windowed_maximized = false;
+    fan::vec2i windowed_position = 0;
+    fan::vec2i windowed_size = 0;
+    void save_windowed_state();
 
     std::uint32_t char_pressed = 0;
   };

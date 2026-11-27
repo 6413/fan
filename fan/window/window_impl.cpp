@@ -773,7 +773,28 @@ namespace fan {
     return { mode->width, mode->height };
   }
 
+  void window_t::save_windowed_state() {
+    if (display_mode != (std::uint8_t)mode::windowed) {
+      return;
+    }
+    windowed_maximized = glfwGetWindowAttrib(glfw_window, GLFW_MAXIMIZED) == GLFW_TRUE;
+    glfwGetWindowPos(glfw_window, &windowed_position.x, &windowed_position.y);
+    glfwGetWindowSize(glfw_window, &windowed_size.x, &windowed_size.y);
+    windowed_saved = windowed_size.x > 0 && windowed_size.y > 0;
+  }
+
   void window_t::set_windowed() {
+    // back to the window as it was before borderless or full screen: its place, its size, maximized or not. It was
+    // given its current size (the whole monitor) before
+    if (windowed_saved && display_mode != (std::uint8_t)mode::windowed) {
+      glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, GLFW_TRUE);
+      glfwSetWindowMonitor(glfw_window, nullptr, windowed_position.x, windowed_position.y, windowed_size.x, windowed_size.y, GLFW_DONT_CARE);
+      if (windowed_maximized) {
+        glfwMaximizeWindow(glfw_window);
+      }
+      display_mode = mode::windowed;
+      return;
+    }
     GLFWmonitor* m = get_current_monitor();
     const GLFWvidmode* vm = glfwGetVideoMode(m);
 
@@ -818,6 +839,7 @@ namespace fan {
       return;
     }
 
+    save_windowed_state();
     GLFWmonitor* monitor = get_current_monitor();
     const GLFWvidmode* vm = glfwGetVideoMode(monitor);
 
@@ -841,10 +863,20 @@ namespace fan {
       return;
     }
 
-    glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, GLFW_FALSE);
-
+    save_windowed_state();
     GLFWmonitor* monitor = get_current_monitor();
     const GLFWvidmode* vm = glfwGetVideoMode(monitor);
+
+  #if defined(fan_platform_unix)
+    // Linux: the window manager's own full screen, at the monitor's current mode (no mode switch). A window moved
+    // and sized to the monitor's pixels came out wrong: Wayland doesn't let a program place its window, and its
+    // sizes are scaled ones, so the picture was stretched or cut, and a maximized window kept its old size
+    if (windowed_maximized) {
+      glfwRestoreWindow(glfw_window);
+    }
+    glfwSetWindowMonitor(glfw_window, monitor, 0, 0, vm->width, vm->height, vm->refreshRate);
+  #else
+    glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, GLFW_FALSE);
 
     int mx, my;
     glfwGetMonitorPos(monitor, &mx, &my);
@@ -858,6 +890,7 @@ namespace fan {
       vm->height,
       vm->refreshRate
     );
+  #endif
 
 
     display_mode = (std::uint8_t)mode::borderless;
