@@ -17,6 +17,7 @@ extern "C" {
 #if defined(_WIN32)
   #include <WITCH/MD/SCR/SCR.h>
   #include <dxgi1_6.h>
+  #include "wgc_capture.h"
   #include <d3dcompiler.h>
   #pragma comment(lib, "d3dcompiler.lib")
   #define VK_USE_PLATFORM_WIN32_KHR
@@ -194,7 +195,16 @@ bool fan::graphics::desktop_capture_t::open() {
   return true;
 }
 
+void fan::graphics::desktop_capture_t::close_wgc() {
+  if (wgc_session) {
+    fan::graphics::wgc::close((fan::graphics::wgc::session_t*)wgc_session);
+    wgc_session = nullptr;
+  }
+  wgc_window = 0;
+}
+
 void fan::graphics::desktop_capture_t::close() {
+  close_wgc();
   if (context) {
     release_textures();
   }
@@ -228,9 +238,52 @@ bool fan::graphics::desktop_capture_t::acquire_window(std::uint32_t timeout_ms) 
     target_window_closed = true;
     target_window = 0;
     release_window_buffer();
+    close_wgc();
     return false;
   }
   target_window_closed = false;
+
+  // Windows Graphics Capture first: the window's frames on the GPU at its own rate (a game in a window came out at
+  // about 5 frames a second through PrintWindow). A window it can't open goes on with PrintWindow below
+  if ((std::uintptr_t)hwnd != wgc_refused_window) {
+    if (!wgc_session || wgc_window != (std::uintptr_t)hwnd) {
+      close_wgc();
+      wgc_session = fan::graphics::wgc::open(device, hwnd);
+      wgc_window = (std::uintptr_t)hwnd;
+      if (!wgc_session) {
+        wgc_refused_window = (std::uintptr_t)hwnd;
+        fan::print_impl("window capture: Windows Graphics Capture can't take this window, using PrintWindow (slow for games)\n");
+      }
+      else {
+        fan::print_impl("window capture: Windows Graphics Capture\n");
+      }
+    }
+    if (wgc_session) {
+      std::int32_t origin_x = 0, origin_y = 0;
+      if (fan::graphics::wgc::visible_origin(hwnd, origin_x, origin_y)) {
+        desktop_origin = fan::vec2i(origin_x, origin_y);
+      }
+      ID3D11Texture2D* frame = nullptr;
+      std::uint32_t width = 0, height = 0;
+      if (!fan::graphics::wgc::take((fan::graphics::wgc::session_t*)wgc_session, &frame, width, height)) {
+        // nothing new yet: the encode loop asks again, a short rest keeps this from spinning
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        return false;
+      }
+      bool ok = width >= 16 && height >= 16;
+      if (ok && (Geometry.Resolution.x != width || Geometry.Resolution.y != height)) {
+        ok = create_textures(width, height);
+      }
+      if (ok) {
+        D3D11_BOX box {0, 0, 0, width, height, 1};
+        context->CopySubresourceRegion(texture, 0, 0, 0, 0, frame, 0, &box);
+        hdr_active = false;
+        has_frame = true;
+      }
+      frame->Release();
+      return ok;
+    }
+  }
   // no wait here: the encode loop paces the frames, a wait on top of it halved the rate
   (void)timeout_ms;
   RECT rect;
@@ -565,6 +618,10 @@ bool fan::graphics::desktop_capture_t::acquire(std::uint32_t timeout_ms) {
     }
     release_com(duplication);
     return acquire_window(timeout_ms);
+  }
+  // the whole screen again: the window's capture session isn't needed
+  if (wgc_session) {
+    close_wgc();
   }
   if (capturing_window != 0) {
     capturing_window = 0;

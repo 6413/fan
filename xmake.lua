@@ -876,6 +876,8 @@ if has_config("FAN_2D") then
   end
 
   for _, f in ipairs(impl_files) do add_files(f) end
+  -- Windows Graphics Capture of a shared window (a plain source file, not a module)
+  if is_plat("windows") then add_files("fan/video/wgc_capture.cpp") end
 
 
   set_policy("check.auto_ignore_flags", false)

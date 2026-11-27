@@ -100,6 +100,12 @@ export namespace fan {
     private:
       bool acquire_window(std::uint32_t timeout_ms);
       void release_window_buffer();
+      // Windows Graphics Capture of the shared window (wgc_capture.h), and the window it couldn't be opened for
+      // (that one goes on with PrintWindow)
+      void* wgc_session = nullptr;
+      std::uintptr_t wgc_window = 0;
+      std::uintptr_t wgc_refused_window = 0;
+      void close_wgc();
       void* window_dc = nullptr;
       void* window_bitmap = nullptr;
       void* window_old_bitmap = nullptr;
