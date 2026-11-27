@@ -36,6 +36,9 @@ namespace fan::graphics::wgc {
     capture::Direct3D11CaptureFramePool pool {nullptr};
     capture::GraphicsCaptureSession session {nullptr};
     winrt::Windows::Graphics::SizeInt32 pool_size {};
+    // the frame last handed out: kept until the next take, so the pool doesn't write a new picture into its buffer
+    // while the copy from it is still waiting on the GPU
+    capture::Direct3D11CaptureFrame held {nullptr};
   };
 
   // the texture inside a frame's surface
@@ -73,7 +76,7 @@ namespace fan::graphics::wgc {
 
       out->pool_size = out->item.Size();
       out->pool = capture::Direct3D11CaptureFramePool::CreateFreeThreaded(out->device,
-        winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized, 2, out->pool_size);
+        winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized, 3, out->pool_size);
       out->session = out->pool.CreateCaptureSession(out->item);
       // the sharer's pointer is drawn by the app itself, as with the whole screen; no yellow frame where Windows
       // lets it go (11 and later, the property is missing on older ones)
@@ -100,6 +103,10 @@ namespace fan::graphics::wgc {
       return;
     }
     try {
+      if (session->held) {
+        session->held.Close();
+        session->held = nullptr;
+      }
       if (session->session) {
         session->session.Close();
       }
@@ -126,6 +133,23 @@ namespace fan::graphics::wgc {
     return false;
   }
 
+  const char* raise_gpu_priority(ID3D11Device* device) {
+    bool thread = false;
+    winrt::com_ptr<IDXGIDevice> dxgi;
+    if (device && SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(dxgi.put())))) {
+      thread = SUCCEEDED(dxgi->SetGPUThreadPriority(7));
+    }
+    // the process's class in the GPU scheduler: HIGH needs no administrator, REALTIME would
+    using set_class_t = LONG(APIENTRY*)(HANDLE, int);
+    bool process = false;
+    if (HMODULE gdi = GetModuleHandleW(L"gdi32.dll")) {
+      if (auto set_class = (set_class_t)GetProcAddress(gdi, "D3DKMTSetProcessSchedulingPriorityClass")) {
+        process = set_class(GetCurrentProcess(), 4 /* D3DKMT_SCHEDULINGPRIORITYCLASS_HIGH */) == 0;
+      }
+    }
+    return thread && process ? "high (process and device)" : process ? "high (process)" : thread ? "high (device)" : "normal (could not raise)";
+  }
+
   bool take(session_t* session, ID3D11Texture2D** texture, std::uint32_t& width, std::uint32_t& height) {
     if (!session || !texture) {
       return false;
@@ -147,7 +171,7 @@ namespace fan::graphics::wgc {
       if (size.Width != session->pool_size.Width || size.Height != session->pool_size.Height) {
         session->pool_size = size;
         session->pool.Recreate(session->device,
-          winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized, 2, size);
+          winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized, 3, size);
       }
       auto frame_texture = texture_of(newest.Surface());
       D3D11_TEXTURE2D_DESC desc;
@@ -155,6 +179,11 @@ namespace fan::graphics::wgc {
       width = (std::uint32_t)std::min<std::int32_t>(size.Width, (std::int32_t)desc.Width);
       height = (std::uint32_t)std::min<std::int32_t>(size.Height, (std::int32_t)desc.Height);
       *texture = frame_texture.detach();
+      // the one before goes back to the pool now, this one when the next comes
+      if (session->held) {
+        session->held.Close();
+      }
+      session->held = newest;
       return true;
     }
     catch (...) {

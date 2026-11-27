@@ -168,6 +168,14 @@ bool fan::graphics::desktop_capture_t::open() {
       nullptr, 0, D3D11_SDK_VERSION, &device, nullptr, &context);
   }
   adapter->Release();
+  if (result == S_OK) {
+    static bool logged = false;
+    const char* priority = fan::graphics::wgc::raise_gpu_priority(device);
+    if (!logged) {
+      logged = true;
+      fan::print_impl(std::string("capture: GPU priority ") + priority + "\n");
+    }
+  }
 
   DXGI_OUTPUT_DESC output_desc {};
   bool ok = result == S_OK &&

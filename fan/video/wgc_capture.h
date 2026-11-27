@@ -23,6 +23,10 @@ namespace fan::graphics::wgc {
   // the top left of what the capture shows of hwnd, on the desktop: the visible frame, without the invisible resize
   // borders GetWindowRect counts (about 7 pixels at the sides and bottom), so the pointer drawn over it lines up
   bool visible_origin(void* hwnd, std::int32_t& x, std::int32_t& y);
+  // Puts this process's GPU work ahead of other programs', as OBS does: a game keeping the GPU near 100% left the
+  // capture copy and the encoder waiting behind its frames (encoding took 15 ms instead of about 3), and the stream
+  // stuttered and froze. Returns what could be raised, for the log
+  const char* raise_gpu_priority(ID3D11Device* device);
 }
 
 #endif
