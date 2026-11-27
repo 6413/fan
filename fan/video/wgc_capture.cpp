@@ -108,6 +108,14 @@ namespace fan::graphics::wgc {
         }
         catch (...) {}
       }
+      // Windows 11: without this the compositor can hold frames back to about 60 a second, and a 60 fps stream then
+      // misses the frame it needed in a slow encode pass. 4 ms (250 Hz) leaves the window's own rate the limit
+      if (metadata::IsPropertyPresent(L"Windows.Graphics.Capture.GraphicsCaptureSession", L"MinUpdateInterval")) {
+        try {
+          out->session.MinUpdateInterval(winrt::Windows::Foundation::TimeSpan{ 40000 });
+        }
+        catch (...) {}
+      }
       out->session.StartCapture();
       return out;
     }

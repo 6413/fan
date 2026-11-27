@@ -275,7 +275,7 @@ export namespace fan {
       }
 
       bool find_and_init_codec(encoder_state_t* encoder, const codec_config_t& config);
-      bool open_codec(encoder_state_t* encoder, const codec_config_t& config, const std::string& name, bool use_gpu, bool low_power = false, bool intra_refresh = true);
+      bool open_codec(encoder_state_t* encoder, const codec_config_t& config, const std::string& name, bool use_gpu, bool low_power = false, bool intra_refresh = true, bool basic = false);
       static bool open_vaapi_frames(encoder_state_t* encoder, const codec_config_t& config);
       // the format the cpu writes into, the codec's own format is a gpu surface for vaapi
       static AVPixelFormat cpu_pixel_format(const encoder_state_t* encoder) {

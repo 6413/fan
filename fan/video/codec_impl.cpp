@@ -437,8 +437,17 @@ namespace fan {
         encoder->codec_name = name;
 
       #if defined(_WIN32)
-        if (gpu_device_ && name.find("nvenc") != std::string::npos && open_codec(encoder, config, name, true)) {
-          return true;
+        if (gpu_device_ && name.find("nvenc") != std::string::npos) {
+          if (open_codec(encoder, config, name, true)) {
+            return true;
+          }
+          // the capture's texture stays on the gpu, which is several ms cheaper per frame than a readback. A driver
+          // that refuses one of the tuning options still takes the frames with the basic set
+          fan::print_impl("nvenc gpu input failed for " + name + ", trying the basic options\n");
+          if (open_codec(encoder, config, name, true, false, false, true)) {
+            return true;
+          }
+          fan::print_impl("nvenc gpu input failed for " + name + ", using cpu input\n");
         }
       #endif
         if (name.find("vaapi") != std::string::npos) {
@@ -493,7 +502,7 @@ namespace fan {
       return encoder->codec_ctx->hw_frames_ctx != nullptr;
     }
 
-    bool libav_encoder_t::open_codec(encoder_state_t* encoder, const codec_config_t& config, const std::string& name, bool use_gpu, bool low_power, bool intra_refresh) {
+    bool libav_encoder_t::open_codec(encoder_state_t* encoder, const codec_config_t& config, const std::string& name, bool use_gpu, bool low_power, bool intra_refresh, bool basic) {
       encoder->codec_ctx = avcodec_alloc_context3(encoder->codec);
       if (!encoder->codec_ctx) return false;
       encoder->intra_refresh = false;
@@ -539,8 +548,9 @@ namespace fan {
         encoder->codec_ctx->rc_min_rate = config.bitrate;
 
         // p1 is the fastest and the blockiest. The encoder is its own chip with room to spare at these rates, so a
-        // slower preset costs no frames: p4 up to 60 fps, p3 up to 120, p2 above (4k at 144 still keeps up)
-        av_opt_set(options, "preset", config.frame_rate <= 60 ? "p4" : config.frame_rate <= 120 ? "p3" : "p2", 0);
+        // slower preset costs no frames: p4 up to 60 fps, p3 up to 120, p2 above (4k at 144 still keeps up).
+        // basic is the retry after the full option set was refused: p2 and nothing that a driver might not know
+        av_opt_set(options, "preset", basic ? "p2" : config.frame_rate <= 60 ? "p4" : config.frame_rate <= 120 ? "p3" : "p2", 0);
         av_opt_set(options, "tune", "ll", 0);
         // 4:4:4 from the BGRA surfaces (open_gpu_state): NVENC converts them itself, with the profile that carries it
         if (config.chroma_444 && config.codec != codec_config_t::AV1 && use_gpu) {
@@ -551,27 +561,29 @@ namespace fan {
         // frames come out as they are encoded. A delay of n holds n frames back, at 60 fps 2 of them were 33 ms
         av_opt_set_int(options, "delay", 0, 0);
         // several slices let a software decoder use its threads inside one frame, see find_and_init_sw_decoder
-        if (config.codec != codec_config_t::AV1) {
+        if (!basic && config.codec != codec_config_t::AV1) {
           encoder->codec_ctx->slices = 4;
         }
-        av_opt_set_int(options, "async_depth", 8, 0);
+        av_opt_set_int(options, "async_depth", basic ? 4 : 8, 0);
         av_opt_set_int(options, "zerolatency", 0, 0);
 
-        av_opt_set_int(options, "surfaces", config.frame_rate >= 144 ? 48 : config.frame_rate >= 120 ? 40 : 32, 0);
+        av_opt_set_int(options, "surfaces", basic ? 16 : config.frame_rate >= 144 ? 48 : config.frame_rate >= 120 ? 40 : 32, 0);
         av_opt_set_int(options, "bf", 0, 0);
 
-        // spatial AQ gives dark and flat parts (shade, sky, fog) more bits; without it they broke into squares first
-        av_opt_set(options, "spatial_aq", "1", 0);
-        // HEVC and AV1: a quick look at the frame at quarter size first spreads the bits better (sharper text and
-        // edges for the same bitrate). On the encoder chip, a frame's encode takes a little longer, no frame later
-        if (config.codec != codec_config_t::H264) {
-          av_opt_set(options, "multipass", "qres", 0);
+        if (!basic) {
+          // spatial AQ gives dark and flat parts (shade, sky, fog) more bits; without it they broke into squares first
+          av_opt_set(options, "spatial_aq", "1", 0);
+          // HEVC and AV1: a quick look at the frame at quarter size first spreads the bits better (sharper text and
+          // edges for the same bitrate). On the encoder chip, a frame's encode takes a little longer, no frame later
+          if (config.codec != codec_config_t::H264) {
+            av_opt_set(options, "multipass", "qres", 0);
+          }
+          av_opt_set_int(options, "aq-strength", 8, 0);
+          av_opt_set(options, "temporal_aq", "0", 0);
+          av_opt_set_int(options, "lookahead_depth", 0, 0);
+          av_opt_set_int(options, "rc_lookahead", 0, 0);
+          av_opt_set(options, "gpu", 0, 0);
         }
-        av_opt_set_int(options, "aq-strength", 8, 0);
-        av_opt_set(options, "temporal_aq", "0", 0);
-        av_opt_set_int(options, "lookahead_depth", 0, 0);
-        av_opt_set_int(options, "rc_lookahead", 0, 0);
-        av_opt_set(options, "gpu", 0, 0);
 
         av_opt_set_int(options, "strict_gop", 1, 0);
         // without this a requested keyframe is an intra frame that a viewer can't start from
@@ -581,10 +593,10 @@ namespace fan {
         // over the next frames, a short hitch every two seconds. Intra refresh renews the picture a part at a time
         // over the gop instead, every frame about the same size. Keyframes then come only when asked for (a viewer
         // starting, or one that lost a frame). Not every GPU has it, the open is tried again without
-        if (intra_refresh) {
+        if (intra_refresh && !basic) {
           av_opt_set_int(options, "intra-refresh", 1, 0);
+          encoder->intra_refresh = true;
         }
-        encoder->intra_refresh = intra_refresh;
 
         switch (config.rate_control) {
         case codec_config_t::CBR: av_opt_set(options, "rc", "cbr", 0); break;
@@ -621,7 +633,17 @@ namespace fan {
         }
       }
 
+      // the gpu converter writes bt.601 limited range (nv12.frag), and so does swscale on the cpu path. Saying so in
+      // the bitstream keeps a decoder from guessing bt.709 for 1080p, which came out darker and yellow
+      encoder->codec_ctx->colorspace = AVCOL_SPC_BT470BG;
+      encoder->codec_ctx->color_primaries = AVCOL_PRI_BT709;
+      encoder->codec_ctx->color_trc = AVCOL_TRC_BT709;
+      encoder->codec_ctx->color_range = AVCOL_RANGE_MPEG;
+
       if (avcodec_open2(encoder->codec_ctx, encoder->codec, nullptr) == 0) {
+        if (name.find("nvenc") != std::string::npos) {
+          fan::print_impl("encoder: " + name + (encoder->gpu ? " (gpu frames)" : " (cpu frames)") + "\n");
+        }
         return true;
 
       }
