@@ -174,7 +174,7 @@ bool fan::graphics::desktop_capture_t::open() {
     const char* priority = fan::graphics::wgc::raise_gpu_priority(device);
     if (!logged) {
       logged = true;
-      fan::print_impl(std::string("capture: GPU priority ") + priority + "\n");
+      fan::print_impl(std::string("capture: GPU priority ") + priority);
     }
   }
 
@@ -339,15 +339,15 @@ bool fan::graphics::desktop_capture_t::acquire_window(std::uint32_t timeout_ms) 
       wgc_window = (std::uintptr_t)hwnd;
       if (!wgc_session) {
         wgc_refused_window = (std::uintptr_t)hwnd;
-        fan::print_impl("window capture: Windows Graphics Capture can't take this window, using PrintWindow (slow for games)\n");
+        fan::print_impl("window capture: Windows Graphics Capture can't take this window, using PrintWindow (slow for games)");
       }
       else if (fan::graphics::wgc::is_hdr((fan::graphics::wgc::session_t*)wgc_session)) {
         sdr_white_nits = white;
         peak_nits = peak;
-        fan::print_impl("window capture: Windows Graphics Capture (HDR, tone mapped)\n");
+        fan::print_impl("window capture: Windows Graphics Capture (HDR, tone mapped)");
       }
       else {
-        fan::print_impl("window capture: Windows Graphics Capture\n");
+        fan::print_impl("window capture: Windows Graphics Capture");
       }
     }
     if (wgc_session) {

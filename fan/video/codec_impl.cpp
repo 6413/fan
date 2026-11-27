@@ -162,7 +162,7 @@ namespace fan {
       constexpr int pool_size = 12;
 
       auto fail = [](const char* step, int result = 0) {
-        fan::print_impl("gpu input: " + std::string(step) + (result ? " (" + std::to_string(result) + ")" : "") + "\n");
+        fan::print_impl("gpu input: " + std::string(step) + (result ? " (" + std::to_string(result) + ")" : ""));
         return false;
       };
       auto gpu = std::make_unique<gpu_state_t>();
@@ -181,7 +181,7 @@ namespace fan {
       gpu_device_->CheckFormatSupport(DXGI_FORMAT_NV12, &nv12_support);
       gpu_device_->CheckFormatSupport(DXGI_FORMAT_B8G8R8A8_UNORM, &bgra_support);
       fan::print_impl("gpu input: format support NV12 " + std::to_string(nv12_support) +
-        ", BGRA " + std::to_string(bgra_support) + "\n");
+        ", BGRA " + std::to_string(bgra_support));
       // FFmpeg's D3D11 frame pool makes one array texture for all the surfaces. NV12 as a render target is what
       // the video processor writes into, but some drivers only create it with other bind flags: try the combinations
       auto try_frames = [&](UINT bind_flags, int pool_size, int& result) {
@@ -214,14 +214,33 @@ namespace fan {
             frames_ok = true;
             break;
           }
-          fan::print_impl("gpu input: frame init failed (bind " + std::to_string(bind_flags) +
-            ", pool " + std::to_string(pool) + ", " + std::to_string(result) + ")\n");
         }
         if (frames_ok) {
           break;
         }
       }
-      if (!frames_ok) return fail("d3d11 frame init failed", result);
+      if (!frames_ok) {
+        // FFmpeg only says "unknown": the driver's own answer for the same texture, and the size, say why
+        D3D11_TEXTURE2D_DESC desc {};
+        desc.Width = (UINT)config.width;
+        desc.Height = (UINT)config.height;
+        desc.MipLevels = 1;
+        desc.ArraySize = 4;
+        desc.Format = gpu->rgb ? DXGI_FORMAT_B8G8R8A8_UNORM : DXGI_FORMAT_NV12;
+        desc.SampleDesc.Count = 1;
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.BindFlags = D3D11_BIND_RENDER_TARGET;
+        ComPtr<ID3D11Texture2D> test;
+        HRESULT array_hr = gpu_device_->CreateTexture2D(&desc, nullptr, &test);
+        test.Reset();
+        desc.ArraySize = 1;
+        HRESULT single_hr = gpu_device_->CreateTexture2D(&desc, nullptr, &test);
+        char text[160];
+        std::snprintf(text, sizeof(text), "gpu input: no frame pool for %dx%d (array 0x%08lx, single 0x%08lx), using cpu frames",
+          (int)config.width, (int)config.height, (unsigned long)array_hr, (unsigned long)single_hr);
+        fan::print_impl(text);
+        return false;
+      }
 
       gpu->d3d_device = gpu_device_;
       gpu->context = device_ctx->device_context;
@@ -483,11 +502,11 @@ namespace fan {
           }
           // the capture's texture stays on the gpu, which is several ms cheaper per frame than a readback. A driver
           // that refuses one of the tuning options still takes the frames with the basic set
-          fan::print_impl("nvenc gpu input failed for " + name + ", trying the basic options\n");
+          fan::print_impl("nvenc gpu input failed for " + name + ", trying the basic options");
           if (open_codec(encoder, config, name, true, false, false, true)) {
             return true;
           }
-          fan::print_impl("nvenc gpu input failed for " + name + ", using cpu input\n");
+          fan::print_impl("nvenc gpu input failed for " + name + ", using cpu input");
         }
       #endif
         if (name.find("vaapi") != std::string::npos) {
@@ -514,7 +533,7 @@ namespace fan {
       // No encoder of this codec opened: AV1 or HEVC on a card without it, and this FFmpeg has no CPU encoder of
       // either. H.264, which every card and x264 have, instead of no stream at all
       if (config.codec != codec_config_t::H264) {
-        fan::print_impl("no encoder for the chosen codec opened, using H.264\n");
+        fan::print_impl("no encoder for the chosen codec opened, using H.264");
         codec_config_t fallback = config;
         fallback.codec = codec_config_t::H264;
         return find_and_init_codec(encoder, fallback);
@@ -683,12 +702,12 @@ namespace fan {
       int open_result = avcodec_open2(encoder->codec_ctx, encoder->codec, nullptr);
       if (open_result == 0) {
         if (name.find("nvenc") != std::string::npos) {
-          fan::print_impl("encoder: " + name + (encoder->gpu ? " (gpu frames)" : " (cpu frames)") + "\n");
+          fan::print_impl("encoder: " + name + (encoder->gpu ? " (gpu frames)" : " (cpu frames)"));
         }
         return true;
 
       }
-      fan::print_impl("encoder open failed: " + name + (use_gpu ? " gpu" : " cpu") + " (" + std::to_string(open_result) + ")\n");
+      fan::print_impl("encoder open failed: " + name + (use_gpu ? " gpu" : " cpu") + " (" + std::to_string(open_result) + ")");
 
       avcodec_free_context(&encoder->codec_ctx);
       if (encoder->hw_frames_ctx) av_buffer_unref(&encoder->hw_frames_ctx);
@@ -702,8 +721,13 @@ namespace fan {
 
     }
 
-    bool libav_encoder_t::init_encoder_state(encoder_state_t* encoder, const codec_config_t& config, const fan::vec2& screencap_res) {
+    bool libav_encoder_t::init_encoder_state(encoder_state_t* encoder, const codec_config_t& config_in, const fan::vec2& screencap_res) {
       cleanup_encoder_state(encoder);
+      // 4:2:0 (NV12) is made of 2x2 blocks: an odd size, which a shared window easily has (1919x1037), can't be a GPU
+      // input texture at all, every frame init failed and the frames went through the CPU. The picture is scaled to one pixel less instead
+      codec_config_t config = config_in;
+      config.width = std::max<decltype(config.width)>(2, config.width & ~(decltype(config.width))1);
+      config.height = std::max<decltype(config.height)>(2, config.height & ~(decltype(config.height))1);
 
       encoder->config = config;
       encoder->screencap_res = screencap_res.x > 0 ? screencap_res : fan::vec2 {config.width, config.height};
@@ -1016,6 +1040,10 @@ namespace fan {
           codec_ctx_->thread_count = 1;
         }
 
+        // the packets carry no real clock, only an order: said here, the cuvid decoders stop warning
+        // "Invalid pkt_timebase, passing timestamps as-is" on every open
+        codec_ctx_->pkt_timebase = AVRational {1, 1000};
+
         // a driver that hangs in the open leaves this thread running after the timeout below,
         // so everything it touches has to outlive this scope
         struct open_state_t {
@@ -1094,7 +1122,7 @@ namespace fan {
         bool h264_sps = start_code && (data[nal] & 0x1F) == 7 && (data[nal] & 0x80) == 0;
         bool sure = (seen == "av1" && !start_code) || seen == "hevc" || (seen == "h264" && (current_codec_ == "av1" ? start_code : h264_sps));
         if (sure && seen != current_codec_) {
-          fan::print_impl("the stream changed codec: " + current_codec_ + " -> " + seen + "\n");
+          fan::print_impl("the stream changed codec: " + current_codec_ + " -> " + seen);
           if (codec_ctx_->hw_device_ctx) av_buffer_unref(&codec_ctx_->hw_device_ctx);
           avcodec_free_context(&codec_ctx_);
           codec_ = nullptr;
