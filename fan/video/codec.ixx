@@ -165,6 +165,9 @@ export namespace fan {
         AVHWDeviceType hw_type = AV_HWDEVICE_TYPE_NONE;
         fan::vec2 screencap_res;
         codec_config_t config;
+        // the settings it was asked to open with (config above has the size made even): a reopen asked for with
+        // the same ones changes nothing and is skipped
+        codec_config_t requested;
         gpu_state_t* gpu = nullptr;
         // the picture is refreshed a column at a time over the gop instead of in one big keyframe
         bool intra_refresh = false;

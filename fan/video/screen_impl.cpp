@@ -1392,6 +1392,45 @@ bool fan::graphics::screen_encode_t::encode_write() {
 
       }
     }
+    // A full reopen asked for: only when a setting the open encoder was made with really differs. A reopen with the
+    // same settings (every few seconds while sharing, nothing changed by hand) started the stream over each time and
+    // broke the viewers' hardware decoders: the picture flickered. Bitrate and frame rate change on the open encoder
+    if (update_flags & codec_update_e::codec) {
+      auto* open_state = encoder_.active_encoder_.load();
+      if (open_state && open_state->initialized && !encoder_.needs_codec_reinit_.load()) {
+        const codec_config_t& was = open_state->requested;
+        std::string changed;
+        auto note = [&](bool differs, const std::string& what) {
+          if (differs) {
+            changed += (changed.empty() ? "" : ", ") + what;
+          }
+        };
+        note(was.codec != config_.codec, "codec " + std::to_string((int)was.codec) + " -> " + std::to_string((int)config_.codec));
+        note(was.width != config_.width || was.height != config_.height, "size " + std::to_string(was.width) + "x" +
+          std::to_string(was.height) + " -> " + std::to_string(config_.width) + "x" + std::to_string(config_.height));
+        note(was.chroma_444 != config_.chroma_444, std::string("4:4:4 ") + (config_.chroma_444 ? "on" : "off"));
+        note(was.rate_control != config_.rate_control, "rate control " + std::to_string((int)was.rate_control) + " -> " +
+          std::to_string((int)config_.rate_control));
+        note(config_.rate_control == codec_config_t::CRF && was.crf_value != config_.crf_value, "quality " +
+          std::to_string(was.crf_value) + " -> " + std::to_string(config_.crf_value));
+        note(was.software_only != config_.software_only, std::string("encode on ") + (config_.software_only ? "the CPU" : "the GPU"));
+        note(was.use_hardware != config_.use_hardware, "hardware use");
+        note(was.gop_size != config_.gop_size, "keyframe interval");
+        if (changed.empty()) {
+          update_flags &= ~codec_update_e::codec;
+          if (was.bitrate != config_.bitrate) {
+            update_flags |= codec_update_e::rate_control;
+          }
+          if (was.frame_rate != config_.frame_rate) {
+            update_flags |= codec_update_e::frame_rate;
+          }
+          fan::print_impl("encoder: a reopen was asked for with the same settings, the open one is kept");
+        }
+        else {
+          fan::print_impl("encoder: opening again, changed: " + changed);
+        }
+      }
+    }
     if (update_flags & ~codec_update_e::scaling_quality) {
       encoder_.update_config(config_, update_flags & ~codec_update_e::scaling_quality);
 

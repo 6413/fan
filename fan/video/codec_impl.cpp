@@ -748,6 +748,7 @@ namespace fan {
       config.height = std::max<decltype(config.height)>(2, config.height & ~(decltype(config.height))1);
 
       encoder->config = config;
+      encoder->requested = config_in;
       encoder->screencap_res = screencap_res.x > 0 ? screencap_res : fan::vec2 {config.width, config.height};
 
       init_hardware_acceleration(encoder, config);
