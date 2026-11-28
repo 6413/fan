@@ -334,6 +334,9 @@ export namespace fan {
           initialized_ = true;
 
           codec_name_ = encoder->codec_name;
+          // opened with the newest settings: a reopen asked for before (a codec choice made while not sharing)
+          // would open it a second time right after, the first frames of a share started twice
+          needs_codec_reinit_.store(false);
           return true;
         }
         static constexpr const char* codec_names[] = {"H264", "H265", "AV1"};

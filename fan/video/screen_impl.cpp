@@ -1337,6 +1337,7 @@ bool fan::graphics::screen_encode_t::encode_write() {
     // the capture moved to another graphics card: the encoder has to open on the new device
     encoded_device_generation_ = mdscr.device_generation;
     encoder_.gpu_device_ = mdscr.device;
+    fan::print_impl("encoder: opened again, the capture moved to another device (HDR or display mode change, another GPU)");
     if (!encoder_.open(config_, fan::vec2(mdscr.Geometry.Resolution.x, mdscr.Geometry.Resolution.y))) return false;
     {
       std::lock_guard<std::mutex> lock(mutex);
@@ -1356,6 +1357,12 @@ bool fan::graphics::screen_encode_t::encode_write() {
   // below with the new config, opening it here as well would do the whole thing twice
   if (!follow_capture_size &&
     (encoder_.screencap_res_.x != mdscr.Geometry.Resolution.x || encoder_.screencap_res_.y != mdscr.Geometry.Resolution.y)) {
+    {
+      // opened here with the config as it is: a codec change waiting below would open it once more
+      std::lock_guard<std::mutex> lock(mutex);
+      update_flags &= ~codec_update_e::codec;
+    }
+    fan::print_impl("encoder: opened again, the capture size changed to " + std::to_string(mdscr.Geometry.Resolution.x) + "x" + std::to_string(mdscr.Geometry.Resolution.y));
     if (!encoder_.open(config_, fan::vec2(mdscr.Geometry.Resolution.x, mdscr.Geometry.Resolution.y))) return false;
   }
 
@@ -1364,6 +1371,7 @@ bool fan::graphics::screen_encode_t::encode_write() {
 
     config_.width = mdscr.Geometry.Resolution.x;
     config_.height = mdscr.Geometry.Resolution.y;
+    fan::print_impl("encoder: opened again to follow the screen size " + std::to_string(config_.width) + "x" + std::to_string(config_.height));
 
     {
       std::lock_guard<std::mutex> lock(mutex);

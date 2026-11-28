@@ -855,6 +855,7 @@ namespace fan {
       encoder_state_t* new_encoder = (active_encoder_.load() == &encoder_a_) ?
 
         &encoder_b_ : &encoder_a_;
+      fan::print_impl("encoder: opened again for a changed setting (codec, encoder or GPU/CPU choice)");
       if (init_encoder_state(new_encoder, pending_config_, screencap_res_)) {
         encoder_state_t* old = active_encoder_.exchange(new_encoder);
 
