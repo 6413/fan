@@ -1667,6 +1667,15 @@ void ImDrawList::AddBezierQuadratic(const ImVec2& p1, const ImVec2& p2, const Im
     PathStroke(col, 0, thickness);
 }
 
+static float GTextOutlineThickness = 0.0f;
+static ImU32 GTextOutlineColor = IM_COL32(0, 0, 0, 255);
+
+void ImGui::SetTextOutline(float thickness, ImU32 color)
+{
+    GTextOutlineThickness = thickness;
+    GTextOutlineColor = color;
+}
+
 void ImDrawList::AddText(ImFont* font, float font_size, const ImVec2& pos, ImU32 col, const char* text_begin, const char* text_end, float wrap_width, const ImVec4* cpu_fine_clip_rect)
 {
     if ((col & IM_COL32_A_MASK) == 0)
@@ -1693,6 +1702,22 @@ void ImDrawList::AddText(ImFont* font, float font_size, const ImVec2& pos, ImU32
         clip_rect.y = ImMax(clip_rect.y, cpu_fine_clip_rect->y);
         clip_rect.z = ImMin(clip_rect.z, cpu_fine_clip_rect->z);
         clip_rect.w = ImMin(clip_rect.w, cpu_fine_clip_rect->w);
+    }
+    // fan: the outline first, the text over it. Light text only: a dark one (on a light field) needs none
+    if (GTextOutlineThickness > 0.0f)
+    {
+        float r = ((col >> IM_COL32_R_SHIFT) & 0xFF) / 255.0f, g = ((col >> IM_COL32_G_SHIFT) & 0xFF) / 255.0f, b = ((col >> IM_COL32_B_SHIFT) & 0xFF) / 255.0f;
+        if (r * 0.3f + g * 0.59f + b * 0.11f > 0.35f)
+        {
+            unsigned int text_alpha = (col >> IM_COL32_A_SHIFT) & 0xFF;
+            unsigned int outline_alpha = ((GTextOutlineColor >> IM_COL32_A_SHIFT) & 0xFF) * text_alpha / 255;
+            ImU32 outline = (GTextOutlineColor & ~IM_COL32_A_MASK) | (outline_alpha << IM_COL32_A_SHIFT);
+            const float t = GTextOutlineThickness, d = GTextOutlineThickness * 0.7071f;
+            const ImVec2 offsets[8] = { ImVec2(-t, 0), ImVec2(t, 0), ImVec2(0, -t), ImVec2(0, t), ImVec2(-d, -d), ImVec2(d, -d), ImVec2(-d, d), ImVec2(d, d) };
+            if (outline_alpha > 0)
+                for (const ImVec2& o : offsets)
+                    font->RenderText(this, font_size, ImVec2(pos.x + o.x, pos.y + o.y), outline, clip_rect, text_begin, text_end, wrap_width, cpu_fine_clip_rect != NULL);
+        }
     }
     font->RenderText(this, font_size, pos, col, clip_rect, text_begin, text_end, wrap_width, cpu_fine_clip_rect != NULL);
 }

@@ -1175,6 +1175,10 @@ namespace fan::graphics::gui {
     text(str, style);
   }
 
+  void set_text_outline(f32_t thickness, const fan::color& color) {
+    ImGui::SetTextOutline(thickness, ImGui::ColorConvertFloat4ToU32(ImVec4(color.r, color.g, color.b, color.a)));
+  }
+
   void text_wrapped(std::string_view str, text_style_t style) {
     style.wrapped = true;
     text(str, style);

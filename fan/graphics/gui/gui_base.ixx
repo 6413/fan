@@ -165,6 +165,8 @@ export namespace fan::graphics::gui {
 
   void text(std::string_view str, const text_style_t& style = {});
   void text_outlined(std::string_view str, text_style_t style = {});
+  // every text drawn from now on gets an outline (thickness in pixels, 0 turns it off)
+  void set_text_outline(f32_t thickness, const fan::color& color = fan::colors::black);
   void text_wrapped(std::string_view str, text_style_t style = {});
 
   template <typename... args_t>

@@ -1081,6 +1081,9 @@ namespace ImGui
     //   for each static/DLL boundary you are calling from. Read "Context and Memory Allocators" section of imgui.cpp for more details.
     IMGUI_API void          SetAllocatorFunctions(ImGuiMemAllocFunc alloc_func, ImGuiMemFreeFunc free_func, void* user_data = NULL);
     IMGUI_API void          GetAllocatorFunctions(ImGuiMemAllocFunc* p_alloc_func, ImGuiMemFreeFunc* p_free_func, void** p_user_data);
+    // fan: every text drawn gets an outline of this thickness (pixels, 0 = none) and colour, its alpha scaled by the
+    // text's own. Readable text over a bright background picture or video
+    IMGUI_API void          SetTextOutline(float thickness, ImU32 color);
     IMGUI_API void*         MemAlloc(size_t size);
     IMGUI_API void          MemFree(void* ptr);
 
