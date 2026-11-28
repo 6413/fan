@@ -1325,6 +1325,36 @@ namespace fan {
       return;
     }
 
+    // HEVC keeps its VPS, SPS and PPS in an hvcC box, laid out differently from H.264's avcC below. Read as avcC
+    // they came out as garbage, and a file that has them only there (MP4 wallpapers often do: the first frame starts
+    // with the picture itself) could not be decoded at all
+    if (par->codec_id == AV_CODEC_ID_HEVC) {
+      if (size < 23) {
+        return;
+      }
+      nal_length_size_ = (data[21] & 0x03) + 1;
+      size_t pos = 22;
+      uint8_t arrays = data[pos++];
+      for (uint8_t a = 0; a < arrays; ++a) {
+        if (pos + 3 > size) return;
+        pos += 1;   // completeness and the NAL type, the NALs carry their type themselves
+        uint16_t count = (uint16_t(data[pos]) << 8) | uint16_t(data[pos + 1]);
+        pos += 2;
+        for (uint16_t n = 0; n < count; ++n) {
+          if (pos + 2 > size) return;
+          uint16_t nal_size = (uint16_t(data[pos]) << 8) | uint16_t(data[pos + 1]);
+          pos += 2;
+          if (pos + nal_size > size) return;
+          sps_pps_.insert(sps_pps_.end(), {0x00,0x00,0x00,0x01});
+          sps_pps_.insert(sps_pps_.end(), data + pos, data + pos + nal_size);
+          pos += nal_size;
+        }
+      }
+      return;
+    }
+
+    nal_length_size_ = (data[4] & 0x03) + 1;
+
     size_t pos = 5;
 
     uint8_t num_sps = data[pos++] & 0x1F;
