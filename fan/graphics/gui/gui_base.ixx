@@ -59,8 +59,8 @@ export namespace fan::graphics::gui {
 
   inline auto& get_font_paths() {
     static std::array<std::string, font::count> paths = {
-      "fonts/Inter/Inter_18pt-Regular.ttf",
-      "fonts/Inter/Inter_18pt-Bold.ttf",
+      "fonts/Rosehand/Rosehand-Regular.ttf",
+      "fonts/Rosehand/Rosehand-Bold.ttf",
       "fonts/JetBrainsMono/JetBrainsMono-Regular.ttf"
     };
     return paths;
